@@ -35,15 +35,24 @@ import java.util.concurrent.TimeUnit;
  */
 public class StatCollector extends Thread {
 
+    private int secondsBetweenSnaps = 20;
     private String dbUserName = "dbsnmp";
     private String dbPassword = "dbsnmp";
+    private String elasticUrl = "http://elasticsearch.example.net:9200/";
     private String connString;
     private String dbUniqueName;
     private Connection con;
     private PreparedStatement waitsPreparedStatement;
-    DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
-    LocalDateTime currentDate;
-    String elasticUrl = "http://elasticsearch.example.net:9200/";
+    private DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
+    private LocalDateTime currentDate;
+    private InputStream responseInputStream;
+    private BufferedReader responseContent;
+    private String responseLine;
+    private ArrayList<String> jsonWaitsArray;
+    private ArrayList<String> jsonEventsArray;
+    private HashMap <String, HttpURLConnection> elkConnectionMap;
+    private HashMap <String, String> elkIndexMap;
+    private HttpURLConnection currentConnection;    
     String waitsQuery
             = "select 'W',Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',wait_class),count(1) \n"
             + "from v$session where wait_class#<>6 \n"
@@ -52,14 +61,7 @@ public class StatCollector extends Thread {
             + "SELECT 'E',Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event),Count(1) \n"
             + "from v$session where wait_class#<>6 \n"
             + "group BY Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event) ";
-    InputStream responseInputStream;
-    BufferedReader responseContent;
-    String responseLine;
-    ArrayList<String> jsonWaitsArray;
-    ArrayList<String> jsonEventsArray;
-    HashMap <String, HttpURLConnection> elkConnectionMap;
-    HashMap <String, String> elkIndexMap;
-    HttpURLConnection currentConnection;
+
     boolean shutdown = false;
     public StatCollector(String inputString) {
         connString = inputString;
@@ -163,7 +165,7 @@ public class StatCollector extends Thread {
                     );
                     */
                 }
-                TimeUnit.SECONDS.sleep(5);
+                TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
             }
             
             waitsPreparedStatement.close();

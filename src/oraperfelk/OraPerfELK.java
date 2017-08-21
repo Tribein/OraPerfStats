@@ -35,6 +35,7 @@ public class OraPerfELK {
      * @param args the command line arguments
      */
     private static final String dbListFileName = "db.lst";
+    private static final int secondsToSleep = 60;
     public static void main(String[] args) throws InterruptedException {
         Map <String, Thread> dbList = new HashMap();
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
@@ -62,7 +63,7 @@ public class OraPerfELK {
                 e.printStackTrace();
                 System.exit(2);
             }
-                TimeUnit.SECONDS.sleep(60);
+                TimeUnit.SECONDS.sleep(secondsToSleep);
         }
         //Done
     }
