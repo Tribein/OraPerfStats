@@ -19,6 +19,10 @@ Sample elasticsearch index template:
         "Database": {
           "index": "false",
           "type": "text"
+        },
+        "Hostname": {
+          "index": "false",
+          "type": "text"
         }
       }
     },
@@ -29,6 +33,10 @@ Sample elasticsearch index template:
           "type": "date"
         },
         "Database": {
+          "index": "false",
+          "type": "text"
+        },
+        "Hostname": {
           "index": "false",
           "type": "text"
         }
