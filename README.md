@@ -1,4 +1,8 @@
 # OraPerf2Elasticsearch
+Quite raw, to be improved.
+
+Gather waits and events from Oracle Database on regular basis and put it in elasticsearch.
+
 Sample elasticsearch index template:
 {
   "order": 0,
