@@ -4,6 +4,7 @@ Quite raw, to be improved.
 Gather waits and events from Oracle Database on regular basis and put it in elasticsearch.
 
 Sample elasticsearch index template:
+
 {
   "order": 0,
   "template": "grid",
@@ -36,5 +37,6 @@ Sample elasticsearch index template:
 }
 
 record format example for db.lst file:
+
 hostname1.example.net:1521/db_service_name
 
