@@ -36,6 +36,6 @@ Sample elasticsearch index template:
 }
 
 record format example for db.lst file:
+
 hostname1.example.net:1521/db_service_name
-hostname2.example.net:1521/db_service_name
-...
+
