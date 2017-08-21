@@ -17,7 +17,8 @@ Sample elasticsearch index template:
           "type": "date"
         },
         "Database": {
-          "type": "string"
+          "index": "false",
+          "type": "text"
         }
       }
     },
@@ -28,7 +29,8 @@ Sample elasticsearch index template:
           "type": "date"
         },
         "Database": {
-          "type": "string"
+          "index": "false",
+          "type": "text"
         }
       }
     }
