@@ -41,6 +41,7 @@ public class StatCollector extends Thread {
     private String elasticUrl = "http://elasticsearch.example.net:9200/";
     private String connString;
     private String dbUniqueName;
+    private String dbHostName;
     private Connection con;
     private PreparedStatement waitsPreparedStatement;
     private DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
@@ -66,6 +67,7 @@ public class StatCollector extends Thread {
     public StatCollector(String inputString) {
         connString = inputString;
         dbUniqueName = inputString.split("/")[1];
+        dbHostName = inputString.split(":")[0];
         
         elkConnectionMap = new HashMap <String, HttpURLConnection>(); 
         elkIndexMap = new HashMap<String,String>();
@@ -147,6 +149,7 @@ public class StatCollector extends Thread {
                 queryResult.close();
                 if (jsonWaitsArray.size() > 0) {
                     jsonWaitsArray.add(" \"Database\" : \"" + dbUniqueName + "\" ");
+                    jsonWaitsArray.add(" \"Hostname\" : \"" + dbHostName + "\" ");
                     jsonWaitsArray.add(" \"SnapTime\" : \"" + dateFormat.format(currentDate) + "\" ");
                     SendToELK("waits","{ " + String.join(",", jsonWaitsArray) + " }");
                     /*
@@ -157,6 +160,7 @@ public class StatCollector extends Thread {
                 }
                 if (jsonEventsArray.size() > 0) {
                     jsonEventsArray.add(" \"Database\" : \"" + dbUniqueName + "\" ");
+                    jsonEventsArray.add(" \"Hostname\" : \"" + dbHostName + "\" ");
                     jsonEventsArray.add(" \"SnapTime\" : \"" + dateFormat.format(currentDate) + "\" ");
                     SendToELK("events","{ " + String.join(",", jsonEventsArray) + " }");
                     /*
