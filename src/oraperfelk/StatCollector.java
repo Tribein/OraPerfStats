@@ -28,7 +28,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
@@ -84,7 +83,7 @@ public class StatCollector extends Thread {
 
     public void SendToELK(String dataType, String jsonContent) {
         int dummy = 0;
-        HttpURLConnection currentConnection;
+        
         if (jsonContent == null || dataType == null || ! elkConnectionMap.containsKey(dataType)) {
             return;
         }
@@ -112,7 +111,7 @@ public class StatCollector extends Thread {
                 dummy++;
             }
             responseContent.close();
-            responseInputStream.close();            
+            responseInputStream.close(); 
         } catch (IOException e) {
             System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Error sending "+dataType+" data to ELK: " + elasticUrl);
             shutdown = true;
@@ -132,7 +131,6 @@ public class StatCollector extends Thread {
             waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
             jsonWaitsArray = new ArrayList();
             jsonEventsArray = new ArrayList();
-            ZoneId utcZoneId = ZoneId.of("UTC");
             while(!shutdown) /*for (int i = 0; i < 1; i++)*/ {
                 
                 currentDate = ZonedDateTime.now(ZoneOffset.UTC);
