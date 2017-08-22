@@ -8,36 +8,65 @@ Sample elasticsearch index template:
 {
   "order": 0,
   "template": "grid",
-  "settings": {},
+  "settings": {
+    "index": {
+      "number_of_shards": "1"
+    }
+  },
   "mappings": {
     "events": {
       "properties": {
         "SnapTime": {
           "format": "dd.MM.YYYY HH:mm:ss",
+          "store": true,
           "type": "date"
         },
         "Database": {
-          "index": "false",
+          "index": false,
+          "store": true,
           "type": "text"
         },
         "Hostname": {
-          "index": "false",
+          "index": false,
+          "store": true,
           "type": "text"
         }
+      }
+    },
+    "_default_": {
+      "_source": {
+        "enabled": false
+      },
+      "dynamic_templates": [
+        {
+          "longs": {
+            "mapping": {
+              "store": true,
+              "type": "short"
+            },
+            "match_mapping_type": "long"
+          }
+        }
+      ],
+      "_all": {
+        "enabled": false
       }
     },
     "waits": {
       "properties": {
         "SnapTime": {
           "format": "dd.MM.YYYY HH:mm:ss",
+          "store": true,
           "type": "date"
         },
         "Database": {
-          "index": "false",
+          "index": false,
+          "store": true,
           "type": "text"
         },
         "Hostname": {
-          "index": "false",
+          "index": false,
+          "store": true,
           "type": "text"
         }
       }
