@@ -44,6 +44,7 @@ public class StatCollector extends Thread {
     private String connString;
     private String dbUniqueName;
     private String dbHostName;
+    private String jsonString;
     private Connection con;
     private PreparedStatement waitsPreparedStatement;
     private DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
@@ -132,7 +133,6 @@ public class StatCollector extends Thread {
             jsonWaitsArray = new ArrayList();
             jsonEventsArray = new ArrayList();
             while(!shutdown) /*for (int i = 0; i < 1; i++)*/ {
-                
                 currentDate = ZonedDateTime.now(ZoneOffset.UTC);
                 waitsPreparedStatement.execute();
                 queryResult = waitsPreparedStatement.getResultSet();
@@ -140,10 +140,14 @@ public class StatCollector extends Thread {
 
                     switch (queryResult.getString(1)) {
                         case "W":
-                            jsonWaitsArray.add("\"" + queryResult.getString(2) + "\" : " + queryResult.getString(3));
+                            jsonWaitsArray.add(
+                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getString(3) + " }"
+                            );
                             break;
                         case "E":
-                            jsonEventsArray.add("\"" + queryResult.getString(2) + "\" : " + queryResult.getString(3));
+                            jsonEventsArray.add(
+                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getString(3) + " }"
+                            );
                             break;
                         default:
                             break;
@@ -151,27 +155,28 @@ public class StatCollector extends Thread {
                 }
                 queryResult.close();
                 if (jsonWaitsArray.size() > 0) {
-                    jsonWaitsArray.add(" \"Database\" : \"" + dbUniqueName + "\" ");
-                    jsonWaitsArray.add(" \"Hostname\" : \"" + dbHostName + "\" ");
-                    jsonWaitsArray.add(" \"SnapTime\" : \"" + dateFormat.format(currentDate) + "\" ");
-                    SendToELK("waits","{ " + String.join(",", jsonWaitsArray) + " }");
-                    /*
-                    System.out.println(
-                            "{ " + String.join(",", jsonWaitsArray) + " }"
-                    );
-                    */
+                    jsonString = "{ " +
+                            " \"Database\" : \"" + dbUniqueName + "\", " +
+                            " \"Hostname\" : \"" + dbHostName + "\", " + 
+                            " \"SnapTime\" : \"" + dateFormat.format(currentDate) + "\", " +
+                            "\"Waits\" : [ " + String.join(",", jsonWaitsArray) + " ]"
+                            + " }";
+                    SendToELK("waits",jsonString);
+                    //System.out.println(jsonString);
                 }
+                
                 if (jsonEventsArray.size() > 0) {
-                    jsonEventsArray.add(" \"Database\" : \"" + dbUniqueName + "\" ");
-                    jsonEventsArray.add(" \"Hostname\" : \"" + dbHostName + "\" ");
-                    jsonEventsArray.add(" \"SnapTime\" : \"" + dateFormat.format(currentDate) + "\" ");
-                    //SendToELK("events","{ " + String.join(",", jsonEventsArray) + " }");
-                    /*
-                    System.out.println(
-                            "{ " + String.join(",", jsonEventsArray) + " }"
-                    );
-                    */
+                    jsonString = "{ " +
+                            " \"Database\" : \"" + dbUniqueName + "\", " +
+                            " \"Hostname\" : \"" + dbHostName + "\", " + 
+                            " \"SnapTime\" : \"" + dateFormat.format(currentDate) + "\", " +
+                            "\"Events\" : [ " + String.join(",", jsonEventsArray) + " ]"
+                            + " }";
+                    SendToELK("events",jsonString);
+                    //System.out.println(jsonString );
                 }
+                jsonWaitsArray.clear();
+                jsonEventsArray.clear();                
                 TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
             }
             
