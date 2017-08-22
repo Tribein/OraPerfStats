@@ -28,6 +28,9 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 
 /**
  *
@@ -45,7 +48,7 @@ public class StatCollector extends Thread {
     private Connection con;
     private PreparedStatement waitsPreparedStatement;
     private DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
-    private LocalDateTime currentDate;
+    private ZonedDateTime  currentDate;
     private InputStream responseInputStream;
     private BufferedReader responseContent;
     private String responseLine;
@@ -129,8 +132,10 @@ public class StatCollector extends Thread {
             waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
             jsonWaitsArray = new ArrayList();
             jsonEventsArray = new ArrayList();
-            while(!shutdown)/*for (int i = 0; i < 1; i++)*/ {
-                currentDate = LocalDateTime.now();
+            ZoneId utcZoneId = ZoneId.of("UTC");
+            while(!shutdown) /*for (int i = 0; i < 1; i++)*/ {
+                
+                currentDate = ZonedDateTime.now(ZoneOffset.UTC);
                 waitsPreparedStatement.execute();
                 queryResult = waitsPreparedStatement.getResultSet();
                 while (queryResult.next()) {
@@ -162,7 +167,7 @@ public class StatCollector extends Thread {
                     jsonEventsArray.add(" \"Database\" : \"" + dbUniqueName + "\" ");
                     jsonEventsArray.add(" \"Hostname\" : \"" + dbHostName + "\" ");
                     jsonEventsArray.add(" \"SnapTime\" : \"" + dateFormat.format(currentDate) + "\" ");
-                    SendToELK("events","{ " + String.join(",", jsonEventsArray) + " }");
+                    //SendToELK("events","{ " + String.join(",", jsonEventsArray) + " }");
                     /*
                     System.out.println(
                             "{ " + String.join(",", jsonEventsArray) + " }"
