@@ -40,14 +40,16 @@ public class StatCollector extends Thread {
     private int secondsBetweenSnaps = 10;
     private String dbUserName = "dbsnmp";
     private String dbPassword = "dbsnmp";
-    private String elasticUrl = "http://ogw.moscow.sportmaster.ru:9200/";
+    private String elasticUrl = "http://elasticsearch.example.net:9200/";
+    private String indexPrefix = "grid";
     private String connString;
     private String dbUniqueName;
     private String dbHostName;
     private String jsonString;
     private Connection con;
     private PreparedStatement waitsPreparedStatement;
-    private DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
+    private DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
+    private DateTimeFormatter dateFormatIndex = DateTimeFormatter.ofPattern("ddMMYYYY");
     private ZonedDateTime  currentDate;
     private InputStream responseInputStream;
     private BufferedReader responseContent;
@@ -76,9 +78,9 @@ public class StatCollector extends Thread {
         elkIndexMap = new HashMap<String,String>();
         
         elkConnectionMap.put("waits", null );
-        elkIndexMap.put("waits","grid/waits");
+        elkIndexMap.put("waits","/waits");
         elkConnectionMap.put("events", null );
-        elkIndexMap.put("events","grid/events");
+        elkIndexMap.put("events","/events");
         
     }
 
@@ -92,13 +94,19 @@ public class StatCollector extends Thread {
         currentConnection = elkConnectionMap.get(dataType);
         if (currentConnection == null) {
             try {
-                currentConnection = (HttpURLConnection) new URL(elasticUrl + elkIndexMap.get(dataType)).openConnection();
+                currentConnection = (HttpURLConnection) new URL(
+                        elasticUrl 
+                        + indexPrefix 
+                        + "_"
+                        + dateFormatIndex.format(ZonedDateTime.now(ZoneOffset.UTC))
+                        + elkIndexMap.get(dataType) 
+                ).openConnection();
                 currentConnection.setConnectTimeout(5000);
                 currentConnection.setRequestMethod("POST");
                 currentConnection.setDoOutput(true);
                 currentConnection.addRequestProperty("Content-Type", "application/json");
             } catch (IOException e) {
-                System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Error opening connection to ELK: " + elasticUrl);
+                System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error opening connection to ELK: " + elasticUrl);
                 shutdown = true;
             }
         }
@@ -114,7 +122,13 @@ public class StatCollector extends Thread {
             responseContent.close();
             responseInputStream.close(); 
         } catch (IOException e) {
-            System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Error sending "+dataType+" data to ELK: " + elasticUrl);
+            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error sending "+dataType+" data to ELK: " + elasticUrl);
+            System.out.println(                        elasticUrl 
+                        + indexPrefix 
+                        + "_"
+                        + dateFormatIndex.format(ZonedDateTime.now(ZoneOffset.UTC))
+                        + elkIndexMap.get(dataType) 
+             );
             shutdown = true;
         }
     }
@@ -124,7 +138,7 @@ public class StatCollector extends Thread {
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
         } catch (ClassNotFoundException e) {
-            System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
+            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
             shutdown = true;
         }
         try {
@@ -141,12 +155,14 @@ public class StatCollector extends Thread {
                     switch (queryResult.getString(1)) {
                         case "W":
                             jsonWaitsArray.add(
-                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getString(3) + " }"
+                                    //"{ \"WaitClass\" : \"" + queryResult.getString(2) + "\" , \"SessionsWaiting\" : " + queryResult.getInt(3) + " }"
+                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getInt(3) + " }"
                             );
                             break;
                         case "E":
                             jsonEventsArray.add(
-                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getString(3) + " }"
+                                    //"{ \"EventName\" : \"" + queryResult.getString(2) + "\" , \"SessionsWaiting\" : " + queryResult.getInt(3) + " }"
+                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getInt(3) + " }"
                             );
                             break;
                         default:
@@ -158,7 +174,7 @@ public class StatCollector extends Thread {
                     jsonString = "{ " +
                             " \"Database\" : \"" + dbUniqueName + "\", " +
                             " \"Hostname\" : \"" + dbHostName + "\", " + 
-                            " \"SnapTime\" : \"" + dateFormat.format(currentDate) + "\", " +
+                            " \"SnapTime\" : \"" + dateFormatData.format(currentDate) + "\", " +
                             "\"Waits\" : [ " + String.join(",", jsonWaitsArray) + " ]"
                             + " }";
                     SendToELK("waits",jsonString);
@@ -169,7 +185,7 @@ public class StatCollector extends Thread {
                     jsonString = "{ " +
                             " \"Database\" : \"" + dbUniqueName + "\", " +
                             " \"Hostname\" : \"" + dbHostName + "\", " + 
-                            " \"SnapTime\" : \"" + dateFormat.format(currentDate) + "\", " +
+                            " \"SnapTime\" : \"" + dateFormatData.format(currentDate) + "\", " +
                             "\"Events\" : [ " + String.join(",", jsonEventsArray) + " ]"
                             + " }";
                     SendToELK("events",jsonString);
@@ -183,7 +199,7 @@ public class StatCollector extends Thread {
             waitsPreparedStatement.close();
             con.close();
         } catch (Exception e) {
-            System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
+            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
             shutdown = true;
         }
     }

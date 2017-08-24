@@ -7,10 +7,11 @@ Sample elasticsearch index template:
 
 {
   "order": 0,
-  "template": "grid",
+  "template": "grid_*",
   "settings": {
     "index": {
-      "number_of_shards": "1"
+      "number_of_shards": "1",
+      "number_of_replicas": "0"
     }
   },
   "mappings": {
@@ -18,18 +19,18 @@ Sample elasticsearch index template:
       "properties": {
         "SnapTime": {
           "format": "dd.MM.YYYY HH:mm:ss",
+          "index": true,
           "store": true,
           "type": "date"
         },
         "Database": {
-          "index": false,
           "store": true,
-          "type": "text"
+          "type": "keyword"
         },
         "Hostname": {
-          "index": false,
+          "index": true,
           "store": true,
-          "type": "text"
+          "type": "keyword"
         }
       }
     },
@@ -39,12 +40,33 @@ Sample elasticsearch index template:
       },
       "dynamic_templates": [
         {
-          "longs": {
+          "long2short": {
             "mapping": {
+              "index": true,
               "store": true,
               "type": "short"
             },
             "match_mapping_type": "long"
+          }
+        },
+        {
+          "waitclass": {
+            "path_match": "Waits.WaitClass",
+            "mapping": {
+              "index": true,
+              "store": true,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "eventname": {
+            "path_match": "Events.EventName",
+            "mapping": {
+              "index": true,
+              "store": true,
+              "type": "keyword"
+            }
           }
         }
       ],
@@ -56,18 +78,19 @@ Sample elasticsearch index template:
       "properties": {
         "SnapTime": {
           "format": "dd.MM.YYYY HH:mm:ss",
+          "index": true,
           "store": true,
           "type": "date"
         },
         "Database": {
-          "index": false,
+          "index": true,
           "store": true,
-          "type": "text"
+          "type": "keyword"
         },
         "Hostname": {
-          "index": false,
+          "index": true,
           "store": true,
-          "type": "text"
+          "type": "keyword"
         }
       }
     }
