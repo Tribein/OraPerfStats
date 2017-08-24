@@ -37,10 +37,10 @@ import java.time.ZonedDateTime;
  */
 public class StatCollector extends Thread {
 
-    private int secondsBetweenSnaps = 20;
+    private int secondsBetweenSnaps = 10;
     private String dbUserName = "dbsnmp";
     private String dbPassword = "dbsnmp";
-    private String elasticUrl = "http://elasticsearch.example.net:9200/";
+    private String elasticUrl = "http://ogw.moscow.sportmaster.ru:9200/";
     private String connString;
     private String dbUniqueName;
     private String dbHostName;
