@@ -40,7 +40,7 @@ public class StatCollector extends Thread {
     private int secondsBetweenSnaps = 10;
     private String dbUserName = "dbsnmp";
     private String dbPassword = "dbsnmp";
-    private String elasticUrl = "http://elasticsearch.example.net:9200/";
+    private String elasticUrl = "http://ogw.moscow.sportmaster.ru:9200/";
     private String indexPrefix = "grid";
     private String connString;
     private String dbUniqueName;
@@ -155,8 +155,8 @@ public class StatCollector extends Thread {
                     switch (queryResult.getString(1)) {
                         case "W":
                             jsonWaitsArray.add(
-                                    //"{ \"WaitClass\" : \"" + queryResult.getString(2) + "\" , \"SessionsWaiting\" : " + queryResult.getInt(3) + " }"
-                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getInt(3) + " }"
+                                    "{ \"WaitClass\" : \"" + queryResult.getString(2) + "\" , \"SessionsWaiting\" : " + queryResult.getInt(3) + " }"
+                                    //"{ \"" + queryResult.getString(2) + "\" : " + queryResult.getInt(3) + " }"
                             );
                             break;
                         case "E":
@@ -188,7 +188,7 @@ public class StatCollector extends Thread {
                             " \"SnapTime\" : \"" + dateFormatData.format(currentDate) + "\", " +
                             "\"Events\" : [ " + String.join(",", jsonEventsArray) + " ]"
                             + " }";
-                    SendToELK("events",jsonString);
+                    //SendToELK("events",jsonString);
                     //System.out.println(jsonString );
                 }
                 jsonWaitsArray.clear();
