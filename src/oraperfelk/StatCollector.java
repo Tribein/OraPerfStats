@@ -25,11 +25,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAccessor;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 /**
  *
@@ -54,19 +58,34 @@ public class StatCollector extends Thread {
     private InputStream responseInputStream;
     private BufferedReader responseContent;
     private String responseLine;
-    private ArrayList<String> jsonWaitsArray;
-    private ArrayList<String> jsonEventsArray;
+    private ArrayList<String> jsonSessionArray;
     private HashMap <String, HttpURLConnection> elkConnectionMap;
     private HashMap <String, String> elkIndexMap;
-    private HttpURLConnection currentConnection;    
+    private HttpURLConnection currentConnection; 
+    private Calendar cal = Calendar.getInstance();
     String waitsQuery
-            = "select 'W',Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',wait_class),count(1) \n"
-            + "from v$session where wait_class#<>6 \n"
-            + "group by Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',wait_class)\n"
-            + "UNION ALL\n"
-            + "SELECT 'E',Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event),Count(1) \n"
-            + "from v$session where wait_class#<>6 \n"
-            + "group BY Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event) ";
+            = "SELECT " +
+"  sid," +
+"  serial#," +
+"  decode(taddr,NULL,'N','Y')," +
+"  status," +
+"  schemaname," +
+"  osuser," +
+"  machine," +
+"  program," +
+"  TYPE," +
+"  MODULE," +
+"  blocking_session," +
+"  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event), " +
+"  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',wait_class)," +
+"  wait_time_micro," +
+"  sql_id," +
+"  sql_exec_start," +
+"  sql_exec_id," +
+"  logon_time," +
+"  seq#" +
+" FROM gv$session" +
+" WHERE wait_class#<>6 OR taddr IS NOT null";
 
     boolean shutdown = false;
     public StatCollector(String inputString) {
@@ -77,11 +96,8 @@ public class StatCollector extends Thread {
         elkConnectionMap = new HashMap <String, HttpURLConnection>(); 
         elkIndexMap = new HashMap<String,String>();
         
-        elkConnectionMap.put("waits", null );
-        elkIndexMap.put("waits","/waits");
-        elkConnectionMap.put("events", null );
-        elkIndexMap.put("events","/events");
-        
+        elkConnectionMap.put("sessions", null );
+        elkIndexMap.put("sessions","/sessions");
     }
 
     public void SendToELK(String dataType, String jsonContent) {
@@ -144,55 +160,50 @@ public class StatCollector extends Thread {
         try {
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
             waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            jsonWaitsArray = new ArrayList();
-            jsonEventsArray = new ArrayList();
+            jsonSessionArray = new ArrayList();
             while(!shutdown) /*for (int i = 0; i < 1; i++)*/ {
                 currentDate = ZonedDateTime.now(ZoneOffset.UTC);
                 waitsPreparedStatement.execute();
                 queryResult = waitsPreparedStatement.getResultSet();
+                cal.setTimeZone(TimeZone.getTimeZone("GMT"));
                 while (queryResult.next()) {
-
-                    switch (queryResult.getString(1)) {
-                        case "W":
-                            jsonWaitsArray.add(
-                                    //"{ \"WaitClass\" : \"" + queryResult.getString(2) + "\" , \"SessionsWaiting\" : " + queryResult.getInt(3) + " }"
-                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getInt(3) + " }"
-                            );
-                            break;
-                        case "E":
-                            jsonEventsArray.add(
-                                    //"{ \"EventName\" : \"" + queryResult.getString(2) + "\" , \"SessionsWaiting\" : " + queryResult.getInt(3) + " }"
-                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getInt(3) + " }"
-                            );
-                            break;
-                        default:
-                            break;
-                    }
+                    jsonSessionArray.add(
+                        "{ "
+                                +"\"SID\" : "+queryResult.getInt(1) + ", "
+                                +"\"Serial\" : "+queryResult.getInt(2) + ", "
+                                +"\"Schema\" : \""+queryResult.getString(5) + "\", "
+                                +"\"Status\" : \""+queryResult.getString(4).substring(0,1)+ "\", "
+                                +((queryResult.getString(3) == null ) ? "" : "\"Transaction\" : true, " )  
+                                +((queryResult.getString(6) == null) ?  "" : "\"OSUsername\" : \""+queryResult.getString(6).replace("\\", "/") + "\"," )
+                                +((queryResult.getString(7) == null) ? "" : "\"Machine\" : \""+queryResult.getString(7).replace("\\", "/") + "\", " )
+                                +((queryResult.getString(8) == null) ? "" : "\"Program\" : \""+queryResult.getString(8).replace("\\", "/") + "\", " )
+                                +((queryResult.getString(10) == null) ? "" : "\"Module\" : \""+queryResult.getString(10).replace("\\", "/") + "\", " )
+                                +"\"Type\" : \""+queryResult.getString(9).substring(0,1) + "\", "
+                                +"\"WaitSequence\" : "+queryResult.getInt(19) + ", "
+                                +"\"WaitEvent\" : \""+queryResult.getString(12) + "\", "
+                                +"\"WaitClass\" : \""+queryResult.getString(13) + "\","
+                                +((queryResult.getString(15) == null) ? "" : "\"SQLID\" : \""+queryResult.getString(15) + "\", " )
+                                +((queryResult.getDate(16) == null ) ? "" : "\"SQLExecStart\" : "+queryResult.getDate(16, cal).getTime()+ ", " )
+                                +((queryResult.getString(17) == null) ? "" : "\"SQLExecID\" : \""+queryResult.getString(17) + "\", " )
+                                +((queryResult.getString(18) == null)? "" : "\"LogonTime\" : "+queryResult.getDate(18,cal).getTime()+", " )
+                                +((queryResult.getString(11) == null) ? "" : "\"BlockingSID\" : \""+queryResult.getInt(11) +"\", " )
+                                +"\"us\" : "+queryResult.getLong(14)
+                        +" }"
+                    ); 
                 }
                 queryResult.close();
-                if (jsonWaitsArray.size() > 0) {
+                if (jsonSessionArray.size() > 0) {
                     jsonString = "{ " +
                             " \"Database\" : \"" + dbUniqueName + "\", " +
                             " \"Hostname\" : \"" + dbHostName + "\", " + 
                             " \"SnapTime\" : \"" + dateFormatData.format(currentDate) + "\", " +
-                            "\"Waits\" : [ " + String.join(",", jsonWaitsArray) + " ]"
+                            "\"SessionsData\" : [ " + String.join(",", jsonSessionArray) + " ]"
                             + " }";
-                    SendToELK("waits",jsonString);
-                    //System.out.println(jsonString);
+                   SendToELK("sessions",jsonString);
+                   //System.out.println(jsonString);
                 }
                 
-                if (jsonEventsArray.size() > 0) {
-                    jsonString = "{ " +
-                            " \"Database\" : \"" + dbUniqueName + "\", " +
-                            " \"Hostname\" : \"" + dbHostName + "\", " + 
-                            " \"SnapTime\" : \"" + dateFormatData.format(currentDate) + "\", " +
-                            "\"Events\" : [ " + String.join(",", jsonEventsArray) + " ]"
-                            + " }";
-                    SendToELK("events",jsonString);
-                    //System.out.println(jsonString );
-                }
-                jsonWaitsArray.clear();
-                jsonEventsArray.clear();                
+                jsonSessionArray.clear();              
                 TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
             }
             
@@ -201,6 +212,7 @@ public class StatCollector extends Thread {
         } catch (Exception e) {
             System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
             shutdown = true;
+            e.printStackTrace();
         }
     }
 }
