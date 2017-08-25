@@ -65,7 +65,7 @@ public class StatCollector extends Thread {
     private HashMap <String, String> elkIndexMap;
     private HttpURLConnection currentConnection; 
     private Calendar cal = Calendar.getInstance();
-    String waitsQuery
+    String sessionsQuery
             = "SELECT " +
 "  sid," +
 "  serial#," +
@@ -85,9 +85,10 @@ public class StatCollector extends Thread {
 "  sql_exec_start," +
 "  sql_exec_id," +
 "  logon_time," +
-"  seq#" +
-" FROM gv$session" +
-" WHERE wait_class#<>6 OR taddr IS NOT null";
+"  seq#," +
+"  saddr" +            
+"  FROM gv$session" +
+"  WHERE wait_class#<>6 OR taddr IS NOT null";
 
     boolean shutdown = false;
     public StatCollector(String inputString) {
@@ -99,7 +100,7 @@ public class StatCollector extends Thread {
         elkIndexMap = new HashMap<String,String>();
         
         elkConnectionMap.put("sessions", null );
-        elkIndexMap.put("sessions","/sessions");
+        elkIndexMap.put("sessions","/sessions/_bulk");
     }
 
     public void SendToELK(String dataType, String jsonContent) {
@@ -157,51 +158,54 @@ public class StatCollector extends Thread {
         try {
             cal.setTimeZone(TimeZone.getTimeZone("GMT"));
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
-            waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            sessionsPreparedStatement = con.prepareStatement(sessionsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
             jsonSessionArray = new ArrayList();
             while(!shutdown) /*for (int i = 0; i < 1; i++)*/ {
                 currentDate = ZonedDateTime.now(ZoneOffset.UTC);
-                waitsPreparedStatement.execute();
-                queryResult = waitsPreparedStatement.getResultSet();
-                cal.setTimeZone(TimeZone.getTimeZone("GMT"));
+                formatedDate = dateFormatData.format(currentDate);
+                sessionsPreparedStatement.execute();
+                queryResult = sessionsPreparedStatement.getResultSet();
+                
                 while (queryResult.next()) {
-                    jsonSessionArray.add(
-                        "{ "
-                                +"\"SID\" : "+queryResult.getInt(1) + ", "
+                    jsonString = 
+                                "\"SID\" : "+queryResult.getInt(1) + ", "
                                 +"\"Serial\" : "+queryResult.getInt(2) + ", "
                                 +"\"Schema\" : \""+queryResult.getString(5) + "\", "
                                 +"\"Status\" : \""+queryResult.getString(4).substring(0,1)+ "\", "
                                 +((queryResult.getString(3) == null ) ? "" : "\"Transaction\" : true, " )  
-                                +((queryResult.getString(6) == null) ?  "" : "\"OSUsername\" : \""+queryResult.getString(6).replace("\\", "/") + "\"," )
+                                +((queryResult.getString(6) == null) ?  "" : "\"OSUsername\" : \""+queryResult.getString(6).replace("\\", "/") + "\", " )
                                 +((queryResult.getString(7) == null) ? "" : "\"Machine\" : \""+queryResult.getString(7).replace("\\", "/") + "\", " )
                                 +((queryResult.getString(8) == null) ? "" : "\"Program\" : \""+queryResult.getString(8).replace("\\", "/") + "\", " )
                                 +((queryResult.getString(10) == null) ? "" : "\"Module\" : \""+queryResult.getString(10).replace("\\", "/") + "\", " )
                                 +"\"Type\" : \""+queryResult.getString(9).substring(0,1) + "\", "
                                 +"\"WaitSequence\" : "+queryResult.getInt(19) + ", "
                                 +"\"WaitEvent\" : \""+queryResult.getString(12) + "\", "
-                                +"\"WaitClass\" : \""+queryResult.getString(13) + "\","
+                                +"\"WaitClass\" : \""+queryResult.getString(13) + "\", "
                                 +((queryResult.getString(15) == null) ? "" : "\"SQLID\" : \""+queryResult.getString(15) + "\", " )
                                 +((queryResult.getDate(16) == null ) ? "" : "\"SQLExecStart\" : "+queryResult.getDate(16, cal).getTime()+ ", " )
                                 +((queryResult.getString(17) == null) ? "" : "\"SQLExecID\" : \""+queryResult.getString(17) + "\", " )
                                 +((queryResult.getString(18) == null)? "" : "\"LogonTime\" : "+queryResult.getDate(18,cal).getTime()+", " )
-                                +((queryResult.getString(11) == null) ? "" : "\"BlockingSID\" : \""+queryResult.getInt(11) +"\", " )
+                                +((queryResult.getString(11) == null) ? "" : "\"BlockingSID\" : "+queryResult.getLong(11) +", " )
                                 +"\"us\" : "+queryResult.getLong(14)
-                        +" }"
-                    ); 
-                }
-                queryResult.close();
-                if (jsonSessionArray.size() > 0) {
-                    jsonString = "{ " +
+                        ; 
+                    if (!jsonString.isEmpty()) {
+                        jsonSessionArray.add( "{ \"index\": {} }");
+                        jsonSessionArray.add("{ " +
                             " \"Database\" : \"" + dbUniqueName + "\", " +
                             " \"Hostname\" : \"" + dbHostName + "\", " + 
-                            " \"SnapTime\" : \"" + dateFormatData.format(currentDate) + "\", " +
-                            "\"SessionsData\" : [ " + String.join(",", jsonSessionArray) + " ]"
-                            + " }";
-                   SendToELK("sessions",jsonString);
-                   //System.out.println(jsonString);
+                            " \"SnapTime\" : \"" + formatedDate + "\", " +
+                            jsonString
+                        + " }");
+                        //System.out.println(jsonString);
+                    }              
+                    jsonString = "";
                 }
-                
-                jsonSessionArray.clear();              
+                queryResult.close();                
+                if(jsonSessionArray.size()>1){
+                    //System.out.println(String.join("\n", jsonSessionArray));
+                    SendToELK("sessions",String.join("\n", jsonSessionArray));
+                }
+                jsonSessionArray.clear();
                 TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
             }
             
