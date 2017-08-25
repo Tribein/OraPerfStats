@@ -25,11 +25,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAccessor;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 /**
  *
@@ -40,33 +44,50 @@ public class StatCollector extends Thread {
     private int secondsBetweenSnaps = 10;
     private String dbUserName = "dbsnmp";
     private String dbPassword = "dbsnmp";
-    private String elasticUrl = "http://ogw.moscow.sportmaster.ru:9200/";
+    private String elasticUrl = "http://elasticsearch.example.net:9200/";
     private String indexPrefix = "grid";
     private String connString;
     private String dbUniqueName;
     private String dbHostName;
     private String jsonString;
+    private String formatedDate;
     private Connection con;
-    private PreparedStatement waitsPreparedStatement;
+    private PreparedStatement sessionsPreparedStatement;
     private DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
     private DateTimeFormatter dateFormatIndex = DateTimeFormatter.ofPattern("ddMMYYYY");
     private ZonedDateTime  currentDate;
     private InputStream responseInputStream;
     private BufferedReader responseContent;
     private String responseLine;
-    private ArrayList<String> jsonWaitsArray;
-    private ArrayList<String> jsonEventsArray;
+    private ArrayList<String> jsonSessionArray;
     private HashMap <String, HttpURLConnection> elkConnectionMap;
     private HashMap <String, String> elkIndexMap;
-    private HttpURLConnection currentConnection;    
-    String waitsQuery
-            = "select 'W',Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',wait_class),count(1) \n"
-            + "from v$session where wait_class#<>6 \n"
-            + "group by Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',wait_class)\n"
-            + "UNION ALL\n"
-            + "SELECT 'E',Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event),Count(1) \n"
-            + "from v$session where wait_class#<>6 \n"
-            + "group BY Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event) ";
+    private HttpURLConnection currentConnection; 
+    private Calendar cal = Calendar.getInstance();
+    String sessionsQuery
+            = "SELECT " +
+"  sid," +
+"  serial#," +
+"  decode(taddr,NULL,'N','Y')," +
+"  status," +
+"  schemaname," +
+"  osuser," +
+"  machine," +
+"  program," +
+"  TYPE," +
+"  MODULE," +
+"  blocking_session," +
+"  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event), " +
+"  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',wait_class)," +
+"  wait_time_micro," +
+"  sql_id," +
+"  sql_exec_start," +
+"  sql_exec_id," +
+"  logon_time," +
+"  seq#," +
+"  saddr" +            
+"  FROM gv$session" +
+"  WHERE wait_class#<>6 OR taddr IS NOT null";
 
     boolean shutdown = false;
     public StatCollector(String inputString) {
@@ -77,11 +98,8 @@ public class StatCollector extends Thread {
         elkConnectionMap = new HashMap <String, HttpURLConnection>(); 
         elkIndexMap = new HashMap<String,String>();
         
-        elkConnectionMap.put("waits", null );
-        elkIndexMap.put("waits","/waits");
-        elkConnectionMap.put("events", null );
-        elkIndexMap.put("events","/events");
-        
+        elkConnectionMap.put("sessions", null );
+        elkIndexMap.put("sessions","/sessions/_bulk");
     }
 
     public void SendToELK(String dataType, String jsonContent) {
@@ -123,12 +141,7 @@ public class StatCollector extends Thread {
             responseInputStream.close(); 
         } catch (IOException e) {
             System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error sending "+dataType+" data to ELK: " + elasticUrl);
-            System.out.println(                        elasticUrl 
-                        + indexPrefix 
-                        + "_"
-                        + dateFormatIndex.format(ZonedDateTime.now(ZoneOffset.UTC))
-                        + elkIndexMap.get(dataType) 
-             );
+            System.out.println(jsonContent);
             shutdown = true;
         }
     }
@@ -142,65 +155,65 @@ public class StatCollector extends Thread {
             shutdown = true;
         }
         try {
+            cal.setTimeZone(TimeZone.getTimeZone("GMT"));
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
-            waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            jsonWaitsArray = new ArrayList();
-            jsonEventsArray = new ArrayList();
+            sessionsPreparedStatement = con.prepareStatement(sessionsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            jsonSessionArray = new ArrayList();
             while(!shutdown) /*for (int i = 0; i < 1; i++)*/ {
                 currentDate = ZonedDateTime.now(ZoneOffset.UTC);
-                waitsPreparedStatement.execute();
-                queryResult = waitsPreparedStatement.getResultSet();
-                while (queryResult.next()) {
-
-                    switch (queryResult.getString(1)) {
-                        case "W":
-                            jsonWaitsArray.add(
-                                    "{ \"WaitClass\" : \"" + queryResult.getString(2) + "\" , \"SessionsWaiting\" : " + queryResult.getInt(3) + " }"
-                                    //"{ \"" + queryResult.getString(2) + "\" : " + queryResult.getInt(3) + " }"
-                            );
-                            break;
-                        case "E":
-                            jsonEventsArray.add(
-                                    //"{ \"EventName\" : \"" + queryResult.getString(2) + "\" , \"SessionsWaiting\" : " + queryResult.getInt(3) + " }"
-                                    "{ \"" + queryResult.getString(2) + "\" : " + queryResult.getInt(3) + " }"
-                            );
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                queryResult.close();
-                if (jsonWaitsArray.size() > 0) {
-                    jsonString = "{ " +
-                            " \"Database\" : \"" + dbUniqueName + "\", " +
-                            " \"Hostname\" : \"" + dbHostName + "\", " + 
-                            " \"SnapTime\" : \"" + dateFormatData.format(currentDate) + "\", " +
-                            "\"Waits\" : [ " + String.join(",", jsonWaitsArray) + " ]"
-                            + " }";
-                    SendToELK("waits",jsonString);
-                    //System.out.println(jsonString);
-                }
+                formatedDate = dateFormatData.format(currentDate);
+                sessionsPreparedStatement.execute();
+                queryResult = sessionsPreparedStatement.getResultSet();
                 
-                if (jsonEventsArray.size() > 0) {
-                    jsonString = "{ " +
+                while (queryResult.next()) {
+                    jsonString = 
+                                "\"SID\" : "+queryResult.getInt(1) + ", "
+                                +"\"Serial\" : "+queryResult.getInt(2) + ", "
+                                +"\"Schema\" : \""+queryResult.getString(5) + "\", "
+                                +"\"Status\" : \""+queryResult.getString(4).substring(0,1)+ "\", "
+                                +((queryResult.getString(3) == null ) ? "" : "\"Transaction\" : true, " )  
+                                +((queryResult.getString(6) == null) ?  "" : "\"OSUsername\" : \""+queryResult.getString(6).replace("\\", "/") + "\", " )
+                                +((queryResult.getString(7) == null) ? "" : "\"Machine\" : \""+queryResult.getString(7).replace("\\", "/") + "\", " )
+                                +((queryResult.getString(8) == null) ? "" : "\"Program\" : \""+queryResult.getString(8).replace("\\", "/") + "\", " )
+                                +((queryResult.getString(10) == null) ? "" : "\"Module\" : \""+queryResult.getString(10).replace("\\", "/") + "\", " )
+                                +"\"Type\" : \""+queryResult.getString(9).substring(0,1) + "\", "
+                                +"\"WaitSequence\" : "+queryResult.getInt(19) + ", "
+                                +"\"WaitEvent\" : \""+queryResult.getString(12) + "\", "
+                                +"\"WaitClass\" : \""+queryResult.getString(13) + "\", "
+                                +((queryResult.getString(15) == null) ? "" : "\"SQLID\" : \""+queryResult.getString(15) + "\", " )
+                                +((queryResult.getDate(16) == null ) ? "" : "\"SQLExecStart\" : "+queryResult.getDate(16, cal).getTime()+ ", " )
+                                +((queryResult.getString(17) == null) ? "" : "\"SQLExecID\" : \""+queryResult.getString(17) + "\", " )
+                                +((queryResult.getString(18) == null)? "" : "\"LogonTime\" : "+queryResult.getDate(18,cal).getTime()+", " )
+                                +((queryResult.getString(11) == null) ? "" : "\"BlockingSID\" : "+queryResult.getLong(11) +", " )
+                                +"\"us\" : "+queryResult.getLong(14)
+                        ; 
+                    if (!jsonString.isEmpty()) {
+                        jsonSessionArray.add( "{ \"index\": {} }");
+                        jsonSessionArray.add("{ " +
                             " \"Database\" : \"" + dbUniqueName + "\", " +
                             " \"Hostname\" : \"" + dbHostName + "\", " + 
-                            " \"SnapTime\" : \"" + dateFormatData.format(currentDate) + "\", " +
-                            "\"Events\" : [ " + String.join(",", jsonEventsArray) + " ]"
-                            + " }";
-                    //SendToELK("events",jsonString);
-                    //System.out.println(jsonString );
+                            " \"SnapTime\" : \"" + formatedDate + "\", " +
+                            jsonString
+                        + " }");
+                        //System.out.println(jsonString);
+                    }              
+                    jsonString = "";
                 }
-                jsonWaitsArray.clear();
-                jsonEventsArray.clear();                
+                queryResult.close();                
+                if(jsonSessionArray.size()>1){
+                    //System.out.println(String.join("\n", jsonSessionArray));
+                    SendToELK("sessions",String.join("\n", jsonSessionArray));
+                }
+                jsonSessionArray.clear();
                 TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
             }
             
-            waitsPreparedStatement.close();
+            sessionsPreparedStatement.close();
             con.close();
         } catch (Exception e) {
             System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
             shutdown = true;
+            e.printStackTrace();
         }
     }
 }
