@@ -11,11 +11,16 @@ Sample elasticsearch index template:
   "settings": {
     "index": {
       "number_of_shards": "1",
-      "number_of_replicas": "0"
+      "number_of_replicas": "0",
+      "mapping": {
+        "total_fields": {
+          "limit": "1048576"
+        }
+      }
     }
   },
   "mappings": {
-    "events": {
+    "sessions": {
       "properties": {
         "SnapTime": {
           "format": "dd.MM.YYYY HH:mm:ss",
@@ -24,6 +29,7 @@ Sample elasticsearch index template:
           "type": "date"
         },
         "Database": {
+          "index": true,
           "store": true,
           "type": "keyword"
         },
@@ -40,58 +46,52 @@ Sample elasticsearch index template:
       },
       "dynamic_templates": [
         {
-          "long2short": {
+          "string2kw": {
             "mapping": {
               "index": true,
               "store": true,
-              "type": "short"
+              "type": "keyword"
+            },
+            "match_mapping_type": "string"
+          }
+        },
+        {
+          "logontimemilli": {
+            "mapping": {
+              "format": "epoch_millis",
+              "index": true,
+              "store": true,
+              "type": "date"
+            },
+            "match_mapping_type": "long",
+            "match": "LogonTime"
+          }
+        },
+        {
+          "sqlexecstartmilli": {
+            "mapping": {
+              "format": "epoch_millis",
+              "index": true,
+              "store": true,
+              "type": "date"
+            },
+            "match_mapping_type": "long",
+            "match": "SQLExecStart"
+          }
+        },
+        {
+          "sesslong": {
+            "mapping": {
+              "index": true,
+              "store": true,
+              "type": "long"
             },
             "match_mapping_type": "long"
-          }
-        },
-        {
-          "waitclass": {
-            "path_match": "Waits.WaitClass",
-            "mapping": {
-              "index": true,
-              "store": true,
-              "type": "keyword"
-            }
-          }
-        },
-        {
-          "eventname": {
-            "path_match": "Events.EventName",
-            "mapping": {
-              "index": true,
-              "store": true,
-              "type": "keyword"
-            }
           }
         }
       ],
       "_all": {
         "enabled": false
-      }
-    },
-    "waits": {
-      "properties": {
-        "SnapTime": {
-          "format": "dd.MM.YYYY HH:mm:ss",
-          "index": true,
-          "store": true,
-          "type": "date"
-        },
-        "Database": {
-          "index": true,
-          "store": true,
-          "type": "keyword"
-        },
-        "Hostname": {
-          "index": true,
-          "store": true,
-          "type": "keyword"
-        }
       }
     }
   },
