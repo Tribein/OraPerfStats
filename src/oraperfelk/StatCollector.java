@@ -52,6 +52,7 @@ public class StatCollector extends Thread {
     private String jsonString;
     private String formatedDate;
     private Connection con;
+    private int dummy;
     private PreparedStatement sessionsPreparedStatement;
     private DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
     private DateTimeFormatter dateFormatIndex = DateTimeFormatter.ofPattern("ddMMYYYY");
@@ -103,7 +104,7 @@ public class StatCollector extends Thread {
     }
 
     public void SendToELK(String dataType, String jsonContent) {
-        int dummy = 0;
+        dummy = 0;
         
         if (jsonContent == null || dataType == null || ! elkConnectionMap.containsKey(dataType)) {
             return;
