@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package oraperfelk;
+package oraperf;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Tribein
  */
-public class OraPerfELK {
+public class OraPerf {
 
     /**
      * @param args the command line arguments
@@ -49,7 +49,7 @@ public class OraPerfELK {
                     dbLine = fileScanner.nextLine();
                     if ( !dbList.containsKey(dbLine) || !dbList.get(dbLine).isAlive() ){
                         try{
-                            dbList.put(dbLine, new StatCollector(dbLine));
+                            dbList.put(dbLine, new StatCollectorCKH(dbLine));
                             System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
                             dbList.get(dbLine).start();
                         }catch(Exception e){

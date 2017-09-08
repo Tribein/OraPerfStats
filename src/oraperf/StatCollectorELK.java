@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package oraperfelk;
+package oraperf;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -39,7 +39,7 @@ import java.util.TimeZone;
  *
  * @author Tribein
  */
-public class StatCollector extends Thread {
+public class StatCollectorELK extends Thread {
 
     private int secondsBetweenSnaps = 10;
     private String dbUserName = "dbsnmp";
@@ -88,10 +88,10 @@ public class StatCollector extends Thread {
 "  seq#," +
 "  saddr" +            
 "  FROM gv$session" +
-"  WHERE wait_class#<>6 OR taddr IS NOT null";
+"  WHERE (sid<>sys_context('USERENV','SID')) and  (wait_class#<>6 OR taddr IS NOT null)";
 
     boolean shutdown = false;
-    public StatCollector(String inputString) {
+    public StatCollectorELK(String inputString) {
         connString = inputString;
         dbUniqueName = inputString.split("/")[1];
         dbHostName = inputString.split(":")[0];
