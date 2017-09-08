@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # OraPerf2Elasticsearch
 Quite raw, to be improved.
 
@@ -102,3 +103,6 @@ record format example for db.lst file:
 
 hostname1.example.net:1521/db_service_name
 
+=======
+# OraPerfStats
+>>>>>>> origin/master

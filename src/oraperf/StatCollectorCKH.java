@@ -105,7 +105,7 @@ public class StatCollectorCKH extends Thread {
                         stmtSessions.setInt(4,queryResult.getInt(1));
                         stmtSessions.setInt(5,queryResult.getInt(2));
                         stmtSessions.setString(6,queryResult.getString(3));
-                        stmtSessions.setString(7,queryResult.getString(4));
+                        stmtSessions.setString(7,queryResult.getString(4).substring(0,1));
                         stmtSessions.setString(8,queryResult.getString(5));
                         stmtSessions.setString(9,queryResult.getString(6));
                         stmtSessions.setString(10,queryResult.getString(7));
