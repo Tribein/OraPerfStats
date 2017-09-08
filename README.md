@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-# OraPerf2Elasticsearch
 Quite raw, to be improved.
 
 Gather waits and events from Oracle Database on regular basis and put it in elasticsearch.
@@ -104,5 +102,5 @@ record format example for db.lst file:
 hostname1.example.net:1521/db_service_name
 
 =======
-# OraPerfStats
->>>>>>> origin/master
+ClickHouseDb:
+CREATE TABLE orasessions ( dbuniquename String,  hostname String,  snapTime DateTime,  sid UInt32,  serial UInt32,  opentrn String,  status String,  schemaname String,  osuser String,  machine String,  program String,  type String,  module String,  blocking_session UInt32,  event String,  class String,  wait_time Float32,  sql_id String,  sql_exec_start DateTime,  sql_exec_id UInt32,  logon_time DateTime,  seq UInt32) ENGINE = Log;
