@@ -30,12 +30,13 @@ public class StatCollectorCKH extends Thread {
     private Connection con;                                                                                                                                                                                                                                               
     private PreparedStatement waitsPreparedStatement;                                                                                                                                                                                                                     
     private DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");                                                                                                                                                                        
-    private long  currentDate;                                                                                                                                                                                                                                   
+    private long  currentDateTime;                                                                                                                                                                                                                                   
+    private LocalDate currentDate;
     private ClickHousePreparedStatement stmtSessions;                                                                                                                                                                                                                     
     private ClickHouseConnection connClickHouse;                                                                                                                                                                                                                          
     private ClickHouseProperties connClickHouseProperties = new ClickHouseProperties().withCredentials("default", "secret");                                                                                                                                              
     private String connClickHouseString = "jdbc:clickhouse://10.64.130.69:8123/testdb";                                                                                                                                                                          
-    String insertSessions = "insert into orasessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";                                                                                                                                                                                                                                                                                                                                                                                       
+    String insertSessions = "insert into orasessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";                                                                                                                                                                                                                                                                                                                                                                                       
     String waitsQuery                                                                                                                                                                                                                                                     
             = "SELECT " +                                                                                                                                                                                                                                                 
 "  sid," +                                                                                                                                                                                                                                                                
@@ -52,8 +53,8 @@ public class StatCollectorCKH extends Thread {
 "  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event), " +
 "  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',wait_class)," +
 "  round(wait_time_micro/1000000,3)," +
-"  sql_id," +
-"  nvl(sql_exec_start,sysdate)," +
+"  nvl(sql_id,'-')," +
+"  nvl(sql_exec_start,sysdate - interval '360' month)," +
 "  sql_exec_id," +
 "  logon_time," +
 "  seq#" +
@@ -95,13 +96,14 @@ public class StatCollectorCKH extends Thread {
             while(!shutdown) /*for (int i = 0; i < 1; i++)*/ {
                 waitsPreparedStatement.execute();
                 queryResult = waitsPreparedStatement.getResultSet();
-                currentDate =   Instant.now().getEpochSecond();
+                currentDateTime =   Instant.now().getEpochSecond();
+                currentDate = LocalDate.now();
                 while (queryResult.next() && !shutdown) {
                     try{
                         //--
                         stmtSessions.setString(1, dbUniqueName);
                         stmtSessions.setString(2, dbHostName);
-                        stmtSessions.setLong(3,  currentDate);
+                        stmtSessions.setLong(3,  currentDateTime);
                         stmtSessions.setInt(4,queryResult.getInt(1));
                         stmtSessions.setInt(5,queryResult.getInt(2));
                         stmtSessions.setString(6,queryResult.getString(3));
@@ -117,10 +119,11 @@ public class StatCollectorCKH extends Thread {
                         stmtSessions.setString(16,queryResult.getString(13));
                         stmtSessions.setFloat(17,queryResult.getFloat(14));
                         stmtSessions.setString(18,queryResult.getString(15));
-                        stmtSessions.setLong(19, ((java.util.Date) queryResult.getTimestamp(16)).getTime()/1000 );
+                        stmtSessions.setLong(19, ((java.util.Date) queryResult.getTimestamp(16)).getTime() / 1000 );
                         stmtSessions.setInt(20,queryResult.getInt(17));
-                        stmtSessions.setLong(21,((java.util.Date) queryResult.getTimestamp(18)).getTime()/1000);
+                        stmtSessions.setLong(21,((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
                         stmtSessions.setInt(22,queryResult.getInt(19));
+                        stmtSessions.setDate(23,java.sql.Date.valueOf(currentDate));
                         //--
                         stmtSessions.execute();
                         connClickHouse.commit();
