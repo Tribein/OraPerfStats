@@ -40,6 +40,7 @@ public class OraPerf {
         Map <String, Thread> dbList = new HashMap();
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
         String dbLine; 
+        Thread optimizeThreadSessions = null;
         System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
         while(true) /*for(int i=0; i<1; i++)*/{
             try{
@@ -58,6 +59,11 @@ public class OraPerf {
                         }
                     }
                 }            
+                if(optimizeThreadSessions==null || !optimizeThreadSessions.isAlive()){
+                    System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign thread for optimize orasessions table!");
+                    optimizeThreadSessions = new CKHOptimize("orasessions");
+                    optimizeThreadSessions.run();
+                }
             } catch (FileNotFoundException e){
                 System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" +"Error reading database list!");
                 e.printStackTrace();

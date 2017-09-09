@@ -36,7 +36,7 @@ public class StatCollectorCKH extends Thread {
     private ClickHouseConnection connClickHouse;                                                                                                                                                                                                                          
     private ClickHouseProperties connClickHouseProperties = new ClickHouseProperties().withCredentials("default", "secret");                                                                                                                                              
     private String connClickHouseString = "jdbc:clickhouse://10.64.130.69:8123/testdb";                                                                                                                                                                          
-    String insertSessions = "insert into orasessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";                                                                                                                                                                                                                                                                                                                                                                                       
+    private String insertSessions = "insert into orasessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";                                                                                                                                                                                                                                                                                                                                                                                       
     String waitsQuery                                                                                                                                                                                                                                                     
             = "SELECT " +                                                                                                                                                                                                                                                 
 "  sid," +                                                                                                                                                                                                                                                                
@@ -124,9 +124,8 @@ public class StatCollectorCKH extends Thread {
                         stmtSessions.setLong(21,((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
                         stmtSessions.setInt(22,queryResult.getInt(19));
                         stmtSessions.setDate(23,java.sql.Date.valueOf(currentDate));
+                        stmtSessions.addBatch();
                         //--
-                        stmtSessions.execute();
-                        connClickHouse.commit();
                     } catch (Exception e){
                         System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
                         shutdown = true;
@@ -134,6 +133,7 @@ public class StatCollectorCKH extends Thread {
                     }
                 }
                 queryResult.close();
+                stmtSessions.executeBatch();
                 TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
             }
             waitsPreparedStatement.close();
