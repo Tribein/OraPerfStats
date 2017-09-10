@@ -44,7 +44,7 @@ public class StatCollectorCKH extends Thread {
     private ClickHouseConnection connClickHouse;
     private ClickHouseProperties connClickHouseProperties = new ClickHouseProperties().withCredentials("default", "secret");
     private String connClickHouseString = "jdbc:clickhouse://10.64.130.69:8123/testdb";
-    private String insertSessions = "insert into orasessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    private String insertSessionsQuery = "insert into orasessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     String waitsQuery
             = "SELECT "
             + "  sid,"
@@ -93,7 +93,7 @@ public class StatCollectorCKH extends Thread {
         }
         try {
             connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
-            sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessions);
+            sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
         } catch (Exception e) {
             System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse!");
             shutdown = true;
