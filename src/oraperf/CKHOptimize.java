@@ -59,7 +59,7 @@ public class CKHOptimize extends Thread {
             stmtOptimize.close();
             connClickHouse.close();
         } catch (Exception e) {
-            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error executin optimize for " + tableName);
+            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error executing optimize for " + tableName);
             shutdown = true;
         }
     }        
