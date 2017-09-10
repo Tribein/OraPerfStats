@@ -25,10 +25,6 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
-/**
- *
- * @author Tribein
- */
 public class OraPerf {
 
     /**
@@ -60,9 +56,9 @@ public class OraPerf {
                     }
                 }            
                 if(optimizeThreadSessions==null || !optimizeThreadSessions.isAlive()){
-                    System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign thread for optimize orasessions table!");
+                    System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize orasessions table!");
                     optimizeThreadSessions = new CKHOptimize("orasessions");
-                    optimizeThreadSessions.run();
+                    optimizeThreadSessions.start();
                 }
             } catch (FileNotFoundException e){
                 System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" +"Error reading database list!");

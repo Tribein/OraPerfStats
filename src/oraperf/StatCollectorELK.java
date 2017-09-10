@@ -35,10 +35,7 @@ import java.time.temporal.TemporalAccessor;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-/**
- *
- * @author Tribein
- */
+
 public class StatCollectorELK extends Thread {
 
     private int secondsBetweenSnaps = 10;
