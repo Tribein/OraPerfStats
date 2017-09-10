@@ -32,7 +32,7 @@ public class StatCollectorCKH extends Thread {
     private DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");                                                                                                                                                                        
     private long  currentDateTime;                                                                                                                                                                                                                                   
     private LocalDate currentDate;
-    private ClickHousePreparedStatement stmtSessions;                                                                                                                                                                                                                     
+    private ClickHousePreparedStatement sessionsPreparedStatement;                                                                                                                                                                                                                     
     private ClickHouseConnection connClickHouse;                                                                                                                                                                                                                          
     private ClickHouseProperties connClickHouseProperties = new ClickHouseProperties().withCredentials("default", "secret");                                                                                                                                              
     private String connClickHouseString = "jdbc:clickhouse://10.64.130.69:8123/testdb";                                                                                                                                                                          
@@ -84,7 +84,7 @@ public class StatCollectorCKH extends Thread {
         }
         try {
             connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
-            stmtSessions =(ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessions);
+            sessionsPreparedStatement =(ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessions);
         } catch (Exception e){
             System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse!");
             shutdown = true;
@@ -101,30 +101,30 @@ public class StatCollectorCKH extends Thread {
                 while (queryResult.next() && !shutdown) {
                     try{
                         //--
-                        stmtSessions.setString(1, dbUniqueName);
-                        stmtSessions.setString(2, dbHostName);
-                        stmtSessions.setLong(3,  currentDateTime);
-                        stmtSessions.setInt(4,queryResult.getInt(1));
-                        stmtSessions.setInt(5,queryResult.getInt(2));
-                        stmtSessions.setString(6,queryResult.getString(3));
-                        stmtSessions.setString(7,queryResult.getString(4).substring(0,1));
-                        stmtSessions.setString(8,queryResult.getString(5));
-                        stmtSessions.setString(9,queryResult.getString(6));
-                        stmtSessions.setString(10,queryResult.getString(7));
-                        stmtSessions.setString(11,queryResult.getString(8));
-                        stmtSessions.setString(12,queryResult.getString(9).substring(0,1));
-                        stmtSessions.setString(13,queryResult.getString(10));
-                        stmtSessions.setInt(14,queryResult.getInt(11));
-                        stmtSessions.setString(15,queryResult.getString(12));
-                        stmtSessions.setString(16,queryResult.getString(13));
-                        stmtSessions.setFloat(17,queryResult.getFloat(14));
-                        stmtSessions.setString(18,queryResult.getString(15));
-                        stmtSessions.setLong(19, ((java.util.Date) queryResult.getTimestamp(16)).getTime() / 1000 );
-                        stmtSessions.setInt(20,queryResult.getInt(17));
-                        stmtSessions.setLong(21,((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
-                        stmtSessions.setInt(22,queryResult.getInt(19));
-                        stmtSessions.setDate(23,java.sql.Date.valueOf(currentDate));
-                        stmtSessions.addBatch();
+                        sessionsPreparedStatement.setString(1, dbUniqueName);
+                        sessionsPreparedStatement.setString(2, dbHostName);
+                        sessionsPreparedStatement.setLong(3,  currentDateTime);
+                        sessionsPreparedStatement.setInt(4,queryResult.getInt(1));
+                        sessionsPreparedStatement.setInt(5,queryResult.getInt(2));
+                        sessionsPreparedStatement.setString(6,queryResult.getString(3));
+                        sessionsPreparedStatement.setString(7,queryResult.getString(4).substring(0,1));
+                        sessionsPreparedStatement.setString(8,queryResult.getString(5));
+                        sessionsPreparedStatement.setString(9,queryResult.getString(6));
+                        sessionsPreparedStatement.setString(10,queryResult.getString(7));
+                        sessionsPreparedStatement.setString(11,queryResult.getString(8));
+                        sessionsPreparedStatement.setString(12,queryResult.getString(9).substring(0,1));
+                        sessionsPreparedStatement.setString(13,queryResult.getString(10));
+                        sessionsPreparedStatement.setInt(14,queryResult.getInt(11));
+                        sessionsPreparedStatement.setString(15,queryResult.getString(12));
+                        sessionsPreparedStatement.setString(16,queryResult.getString(13));
+                        sessionsPreparedStatement.setFloat(17,queryResult.getFloat(14));
+                        sessionsPreparedStatement.setString(18,queryResult.getString(15));
+                        sessionsPreparedStatement.setLong(19, ((java.util.Date) queryResult.getTimestamp(16)).getTime() / 1000 );
+                        sessionsPreparedStatement.setInt(20,queryResult.getInt(17));
+                        sessionsPreparedStatement.setLong(21,((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
+                        sessionsPreparedStatement.setInt(22,queryResult.getInt(19));
+                        sessionsPreparedStatement.setDate(23,java.sql.Date.valueOf(currentDate));
+                        sessionsPreparedStatement.addBatch();
                         //--
                     } catch (Exception e){
                         System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
@@ -133,11 +133,11 @@ public class StatCollectorCKH extends Thread {
                     }
                 }
                 queryResult.close();
-                stmtSessions.executeBatch();
+                sessionsPreparedStatement.executeBatch();
                 TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
             }
             waitsPreparedStatement.close();
-            stmtSessions.close();
+            sessionsPreparedStatement.close();
             con.close();
             connClickHouse.close();
         } catch (Exception e) {
