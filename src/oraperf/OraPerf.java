@@ -57,7 +57,7 @@ public class OraPerf {
                 }            
                 if(optimizeThreadSessions==null || !optimizeThreadSessions.isAlive()){
                     System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize orasessions table!");
-                    optimizeThreadSessions = new CKHOptimize("orasessions");
+                    optimizeThreadSessions = new OptimizeCKH("orasessions");
                     optimizeThreadSessions.start();
                 }
             } catch (FileNotFoundException e){

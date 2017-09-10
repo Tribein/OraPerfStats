@@ -25,7 +25,7 @@ import ru.yandex.clickhouse.ClickHousePreparedStatement;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 
-public class CKHOptimize extends Thread {
+public class OptimizeCKH extends Thread {
     private int secondsToSleep = 30;                                                                                                                                                                                                                                 
     private DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");                                                                                                                                                                        
     private ClickHousePreparedStatement stmtOptimize; 
@@ -35,7 +35,7 @@ public class CKHOptimize extends Thread {
     private String optimizeTable;
     private String tableName;
     boolean shutdown = false;       
-    public CKHOptimize(String inputString) {
+    public OptimizeCKH(String inputString) {
         tableName = inputString;
         optimizeTable = "optimize table "+ tableName;
     }      
