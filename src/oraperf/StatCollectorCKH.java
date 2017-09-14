@@ -42,9 +42,9 @@ public class StatCollectorCKH extends Thread {
     private LocalDate currentDate;
     private ClickHousePreparedStatement sessionsPreparedStatement;
     private ClickHouseConnection connClickHouse;
-    private ClickHouseProperties connClickHouseProperties = new ClickHouseProperties().withCredentials("default", "secret");
-    private String connClickHouseString = "jdbc:clickhouse://10.64.130.69:8123/testdb";
-    private String insertSessionsQuery = "insert into orasessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    private ClickHouseProperties connClickHouseProperties;
+    private String connClickHouseString ;
+    private String insertSessionsQuery = "insert into sessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     String waitsQuery
             = "SELECT "
             + "  sid,"
@@ -58,23 +58,27 @@ public class StatCollectorCKH extends Thread {
             + "  TYPE,"
             + "  nvl(MODULE,'-'),"
             + "  nvl(blocking_session,0),"
-            + "  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event), "
-            + "  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',wait_class),"
+            + "  Decode(state,'WAITED KNOWN TIME',65535,'WAITED SHORT TIME',65535,event#), "
+            + "  Decode(state,'WAITED KNOWN TIME',127,'WAITED SHORT TIME',127,wait_class#),"
             + "  round(wait_time_micro/1000000,3),"
             + "  nvl(sql_id,'-'),"
             + "  nvl(sql_exec_start,sysdate - interval '360' month),"
             + "  sql_exec_id,"
             + "  logon_time,"
-            + "  seq#"
+            + "  seq#,"
+            + "  nvl(p1,0),"
+            + "  nvl(p2,0)"
             + " FROM gv$session"
             + " WHERE wait_class#<>6 OR taddr IS NOT null";
 
     boolean shutdown = false;
 
-    public StatCollectorCKH(String inputString) {
+    public StatCollectorCKH(String inputString, String ckhConnectionString, String ckhUsername, String ckhPassword) {
         connString = inputString;
         dbUniqueName = inputString.split("/")[1];
         dbHostName = inputString.split(":")[0];
+        connClickHouseString = ckhConnectionString;
+        connClickHouseProperties = new ClickHouseProperties().withCredentials( ckhUsername , ckhPassword);
     }
 
     public void run() {
@@ -109,29 +113,31 @@ public class StatCollectorCKH extends Thread {
                 currentDate = LocalDate.now();
                 while (queryResult.next() && !shutdown) {
                     //--
-                    sessionsPreparedStatement.setString(1, dbUniqueName);
-                    sessionsPreparedStatement.setString(2, dbHostName);
-                    sessionsPreparedStatement.setLong(3, currentDateTime);
-                    sessionsPreparedStatement.setInt(4, queryResult.getInt(1));
-                    sessionsPreparedStatement.setInt(5, queryResult.getInt(2));
-                    sessionsPreparedStatement.setString(6, queryResult.getString(3));
-                    sessionsPreparedStatement.setString(7, queryResult.getString(4).substring(0, 1));
-                    sessionsPreparedStatement.setString(8, queryResult.getString(5));
-                    sessionsPreparedStatement.setString(9, queryResult.getString(6));
-                    sessionsPreparedStatement.setString(10, queryResult.getString(7));
-                    sessionsPreparedStatement.setString(11, queryResult.getString(8));
-                    sessionsPreparedStatement.setString(12, queryResult.getString(9).substring(0, 1));
-                    sessionsPreparedStatement.setString(13, queryResult.getString(10));
-                    sessionsPreparedStatement.setInt(14, queryResult.getInt(11));
-                    sessionsPreparedStatement.setString(15, queryResult.getString(12));
-                    sessionsPreparedStatement.setString(16, queryResult.getString(13));
-                    sessionsPreparedStatement.setFloat(17, queryResult.getFloat(14));
-                    sessionsPreparedStatement.setString(18, queryResult.getString(15));
-                    sessionsPreparedStatement.setLong(19, ((java.util.Date) queryResult.getTimestamp(16)).getTime() / 1000);
-                    sessionsPreparedStatement.setInt(20, queryResult.getInt(17));
-                    sessionsPreparedStatement.setLong(21, ((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
-                    sessionsPreparedStatement.setInt(22, queryResult.getInt(19));
-                    sessionsPreparedStatement.setDate(23, java.sql.Date.valueOf(currentDate));
+                    sessionsPreparedStatement.setString(    1,          dbUniqueName);
+                    sessionsPreparedStatement.setString(    2,          dbHostName);
+                    sessionsPreparedStatement.setLong(      3,          currentDateTime);
+                    sessionsPreparedStatement.setInt(       4,          queryResult.getInt(1));
+                    sessionsPreparedStatement.setInt(       5,          queryResult.getInt(2));
+                    sessionsPreparedStatement.setString(    6,          queryResult.getString(3));
+                    sessionsPreparedStatement.setString(    7,          queryResult.getString(4).substring(0, 1));
+                    sessionsPreparedStatement.setString(    8,          queryResult.getString(5));
+                    sessionsPreparedStatement.setString(    9,          queryResult.getString(6));
+                    sessionsPreparedStatement.setString(    10,         queryResult.getString(7));
+                    sessionsPreparedStatement.setString(    11,         queryResult.getString(8));
+                    sessionsPreparedStatement.setString(    12,         queryResult.getString(9).substring(0, 1));
+                    sessionsPreparedStatement.setString(    13,         queryResult.getString(10));
+                    sessionsPreparedStatement.setInt(       14,         queryResult.getInt(11));
+                    sessionsPreparedStatement.setLong(       15,         queryResult.getLong(12));
+                    sessionsPreparedStatement.setLong(       16,         queryResult.getLong(13));
+                    sessionsPreparedStatement.setFloat(     17,         queryResult.getFloat(14));
+                    sessionsPreparedStatement.setString(    18,         queryResult.getString(15));
+                    sessionsPreparedStatement.setLong(      19,         ((java.util.Date) queryResult.getTimestamp(16)).getTime() / 1000);
+                    sessionsPreparedStatement.setInt(       20,         queryResult.getInt(17));
+                    sessionsPreparedStatement.setLong(      21,         ((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
+                    sessionsPreparedStatement.setInt(       22,         queryResult.getInt(19));
+                    sessionsPreparedStatement.setDate(      23,         java.sql.Date.valueOf(currentDate));
+                    sessionsPreparedStatement.setLong(      24,         queryResult.getLong(20));
+                    sessionsPreparedStatement.setLong(      25,         queryResult.getLong(21));
                     sessionsPreparedStatement.addBatch();
                     //--
                 }

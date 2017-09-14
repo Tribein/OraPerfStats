@@ -32,6 +32,10 @@ public class OraPerf {
      */
     private static final String dbListFileName = "db.lst";
     private static final int secondsToSleep = 60;
+    private static final String ckhUsername = "oracle";
+    private static final String ckhPassword = "elcaro";
+    private static final String ckhConnectionString = "jdbc:clickhouse://10.64.139.57:8123/oradb";
+    private static final String ckhOptimizeTable = "sessions";
     public static void main(String[] args) throws InterruptedException {
         Map <String, Thread> dbList = new HashMap();
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
@@ -46,7 +50,7 @@ public class OraPerf {
                     dbLine = fileScanner.nextLine();
                     if ( !dbList.containsKey(dbLine) || !dbList.get(dbLine).isAlive() ){
                         try{
-                            dbList.put(dbLine, new StatCollectorCKH(dbLine));
+                            dbList.put(dbLine, new StatCollectorCKH(dbLine, ckhConnectionString,ckhUsername, ckhPassword ));
                             System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
                             dbList.get(dbLine).start();
                         }catch(Exception e){
@@ -56,8 +60,8 @@ public class OraPerf {
                     }
                 }            
                 if(optimizeThreadSessions==null || !optimizeThreadSessions.isAlive()){
-                    System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize orasessions table!");
-                    optimizeThreadSessions = new OptimizeCKH("orasessions");
+                    System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize sessions table!");
+                    optimizeThreadSessions = new OptimizeCKH(ckhOptimizeTable, ckhConnectionString,ckhUsername, ckhPassword);
                     optimizeThreadSessions.start();
                 }
             } catch (FileNotFoundException e){

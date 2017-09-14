@@ -30,14 +30,15 @@ public class OptimizeCKH extends Thread {
     private DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");                                                                                                                                                                        
     private ClickHousePreparedStatement stmtOptimize; 
     private ClickHouseConnection connClickHouse;                                                                                                                                                                                                                          
-    private ClickHouseProperties connClickHouseProperties = new ClickHouseProperties().withCredentials("default", "secret");                                                                                                                                              
-    private String connClickHouseString = "jdbc:clickhouse://10.64.130.69:8123/testdb";                                                                                                                                                                          
+    private ClickHouseProperties connClickHouseProperties = new ClickHouseProperties().withCredentials("oracle", "elcaro");                                                                                                                                              
+    private String connClickHouseString;                                                                                                                                                                          
     private String optimizeTable;
-    private String tableName;
     boolean shutdown = false;       
-    public OptimizeCKH(String inputString) {
-        tableName = inputString;
+    public OptimizeCKH(String tableName, String ckhConnectionString, String ckhUsername, String ckhPassword) {
+        tableName = tableName;
         optimizeTable = "optimize table "+ tableName;
+        connClickHouseString = ckhConnectionString;
+        connClickHouseProperties = new ClickHouseProperties().withCredentials(ckhUsername, ckhPassword);
     }      
    public void run() {
         try{
@@ -61,7 +62,7 @@ public class OptimizeCKH extends Thread {
             stmtOptimize.close();
             connClickHouse.close();
         } catch (Exception e) {
-            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error executing optimize for " + tableName);
+            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error executing " + optimizeTable);
             shutdown = true;
         }
     }        
