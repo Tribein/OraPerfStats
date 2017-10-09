@@ -35,6 +35,7 @@ public class OraPerf {
     private static final String ckhUsername = "oracle";
     private static final String ckhPassword = "elcaro";
     private static final String ckhConnectionString = "jdbc:clickhouse://10.64.139.57:8123/oradb";
+    private static final String elasticUrl = "http://ogw.moscow.sportmaster.ru:9200/";
     private static final String ckhOptimizeTable = "sessions";
     public static void main(String[] args) throws InterruptedException {
         Map <String, Thread> dbList = new HashMap();
@@ -50,7 +51,8 @@ public class OraPerf {
                     dbLine = fileScanner.nextLine();
                     if ( !dbList.containsKey(dbLine) || !dbList.get(dbLine).isAlive() ){
                         try{
-                            dbList.put(dbLine, new StatCollectorCKH(dbLine, ckhConnectionString,ckhUsername, ckhPassword ));
+                            //dbList.put(dbLine, new StatCollectorCKH(dbLine, ckhConnectionString,ckhUsername, ckhPassword ));
+                            dbList.put(dbLine, new StatCollectorELK(dbLine,elasticUrl));
                             System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
                             dbList.get(dbLine).start();
                         }catch(Exception e){
@@ -58,12 +60,14 @@ public class OraPerf {
                             e.printStackTrace();
                         }
                     }
-                }            
+                }
+                /*
                 if(optimizeThreadSessions==null || !optimizeThreadSessions.isAlive()){
                     System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize sessions table!");
                     optimizeThreadSessions = new OptimizeCKH(ckhOptimizeTable, ckhConnectionString,ckhUsername, ckhPassword);
                     optimizeThreadSessions.start();
                 }
+                */
             } catch (FileNotFoundException e){
                 System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" +"Error reading database list!");
                 e.printStackTrace();
