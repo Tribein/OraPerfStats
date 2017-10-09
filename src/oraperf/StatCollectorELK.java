@@ -183,16 +183,18 @@ public class StatCollectorELK extends Thread {
                                     jsonSessionRowArray.add("\"Machine\" : \""+queryResult.getString(7).replace("\\", "/")+"\"");
                                 }                                
                                 dummyString = queryResult.getString(8);
+                                
                                 if(!queryResult.wasNull()){
                                     jsonSessionRowArray.add("\"Program\" : \""+queryResult.getString(8).replace("\\", "/")+"\"");
                                 }                                                                
                                 dummyString = queryResult.getString(10);
                                 if(!queryResult.wasNull()){
                                     jsonSessionRowArray.add("\"Module\" : \""+queryResult.getString(10).replace("\\", "/")+"\"");
-                                }                                                                                                
+                                } 
+                                
                                 jsonSessionRowArray.add("\"Type\" : \""+queryResult.getString(9).substring(0,1)+"\"" );
                                 jsonSessionRowArray.add("\"WaitSequence\" : "+queryResult.getInt(19));
-                                jsonSessionRowArray.add("\"WaitEvent\" : \""+queryResult.getString(12)+"\"");
+                                //jsonSessionRowArray.add("\"WaitEvent\" : \""+queryResult.getString(12)+"\"");
                                 jsonSessionRowArray.add("\"WaitClass\" : \""+queryResult.getString(13)+"\"");
                                 dummyString = queryResult.getString(15);
                                 if(!queryResult.wasNull()){
@@ -201,7 +203,7 @@ public class StatCollectorELK extends Thread {
                                 dummyString = "\"SQLID\" : \""+queryResult.getString(15)+"\"";
                                 if(!queryResult.wasNull()){
                                     jsonSessionRowArray.add(dummyString);
-                                }                                   
+                                }
                                 dummyDate = queryResult.getDate(16);
                                 if(!queryResult.wasNull()){
                                     jsonSessionRowArray.add("\"SQLExecStart\" : "+queryResult.getDate(16, cal).getTime());
@@ -218,7 +220,7 @@ public class StatCollectorELK extends Thread {
                                 if(!queryResult.wasNull()){
                                     jsonSessionRowArray.add("\"SQLExecID\" : "+queryResult.getLong(17));
                                 }                                                                   
-                                jsonSessionRowArray.add("\"waittime\" : "+queryResult.getFloat(14));
+                                jsonSessionRowArray.add("\"WaitTime\" : "+queryResult.getFloat(14));
                                 dummyLong = queryResult.getLong(20);
                                 if(!queryResult.wasNull()){
                                     jsonSessionRowArray.add("\"P1\" : "+queryResult.getLong(20));
@@ -226,7 +228,7 @@ public class StatCollectorELK extends Thread {
                                 dummyLong = queryResult.getLong(21);
                                 if(!queryResult.wasNull()){
                                     jsonSessionRowArray.add("\"P2\" : "+queryResult.getLong(21));
-                                }                                                                   
+                                } 
                                 //--
                     if (!jsonSessionRowArray.isEmpty()) {
                         jsonSessionArray.add( "{ \"index\": {} }");
