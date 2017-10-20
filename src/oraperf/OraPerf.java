@@ -38,11 +38,13 @@ public class OraPerf {
     private static final String elasticUrl = "http://ogw.moscow.sportmaster.ru:9200/";
     private static final String ckhOptimizeTable = "sessions";
     public static void main(String[] args) throws InterruptedException {
+        SL4JLogger lg = new SL4JLogger();
         Map <String, Thread> dbList = new HashMap();
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
         String dbLine; 
         Thread optimizeThreadSessions = null;
-        System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
+        
+        lg.LogInfo(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
         while(true) /*for(int i=0; i<1; i++)*/{
             try{
                 File dbListFile = new File(dbListFileName);
@@ -51,25 +53,25 @@ public class OraPerf {
                     dbLine = fileScanner.nextLine();
                     if ( !dbList.containsKey(dbLine) || !dbList.get(dbLine).isAlive() ){
                         try{
-                            //dbList.put(dbLine, new StatCollectorCKH(dbLine, ckhConnectionString,ckhUsername, ckhPassword ));
-                            dbList.put(dbLine, new StatCollectorELK(dbLine,elasticUrl));
-                            System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
+                            dbList.put(dbLine, new StatCollectorCKH(dbLine, ckhConnectionString,ckhUsername, ckhPassword ));
+                            //dbList.put(dbLine, new StatCollectorELK(dbLine,elasticUrl));
+                            lg.LogInfo(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
                             dbList.get(dbLine).start();
                         }catch(Exception e){
-                            System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Error running thread for "+dbLine);
+                            lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error running thread for "+dbLine);
                             e.printStackTrace();
                         }
                     }
                 }
-                /*
+                //for ClickHouse Only
                 if(optimizeThreadSessions==null || !optimizeThreadSessions.isAlive()){
-                    System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize sessions table!");
+                    lg.LogInfo(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize sessions table!");
                     optimizeThreadSessions = new OptimizeCKH(ckhOptimizeTable, ckhConnectionString,ckhUsername, ckhPassword);
                     optimizeThreadSessions.start();
                 }
-                */
+                
             } catch (FileNotFoundException e){
-                System.out.println(dateFormat.format(LocalDateTime.now()) + "\t" +"Error reading database list!");
+                lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" +"Error reading database list!");
                 e.printStackTrace();
                 System.exit(2);
             }

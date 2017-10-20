@@ -58,7 +58,7 @@ public class StatCollectorCKH extends Thread {
             + "  TYPE,"
             + "  nvl(MODULE,'-'),"
             + "  nvl(blocking_session,0),"
-            + "  Decode(state,'WAITED KNOWN TIME',65535,'WAITED SHORT TIME',65535,event#), "
+            + "  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event), "
             + "  Decode(state,'WAITED KNOWN TIME',127,'WAITED SHORT TIME',127,wait_class#),"
             + "  round(wait_time_micro/1000000,3),"
             + "  nvl(sql_id,'-'),"
@@ -83,29 +83,34 @@ public class StatCollectorCKH extends Thread {
 
     public void run() {
         ResultSet queryResult;
+        SL4JLogger lg = new SL4JLogger();
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
         } catch (Exception e) {
-            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
             shutdown = true;
         }
         try {
             Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
         } catch (Exception e) {
-            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load ClickHouse driver!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load ClickHouse driver!");
             shutdown = true;
         }
         try {
             connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
             sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
         } catch (Exception e) {
-            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse!");
             shutdown = true;
         }
         try {
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
             waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-
+        } catch (Exception e) {
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: "+connString);
+            shutdown = true;            
+        }
+        try{
             while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
                 waitsPreparedStatement.execute();
                 queryResult = waitsPreparedStatement.getResultSet();
@@ -127,7 +132,7 @@ public class StatCollectorCKH extends Thread {
                     sessionsPreparedStatement.setString(    12,         queryResult.getString(9).substring(0, 1));
                     sessionsPreparedStatement.setString(    13,         queryResult.getString(10));
                     sessionsPreparedStatement.setInt(       14,         queryResult.getInt(11));
-                    sessionsPreparedStatement.setLong(       15,         queryResult.getLong(12));
+                    sessionsPreparedStatement.setString(       15,         queryResult.getString(12));
                     sessionsPreparedStatement.setLong(       16,         queryResult.getLong(13));
                     sessionsPreparedStatement.setFloat(     17,         queryResult.getFloat(14));
                     sessionsPreparedStatement.setString(    18,         queryResult.getString(15));
@@ -145,18 +150,26 @@ public class StatCollectorCKH extends Thread {
                 try {
                     sessionsPreparedStatement.executeBatch();
                 } catch (Exception e) {
-                    System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
                     shutdown = true;
                     e.printStackTrace();
                 }
                 TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
             }
-            waitsPreparedStatement.close();
-            sessionsPreparedStatement.close();
-            con.close();
-            connClickHouse.close();
+            if ( waitsPreparedStatement != null ){
+                waitsPreparedStatement.close();
+            }
+            if ( sessionsPreparedStatement != null){
+                sessionsPreparedStatement.close();
+            }
+            if (con != null){
+                con.close();
+            }
+            if ( connClickHouse != null){
+                connClickHouse.close();
+            }
         } catch (Exception e) {
-            System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
             shutdown = true;
             e.printStackTrace();
         }
