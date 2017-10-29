@@ -43,7 +43,7 @@ public class StatCollectorCKH extends Thread {
     private ClickHousePreparedStatement sessionsPreparedStatement;
     private ClickHouseConnection connClickHouse;
     private ClickHouseProperties connClickHouseProperties;
-    private String connClickHouseString ;
+    private String connClickHouseString;
     private String insertSessionsQuery = "insert into sessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     String waitsQuery
             = "SELECT "
@@ -78,7 +78,7 @@ public class StatCollectorCKH extends Thread {
         dbUniqueName = inputString.split("/")[1];
         dbHostName = inputString.split(":")[0];
         connClickHouseString = ckhConnectionString;
-        connClickHouseProperties = new ClickHouseProperties().withCredentials( ckhUsername , ckhPassword);
+        connClickHouseProperties = new ClickHouseProperties().withCredentials(ckhUsername, ckhPassword);
     }
 
     public void run() {
@@ -107,70 +107,85 @@ public class StatCollectorCKH extends Thread {
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
             waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
         } catch (Exception e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: "+connString);
-            shutdown = true;            
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + connString);
+            shutdown = true;
         }
-        try{
-            while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
+        queryResult = null;
+        while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
+            try {
                 waitsPreparedStatement.execute();
                 queryResult = waitsPreparedStatement.getResultSet();
-                currentDateTime = Instant.now().getEpochSecond();
-                currentDate = LocalDate.now();
-                while (queryResult.next() && !shutdown) {
+            } catch (Exception e) {
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
+                shutdown = true;
+                e.printStackTrace();
+            }
+            currentDateTime = Instant.now().getEpochSecond();
+            currentDate = LocalDate.now();
+            try {
+                while (queryResult != null && queryResult.next() && !shutdown) {
                     //--
-                    sessionsPreparedStatement.setString(    1,          dbUniqueName);
-                    sessionsPreparedStatement.setString(    2,          dbHostName);
-                    sessionsPreparedStatement.setLong(      3,          currentDateTime);
-                    sessionsPreparedStatement.setInt(       4,          queryResult.getInt(1));
-                    sessionsPreparedStatement.setInt(       5,          queryResult.getInt(2));
-                    sessionsPreparedStatement.setString(    6,          queryResult.getString(3));
-                    sessionsPreparedStatement.setString(    7,          queryResult.getString(4).substring(0, 1));
-                    sessionsPreparedStatement.setString(    8,          queryResult.getString(5));
-                    sessionsPreparedStatement.setString(    9,          queryResult.getString(6));
-                    sessionsPreparedStatement.setString(    10,         queryResult.getString(7));
-                    sessionsPreparedStatement.setString(    11,         queryResult.getString(8));
-                    sessionsPreparedStatement.setString(    12,         queryResult.getString(9).substring(0, 1));
-                    sessionsPreparedStatement.setString(    13,         queryResult.getString(10));
-                    sessionsPreparedStatement.setInt(       14,         queryResult.getInt(11));
-                    sessionsPreparedStatement.setString(       15,         queryResult.getString(12));
-                    sessionsPreparedStatement.setLong(       16,         queryResult.getLong(13));
-                    sessionsPreparedStatement.setFloat(     17,         queryResult.getFloat(14));
-                    sessionsPreparedStatement.setString(    18,         queryResult.getString(15));
-                    sessionsPreparedStatement.setLong(      19,         ((java.util.Date) queryResult.getTimestamp(16)).getTime() / 1000);
-                    sessionsPreparedStatement.setInt(       20,         queryResult.getInt(17));
-                    sessionsPreparedStatement.setLong(      21,         ((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
-                    sessionsPreparedStatement.setInt(       22,         queryResult.getInt(19));
-                    sessionsPreparedStatement.setDate(      23,         java.sql.Date.valueOf(currentDate));
-                    sessionsPreparedStatement.setLong(      24,         queryResult.getLong(20));
-                    sessionsPreparedStatement.setLong(      25,         queryResult.getLong(21));
+                    sessionsPreparedStatement.setString(1, dbUniqueName);
+                    sessionsPreparedStatement.setString(2, dbHostName);
+                    sessionsPreparedStatement.setLong(3, currentDateTime);
+                    sessionsPreparedStatement.setInt(4, queryResult.getInt(1));
+                    sessionsPreparedStatement.setInt(5, queryResult.getInt(2));
+                    sessionsPreparedStatement.setString(6, queryResult.getString(3));
+                    sessionsPreparedStatement.setString(7, queryResult.getString(4).substring(0, 1));
+                    sessionsPreparedStatement.setString(8, queryResult.getString(5));
+                    sessionsPreparedStatement.setString(9, queryResult.getString(6));
+                    sessionsPreparedStatement.setString(10, queryResult.getString(7));
+                    sessionsPreparedStatement.setString(11, queryResult.getString(8));
+                    sessionsPreparedStatement.setString(12, queryResult.getString(9).substring(0, 1));
+                    sessionsPreparedStatement.setString(13, queryResult.getString(10));
+                    sessionsPreparedStatement.setInt(14, queryResult.getInt(11));
+                    sessionsPreparedStatement.setString(15, queryResult.getString(12));
+                    sessionsPreparedStatement.setLong(16, queryResult.getLong(13));
+                    sessionsPreparedStatement.setFloat(17, queryResult.getFloat(14));
+                    sessionsPreparedStatement.setString(18, queryResult.getString(15));
+                    sessionsPreparedStatement.setLong(19, ((java.util.Date) queryResult.getTimestamp(16)).getTime() / 1000);
+                    sessionsPreparedStatement.setInt(20, queryResult.getInt(17));
+                    sessionsPreparedStatement.setLong(21, ((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
+                    sessionsPreparedStatement.setInt(22, queryResult.getInt(19));
+                    sessionsPreparedStatement.setDate(23, java.sql.Date.valueOf(currentDate));
+                    sessionsPreparedStatement.setLong(24, queryResult.getLong(20));
+                    sessionsPreparedStatement.setLong(25, queryResult.getLong(21));
                     sessionsPreparedStatement.addBatch();
                     //--
                 }
                 queryResult.close();
-                try {
-                    sessionsPreparedStatement.executeBatch();
-                } catch (Exception e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
-                    shutdown = true;
-                    e.printStackTrace();
-                }
-                TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
+            } catch (Exception e) {
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error processing resultset from Database!");
+                shutdown = true;
             }
-            if ( waitsPreparedStatement != null ){
+            try {
+                sessionsPreparedStatement.executeBatch();
+            } catch (Exception e) {
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
+                shutdown = true;
+                //e.printStackTrace();
+            }
+            try {
+                TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            if (waitsPreparedStatement != null) {
                 waitsPreparedStatement.close();
             }
-            if ( sessionsPreparedStatement != null){
+            if (sessionsPreparedStatement != null) {
                 sessionsPreparedStatement.close();
             }
-            if (con != null){
+            if (con != null) {
                 con.close();
             }
-            if ( connClickHouse != null){
+            if (connClickHouse != null) {
                 connClickHouse.close();
             }
         } catch (Exception e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
-            shutdown = true;
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error durring resource cleanups!");
             e.printStackTrace();
         }
     }
