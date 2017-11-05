@@ -172,16 +172,16 @@ public class StatCollectorCKH extends Thread {
             }
         }
         try {
-            if (waitsPreparedStatement != null) {
+            if ( waitsPreparedStatement != null && ! waitsPreparedStatement.isClosed() ) {
                 waitsPreparedStatement.close();
             }
-            if (sessionsPreparedStatement != null) {
+            if ( sessionsPreparedStatement != null && ! sessionsPreparedStatement.isClosed() ) {
                 sessionsPreparedStatement.close();
             }
-            if (con != null) {
+            if ( con != null && !con.isClosed()) {
                 con.close();
             }
-            if (connClickHouse != null) {
+            if ( connClickHouse != null && ! connClickHouse.isClosed() ) {
                 connClickHouse.close();
             }
         } catch (Exception e) {
