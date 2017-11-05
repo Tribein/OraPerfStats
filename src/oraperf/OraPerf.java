@@ -30,8 +30,8 @@ public class OraPerf {
     /**
      * @param args the command line arguments
      */
-    private static final String DBLISTFILENAME = "db.lst";
     private static final int SECONDSTOSLEEP = 60;
+    private static final String DBLISTFILENAME = "db.lst";
     private static final String CKHUSERNAME = "oracle";
     private static final String CKHPASSWORD = "elcaro";
     private static final String CKHCONNECTIONSTRING = "jdbc:clickhouse://10.64.139.57:8123/oradb";
