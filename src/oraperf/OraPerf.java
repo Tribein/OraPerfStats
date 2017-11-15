@@ -51,7 +51,7 @@ public class OraPerf {
                 Scanner fileScanner = new Scanner(dbListFile);
                 while ( fileScanner.hasNext()){
                     dbLine = fileScanner.nextLine();
-                    if ( !dbList.containsKey(dbLine) || !dbList.get(dbLine).isAlive() ){
+                    if ( !dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive() ){
                         try{
                             dbList.put(dbLine, new StatCollectorCKH(dbLine, CKHCONNECTIONSTRING,CKHUSERNAME, CKHPASSWORD ));
                             //dbList.put(dbLine, new StatCollectorELK(dbLine,ELASTICURL));
