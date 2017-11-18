@@ -160,6 +160,7 @@ public class StatCollectorCKH extends Thread {
             }
             try {
                 sessionsPreparedStatement.executeBatch();
+                sessionsPreparedStatement.clearBatch();
             } catch (Exception e) {
                 lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
                 shutdown = true;

@@ -35,7 +35,6 @@ public class OptimizeCKH extends Thread {
     private String optimizeTable;
     boolean shutdown = false;       
     public OptimizeCKH(String tableName, String ckhConnectionString, String ckhUsername, String ckhPassword) {
-        tableName = tableName;
         optimizeTable = "optimize table "+ tableName;
         connClickHouseString = ckhConnectionString;
         connClickHouseProperties = new ClickHouseProperties().withCredentials(ckhUsername, ckhPassword);
