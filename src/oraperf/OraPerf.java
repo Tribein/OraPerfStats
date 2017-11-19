@@ -27,15 +27,12 @@ import java.util.concurrent.TimeUnit;
 
 public class OraPerf {
 
-    /**
-     * @param args the command line arguments
-     */
     private static final int SECONDSTOSLEEP = 60;
     private static final String DBLISTFILENAME = "db.lst";
     private static final String CKHUSERNAME = "oracle";
     private static final String CKHPASSWORD = "elcaro";
     private static final String CKHCONNECTIONSTRING = "jdbc:clickhouse://10.64.139.57:8123/oradb";
-    private static final String ELASTICURL = "http://ogw.moscow.sportmaster.ru:9200/";
+    private static final String ELASTICURL = "";
     private static final String CKHOPTIMIZETABLE = "sessions";
     public static void main(String[] args) throws InterruptedException {
         SL4JLogger lg = new SL4JLogger();
@@ -43,11 +40,10 @@ public class OraPerf {
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
         String dbLine; 
         Thread optimizeThreadSessions = null;
-        
+        File dbListFile = new File(DBLISTFILENAME);
         lg.LogInfo(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
         while(true) /*for(int i=0; i<1; i++)*/{
             try{
-                File dbListFile = new File(DBLISTFILENAME);
                 Scanner fileScanner = new Scanner(dbListFile);
                 while ( fileScanner.hasNext()){
                     dbLine = fileScanner.nextLine();
@@ -69,6 +65,7 @@ public class OraPerf {
                     optimizeThreadSessions = new OptimizeCKH(CKHOPTIMIZETABLE, CKHCONNECTIONSTRING,CKHUSERNAME, CKHPASSWORD);
                     optimizeThreadSessions.start();
                 }
+                fileScanner.close();
                 
             } catch (FileNotFoundException e){
                 lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" +"Error reading database list!");

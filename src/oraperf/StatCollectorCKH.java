@@ -29,22 +29,22 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 public class StatCollectorCKH extends Thread {
 
-    private int secondsBetweenSnaps = 10;
-    private String dbUserName = "dbsnmp";
-    private String dbPassword = "dbsnmp";
+    private final int secondsBetweenSnaps = 10;
+    private final String dbUserName = "dbsnmp";
+    private final String dbPassword = "dbsnmp";
     private String connString;
     private String dbUniqueName;
     private String dbHostName;
     private Connection con;
     private PreparedStatement waitsPreparedStatement;
-    private DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
+    private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
     private long currentDateTime;
     private LocalDate currentDate;
     private ClickHousePreparedStatement sessionsPreparedStatement;
     private ClickHouseConnection connClickHouse;
-    private ClickHouseProperties connClickHouseProperties;
-    private String connClickHouseString;
-    private String insertSessionsQuery = "insert into sessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    private final ClickHouseProperties connClickHouseProperties;
+    private final String connClickHouseString;
+    private final String insertSessionsQuery = "insert into sessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     String waitsQuery
             = "SELECT "
             + "  sid,"
@@ -81,32 +81,33 @@ public class StatCollectorCKH extends Thread {
         connClickHouseProperties = new ClickHouseProperties().withCredentials(ckhUsername, ckhPassword);
     }
 
+    @Override
     public void run() {
         ResultSet queryResult;
         SL4JLogger lg = new SL4JLogger();
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
-        } catch (Exception e) {
+        } catch (ClassNotFoundException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
             shutdown = true;
         }
         try {
             Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
-        } catch (Exception e) {
+        } catch (ClassNotFoundException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load ClickHouse driver!");
             shutdown = true;
         }
         try {
             connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
-            sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
-        } catch (Exception e) {
+            //sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
+        } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse!");
             shutdown = true;
         }
         try {
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
             waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        } catch (Exception e) {
+        } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + connString);
             shutdown = true;
         }
@@ -115,7 +116,7 @@ public class StatCollectorCKH extends Thread {
             try {
                 waitsPreparedStatement.execute();
                 queryResult = waitsPreparedStatement.getResultSet();
-            } catch (Exception e) {
+            } catch (SQLException e) {
                 lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
                 shutdown = true;
                 e.printStackTrace();
@@ -123,6 +124,7 @@ public class StatCollectorCKH extends Thread {
             currentDateTime = Instant.now().getEpochSecond();
             currentDate = LocalDate.now();
             try {
+                sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
                 while (queryResult != null && queryResult.next() && !shutdown) {
                     //--
                     sessionsPreparedStatement.setString(1, dbUniqueName);
@@ -153,15 +155,18 @@ public class StatCollectorCKH extends Thread {
                     sessionsPreparedStatement.addBatch();
                     //--
                 }
-                queryResult.close();
-            } catch (Exception e) {
+                if(queryResult != null){
+                    queryResult.close();
+                }
+            } catch (SQLException e) {
                 lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error processing resultset from Database!");
                 shutdown = true;
             }
             try {
                 sessionsPreparedStatement.executeBatch();
                 sessionsPreparedStatement.clearBatch();
-            } catch (Exception e) {
+                sessionsPreparedStatement.close();
+            } catch (SQLException e) {
                 lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
                 shutdown = true;
                 //e.printStackTrace();
@@ -185,7 +190,7 @@ public class StatCollectorCKH extends Thread {
             if ( connClickHouse != null && ! connClickHouse.isClosed() ) {
                 connClickHouse.close();
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error durring resource cleanups!");
             e.printStackTrace();
         }
