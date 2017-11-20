@@ -34,6 +34,7 @@ public class OraPerf {
     private static final String CKHCONNECTIONSTRING = "jdbc:clickhouse://10.64.139.57:8123/oradb";
     private static final String ELASTICURL = "";
     private static final String CKHOPTIMIZETABLE = "sessions";
+    private static Scanner fileScanner;
     public static void main(String[] args) throws InterruptedException {
         SL4JLogger lg = new SL4JLogger();
         Map <String, Thread> dbList = new HashMap();
@@ -44,7 +45,7 @@ public class OraPerf {
         lg.LogInfo(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
         while(true) /*for(int i=0; i<1; i++)*/{
             try{
-                Scanner fileScanner = new Scanner(dbListFile);
+                fileScanner = new Scanner(dbListFile);
                 while ( fileScanner.hasNext()){
                     dbLine = fileScanner.nextLine();
                     if ( !dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive() ){

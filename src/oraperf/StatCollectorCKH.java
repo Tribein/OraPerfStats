@@ -98,13 +98,6 @@ public class StatCollectorCKH extends Thread {
             shutdown = true;
         }
         try {
-            connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
-            //sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
-        } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse!");
-            shutdown = true;
-        }
-        try {
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
             waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
         } catch (SQLException e) {
@@ -121,10 +114,18 @@ public class StatCollectorCKH extends Thread {
                 shutdown = true;
                 e.printStackTrace();
             }
-            currentDateTime = Instant.now().getEpochSecond();
-            currentDate = LocalDate.now();
+            if (!shutdown) {
+                try {
+                    connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
+                    sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
+                } catch (SQLException e) {
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse!");
+                    shutdown = true;
+                }
+                currentDateTime = Instant.now().getEpochSecond();
+                currentDate = LocalDate.now();
+            }
             try {
-                sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
                 while (queryResult != null && queryResult.next() && !shutdown) {
                     //--
                     sessionsPreparedStatement.setString(1, dbUniqueName);
@@ -155,39 +156,44 @@ public class StatCollectorCKH extends Thread {
                     sessionsPreparedStatement.addBatch();
                     //--
                 }
-                if(queryResult != null){
+                if (queryResult != null) {
                     queryResult.close();
                 }
             } catch (SQLException e) {
                 lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error processing resultset from Database!");
                 shutdown = true;
             }
-            try {
-                sessionsPreparedStatement.executeBatch();
-                sessionsPreparedStatement.clearBatch();
-                sessionsPreparedStatement.close();
-            } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
-                shutdown = true;
-                //e.printStackTrace();
+            if (!shutdown) {
+                try {
+                    sessionsPreparedStatement.executeBatch();
+                    sessionsPreparedStatement.clearBatch();
+                    sessionsPreparedStatement.close();
+                    connClickHouse.close();
+                } catch (SQLException e) {
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
+                    shutdown = true;
+                    //e.printStackTrace();
+                }
             }
-            try {
-                TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            if (!shutdown) {
+                try {
+                    TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
         try {
-            if ( waitsPreparedStatement != null && ! waitsPreparedStatement.isClosed() ) {
+            if (waitsPreparedStatement != null && !waitsPreparedStatement.isClosed()) {
                 waitsPreparedStatement.close();
             }
-            if ( sessionsPreparedStatement != null && ! sessionsPreparedStatement.isClosed() ) {
+            if (sessionsPreparedStatement != null && !sessionsPreparedStatement.isClosed()) {
                 sessionsPreparedStatement.close();
             }
-            if ( con != null && !con.isClosed()) {
+            if (con != null && !con.isClosed()) {
                 con.close();
             }
-            if ( connClickHouse != null && ! connClickHouse.isClosed() ) {
+            if (connClickHouse != null && !connClickHouse.isClosed()) {
                 connClickHouse.close();
             }
         } catch (SQLException e) {
