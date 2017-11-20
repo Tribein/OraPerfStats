@@ -26,9 +26,16 @@ public class SL4JLogger {
 
         slf4jLogger.warn(message);
     }
+    /*
     public void LogInfo(String message) {
 
         slf4jLogger.info(message);
+    }
+    */
+    public void LogTrace(String message){
+        
+        slf4jLogger.trace(message);
+        
     }
     public void LogError(String message) {
 

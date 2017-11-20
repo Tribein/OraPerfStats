@@ -42,7 +42,7 @@ public class OraPerf {
         String dbLine; 
         Thread optimizeThreadSessions = null;
         File dbListFile = new File(DBLISTFILENAME);
-        lg.LogInfo(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
+        lg.LogTrace(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
         while(true) /*for(int i=0; i<1; i++)*/{
             try{
                 fileScanner = new Scanner(dbListFile);
@@ -52,7 +52,7 @@ public class OraPerf {
                         try{
                             dbList.put(dbLine, new StatCollectorCKH(dbLine, CKHCONNECTIONSTRING,CKHUSERNAME, CKHPASSWORD ));
                             //dbList.put(dbLine, new StatCollectorELK(dbLine,ELASTICURL));
-                            lg.LogInfo(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
+                            lg.LogTrace(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
                             dbList.get(dbLine).start();
                         }catch(Exception e){
                             lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error running thread for "+dbLine);
@@ -62,7 +62,7 @@ public class OraPerf {
                 }
                 //for ClickHouse Only
                 if(optimizeThreadSessions==null || !optimizeThreadSessions.isAlive()){
-                    lg.LogInfo(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize sessions table!");
+                    lg.LogTrace(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize sessions table!");
                     optimizeThreadSessions = new OptimizeCKH(CKHOPTIMIZETABLE, CKHCONNECTIONSTRING,CKHUSERNAME, CKHPASSWORD);
                     optimizeThreadSessions.start();
                 }
