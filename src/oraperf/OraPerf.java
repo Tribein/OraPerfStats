@@ -25,6 +25,12 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
+
+
 public class OraPerf {
 
     private static final int SECONDSTOSLEEP = 60;
@@ -36,6 +42,30 @@ public class OraPerf {
     private static final String CKHOPTIMIZETABLE = "sessions";
     private static Scanner fileScanner;
     public static void main(String[] args) throws InterruptedException {
+        /*
+        Logger oraperfLog = LogManager.getLogManager().getLogger("");
+        oraperfLog.setLevel(Level.SEVERE);
+        for (Handler h : oraperfLog.getHandlers()) {
+            h.setLevel(Level.SEVERE);
+        } 
+        
+        System.setProperty("org.apache.commons.logging.Log","org.apache.commons.logging.impl.NoOpLog");
+        
+        Logger oraperfLog = Logger.getGlobal();
+        oraperfLog.setUseParentHandlers( false ); 
+        Logger.getLogger("").setLevel( Level.OFF );
+        
+        Logger globalLogger = Logger.getLogger("global");
+        Handler[] handlers = globalLogger.getHandlers();
+        for(Handler handler : handlers) {
+            globalLogger.removeHandler(handler);
+        }
+        
+        LogManager.getLogManager().reset();
+        Logger globalLogger = Logger.getLogger(java.util.logging.Logger.GLOBAL_LOGGER_NAME);
+        globalLogger.setLevel(java.util.logging.Level.OFF);        
+        */
+        
         SL4JLogger lg = new SL4JLogger();
         Map <String, Thread> dbList = new HashMap();
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
@@ -66,8 +96,7 @@ public class OraPerf {
                     optimizeThreadSessions = new OptimizeCKH(CKHOPTIMIZETABLE, CKHCONNECTIONSTRING,CKHUSERNAME, CKHPASSWORD);
                     optimizeThreadSessions.start();
                 }
-                fileScanner.close();
-                
+                fileScanner.close();               
             } catch (FileNotFoundException e){
                 lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" +"Error reading database list!");
                 e.printStackTrace();

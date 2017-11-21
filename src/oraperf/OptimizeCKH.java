@@ -25,38 +25,40 @@ import ru.yandex.clickhouse.ClickHouseDriver;
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
-
 public class OptimizeCKH extends Thread {
-    private final int secondsToSleep = 30;                                                                                                                                                                                                                                 
-    private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");                                                                                                                                                                        
-    private ClickHousePreparedStatement stmtOptimize; 
-    private ClickHouseConnection connClickHouse;                                                                                                                                                                                                                          
-    private ClickHouseProperties connClickHouseProperties;                                                                                                                                              
-    private String connClickHouseString;                                                                                                                                                                          
+
+    private final int secondsToSleep = 30;
+    private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
+    private ClickHousePreparedStatement stmtOptimize;
+    private ClickHouseConnection connClickHouse;
+    private ClickHouseProperties connClickHouseProperties;
+    private String connClickHouseString;
     private String optimizeTable;
-    boolean shutdown = false;       
+    boolean shutdown = false;
+
     public OptimizeCKH(String tableName, String ckhConnectionString, String ckhUsername, String ckhPassword) {
-        optimizeTable = "optimize table "+ tableName;
+        optimizeTable = "optimize table " + tableName;
         connClickHouseString = ckhConnectionString;
         connClickHouseProperties = new ClickHouseProperties().withCredentials(ckhUsername, ckhPassword);
-    }      
+    }
+
     @Override
-   public void run() {
-        try{
-            Class.forName("ru.yandex.clickhouse.ClickHouseDriver");            
-        }catch (ClassNotFoundException e) {
+    public void run() {
+        try {
+            Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
+        } catch (ClassNotFoundException e) {
             System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load ClickHouse driver!");
             shutdown = true;
         }
         try {
             connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
             stmtOptimize = (ClickHousePreparedStatement) connClickHouse.prepareStatement(optimizeTable);
-        } catch (SQLException e){
+        } catch (SQLException e) {
             System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse!");
             shutdown = true;
         }
-        try{
-            while(!shutdown) {
+        try {
+            while (!shutdown) {
                 stmtOptimize.execute();
                 TimeUnit.SECONDS.sleep(secondsToSleep);
                 System.gc();
@@ -67,5 +69,5 @@ public class OptimizeCKH extends Thread {
             System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error executing " + optimizeTable);
             shutdown = true;
         }
-    }        
+    }
 }

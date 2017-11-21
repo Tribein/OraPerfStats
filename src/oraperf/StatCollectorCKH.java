@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
+
 import ru.yandex.clickhouse.ClickHouseDriver;
 import ru.yandex.clickhouse.ClickHouseConnection;
 import ru.yandex.clickhouse.ClickHousePreparedStatement;
@@ -86,7 +87,7 @@ public class StatCollectorCKH extends Thread {
         ResultSet queryResult;
         SL4JLogger lg = new SL4JLogger();
         try {
-            Class.forName("oracle.jdbc.driver.OracleDriver");
+            Class.forName("oracle.jdbc.driver.OracleDriver"); 
         } catch (ClassNotFoundException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
             shutdown = true;
@@ -172,7 +173,7 @@ public class StatCollectorCKH extends Thread {
                 } catch (SQLException e) {
                     lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
                     shutdown = true;
-                    //e.printStackTrace();
+                    e.printStackTrace();
                 }
             }
             if (!shutdown) {
