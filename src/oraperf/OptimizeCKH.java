@@ -45,7 +45,7 @@ public class OptimizeCKH extends Thread {
     @Override
     public void run() {
         try {
-            Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
+            Class.forName("ru.yandex.clickhouse.ClickHouseDriver");    
         } catch (ClassNotFoundException e) {
             System.out.println(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load ClickHouse driver!");
             shutdown = true;

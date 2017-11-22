@@ -20,14 +20,17 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
-
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
+
 import java.util.logging.Level;
 import java.util.logging.LogManager;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 
@@ -42,37 +45,31 @@ public class OraPerf {
     private static final String CKHOPTIMIZETABLE = "sessions";
     private static Scanner fileScanner;
     public static void main(String[] args) throws InterruptedException {
-        /*
         Logger oraperfLog = LogManager.getLogManager().getLogger("");
-        oraperfLog.setLevel(Level.SEVERE);
-        for (Handler h : oraperfLog.getHandlers()) {
-            h.setLevel(Level.SEVERE);
-        } 
-        
-        System.setProperty("org.apache.commons.logging.Log","org.apache.commons.logging.impl.NoOpLog");
-        
-        Logger oraperfLog = Logger.getGlobal();
-        oraperfLog.setUseParentHandlers( false ); 
-        Logger.getLogger("").setLevel( Level.OFF );
-        
-        Logger globalLogger = Logger.getLogger("global");
-        Handler[] handlers = globalLogger.getHandlers();
+        oraperfLog.setLevel(Level.WARNING);
+        Handler[] handlers = oraperfLog.getHandlers();
         for(Handler handler : handlers) {
-            globalLogger.removeHandler(handler);
-        }
-        
-        LogManager.getLogManager().reset();
-        Logger globalLogger = Logger.getLogger(java.util.logging.Logger.GLOBAL_LOGGER_NAME);
-        globalLogger.setLevel(java.util.logging.Level.OFF);        
-        */
+            oraperfLog.removeHandler(handler);
+        }        
+        Handler conHdlr=new ConsoleHandler();
+        conHdlr.setFormatter(
+                new java.util.logging.Formatter(){
+                    @Override
+                    public String format( LogRecord record ){
+                        return record.getMessage()+ "\n";
+                    }
+                }
+        );
+        oraperfLog.addHandler(conHdlr);
         
         SL4JLogger lg = new SL4JLogger();
+       
         Map <String, Thread> dbList = new HashMap();
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
         String dbLine; 
         Thread optimizeThreadSessions = null;
         File dbListFile = new File(DBLISTFILENAME);
-        lg.LogTrace(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
+        lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
         while(true) /*for(int i=0; i<1; i++)*/{
             try{
                 fileScanner = new Scanner(dbListFile);
@@ -82,7 +79,7 @@ public class OraPerf {
                         try{
                             dbList.put(dbLine, new StatCollectorCKH(dbLine, CKHCONNECTIONSTRING,CKHUSERNAME, CKHPASSWORD ));
                             //dbList.put(dbLine, new StatCollectorELK(dbLine,ELASTICURL));
-                            lg.LogTrace(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
+                            lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
                             dbList.get(dbLine).start();
                         }catch(Exception e){
                             lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error running thread for "+dbLine);
@@ -92,7 +89,7 @@ public class OraPerf {
                 }
                 //for ClickHouse Only
                 if(optimizeThreadSessions==null || !optimizeThreadSessions.isAlive()){
-                    lg.LogTrace(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize sessions table!");
+                    lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize sessions table!");
                     optimizeThreadSessions = new OptimizeCKH(CKHOPTIMIZETABLE, CKHCONNECTIONSTRING,CKHUSERNAME, CKHPASSWORD);
                     optimizeThreadSessions.start();
                 }
