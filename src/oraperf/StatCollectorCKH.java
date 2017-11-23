@@ -87,7 +87,7 @@ public class StatCollectorCKH extends Thread {
         ResultSet queryResult;
         SL4JLogger lg = new SL4JLogger();
         try {
-            Class.forName("oracle.jdbc.driver.OracleDriver"); 
+            Class.forName("oracle.jdbc.driver.OracleDriver");
         } catch (ClassNotFoundException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
             shutdown = true;
@@ -100,7 +100,7 @@ public class StatCollectorCKH extends Thread {
         }
         try {
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
-            waitsPreparedStatement = con.prepareStatement(waitsQuery, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            waitsPreparedStatement = con.prepareStatement(waitsQuery);
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + connString);
             shutdown = true;
@@ -157,8 +157,11 @@ public class StatCollectorCKH extends Thread {
                     sessionsPreparedStatement.addBatch();
                     //--
                 }
-                if (queryResult != null) {
-                    queryResult.close();
+                if (!shutdown) {
+                    if (queryResult != null) {
+                        queryResult.close();
+                    }
+                    waitsPreparedStatement.clearWarnings();
                 }
             } catch (SQLException e) {
                 lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error processing resultset from Database!");
