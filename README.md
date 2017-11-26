@@ -31,6 +31,12 @@ EOF
 
 CREATE TABLE ${DATABASE}.sessions ( dbuniquename String,  hostname String,  snapTime DateTime,  sid UInt32,  serial UInt32,  opentrn FixedString(1),  status FixedString(1),  schemaname String,  osuser String,  machine String,  program String,  type FixedString(1),  module String,  blocking_session UInt32,  event String,  classnum UInt8,  wait_time Float32,  sql_id FixedString(13),  sql_exec_start DateTime,  sql_exec_id UInt32,  logon_time DateTime,  seq UInt32,  snapDate Date,  p1 UInt64,  p2 UInt64) ENGINE = MergeTree(snapDate, dbuniquename, 1024);
 
+CREATE TABLE ${DATABASE}.sessions_buffer AS ${DATABASE}.sessions ENGINE = Buffer(${DATABASE}, sessions, 16, 14400, 86400, 100000, 1000000, 100000000, 1000000000);
+
+CREATE TABLE ${DATABASE}.sysstats ( dbuniquename String,  snapTime DateTime, snapDate Date,  statName String, classnum UInt8, value Int64 ) ENGINE = MergeTree(snapDate, dbuniquename, 1024);
+
+CREATE TABLE ${DATABASE}.sysstats_buffer AS ${DATABASE}.sysstats ENGINE = Buffer(${DATABASE}, sysstats, 16, 14400, 86400, 100000, 1000000, 10000000, 100000000);
+
 =======
 !!!Elasticsearch as database for this kind of stats is found not very handy, so it's supported in case...
 
