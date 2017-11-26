@@ -16,6 +16,8 @@
  */
 package oraperf;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.*;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -31,6 +33,7 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 public class StatCollectorCKH extends Thread {
 
     private final int secondsBetweenSnaps = 10;
+    private int snapcounter = 0;
     private final String dbUserName = "dbsnmp";
     private final String dbPassword = "dbsnmp";
     private String connString;
@@ -38,15 +41,19 @@ public class StatCollectorCKH extends Thread {
     private String dbHostName;
     private Connection con;
     private PreparedStatement waitsPreparedStatement;
+    private PreparedStatement statsPreparedStatement;
     private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
     private long currentDateTime;
     private LocalDate currentDate;
     private ClickHousePreparedStatement sessionsPreparedStatement;
+    private ClickHousePreparedStatement sysstatsPreparedStatement;
     private ClickHouseConnection connClickHouse;
     private final ClickHouseProperties connClickHouseProperties;
     private final String connClickHouseString;
-    private final String insertSessionsQuery = "insert into sessions values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-    String waitsQuery
+    private final String insertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    private final String insertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?,?)";
+    private final String sysstatQuery = "select name,class,value from v$sysstat";
+    private final String waitsQuery
             = "SELECT "
             + "  sid,"
             + "  serial#,"
@@ -98,9 +105,19 @@ public class StatCollectorCKH extends Thread {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load ClickHouse driver!");
             shutdown = true;
         }
+        try{
+            connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
+            sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
+            sysstatsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSysStatsQuery);
+        } catch (SQLException e) {
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse server!");
+            shutdown = true;
+            e.printStackTrace();
+        }
         try {
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
             waitsPreparedStatement = con.prepareStatement(waitsQuery);
+            statsPreparedStatement = con.prepareStatement(sysstatQuery);
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + connString);
             shutdown = true;
@@ -116,13 +133,6 @@ public class StatCollectorCKH extends Thread {
                 e.printStackTrace();
             }
             if (!shutdown) {
-                try {
-                    connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
-                    sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
-                } catch (SQLException e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse!");
-                    shutdown = true;
-                }
                 currentDateTime = Instant.now().getEpochSecond();
                 currentDate = LocalDate.now();
             }
@@ -171,8 +181,8 @@ public class StatCollectorCKH extends Thread {
                 try {
                     sessionsPreparedStatement.executeBatch();
                     sessionsPreparedStatement.clearBatch();
-                    sessionsPreparedStatement.close();
-                    connClickHouse.close();
+                    sessionsPreparedStatement.clearWarnings();
+                    
                 } catch (SQLException e) {
                     lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
                     shutdown = true;
@@ -182,18 +192,55 @@ public class StatCollectorCKH extends Thread {
             if (!shutdown) {
                 try {
                     TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
+                    snapcounter++;
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                if (snapcounter == 1 ){
+                    try {
+                        statsPreparedStatement.execute();
+                        queryResult = statsPreparedStatement.getResultSet();
+                        currentDateTime = Instant.now().getEpochSecond();
+                        currentDate = LocalDate.now();                                                
+                        while (!shutdown && queryResult != null && queryResult.next() ) {
+                            sysstatsPreparedStatement.setString(1, dbUniqueName);
+                            sysstatsPreparedStatement.setLong(2, currentDateTime);
+                            sysstatsPreparedStatement.setDate(3, java.sql.Date.valueOf(currentDate));
+                            sysstatsPreparedStatement.setString(4, queryResult.getString(1));
+                            sysstatsPreparedStatement.setInt(5, queryResult.getInt(2));
+                            sysstatsPreparedStatement.setLong(6, (long) new BigDecimal(queryResult.getDouble(3)).setScale(0, RoundingMode.HALF_UP).doubleValue());
+                            sysstatsPreparedStatement.addBatch();
+                        }
+                        if (queryResult != null) {
+                            queryResult.close();
+                        }
+                        sysstatsPreparedStatement.executeBatch();
+                        sysstatsPreparedStatement.clearBatch();
+                        sysstatsPreparedStatement.clearWarnings();
+                        statsPreparedStatement.clearWarnings(); 
+                        snapcounter = 0;
+                    } catch (SQLException e) {
+                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error processing system statistics!");
+                        shutdown = true;
+                        e.printStackTrace();
+                    }
+                }                                
             }
+
         }
         try {
             if (waitsPreparedStatement != null && !waitsPreparedStatement.isClosed()) {
                 waitsPreparedStatement.close();
             }
+            if (statsPreparedStatement != null && !statsPreparedStatement.isClosed()) {
+                statsPreparedStatement.close();
+            }            
             if (sessionsPreparedStatement != null && !sessionsPreparedStatement.isClosed()) {
                 sessionsPreparedStatement.close();
             }
+            if (sysstatsPreparedStatement != null && !sysstatsPreparedStatement.isClosed()) {
+                sysstatsPreparedStatement.close();
+            }            
             if (con != null && !con.isClosed()) {
                 con.close();
             }

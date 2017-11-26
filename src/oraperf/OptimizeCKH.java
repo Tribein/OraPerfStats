@@ -31,9 +31,9 @@ public class OptimizeCKH extends Thread {
     private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
     private ClickHousePreparedStatement stmtOptimize;
     private ClickHouseConnection connClickHouse;
-    private ClickHouseProperties connClickHouseProperties;
-    private String connClickHouseString;
-    private String optimizeTable;
+    private final ClickHouseProperties connClickHouseProperties;
+    private final String connClickHouseString;
+    private final String optimizeTable;
     boolean shutdown = false;
 
     public OptimizeCKH(String tableName, String ckhConnectionString, String ckhUsername, String ckhPassword) {
