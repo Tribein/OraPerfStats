@@ -52,7 +52,7 @@ public class StatCollectorCKH extends Thread {
     private final String connClickHouseString;
     private final String insertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     private final String insertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?,?)";
-    private final String sysstatQuery = "select name,class,value from v$sysstat";
+    private final String sysstatQuery = "select name,class,value from v$sysstat where value<>0";
     private final String waitsQuery
             = "SELECT "
             + "  sid,"
@@ -174,7 +174,7 @@ public class StatCollectorCKH extends Thread {
                     waitsPreparedStatement.clearWarnings();
                 }
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error processing resultset from Database!");
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing resultset from Database!");
                 shutdown = true;
             }
             if (!shutdown) {
@@ -184,7 +184,7 @@ public class StatCollectorCKH extends Thread {
                     sessionsPreparedStatement.clearWarnings();
                     
                 } catch (SQLException e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error submitting data to ClickHouse!");
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error submitting sessions data to ClickHouse!");
                     shutdown = true;
                     e.printStackTrace();
                 }
@@ -220,7 +220,7 @@ public class StatCollectorCKH extends Thread {
                         statsPreparedStatement.clearWarnings(); 
                         snapcounter = 0;
                     } catch (SQLException e) {
-                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error processing system statistics!");
+                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing system statistics!");
                         shutdown = true;
                         e.printStackTrace();
                     }
@@ -248,7 +248,7 @@ public class StatCollectorCKH extends Thread {
                 connClickHouse.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error durring resource cleanups!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString+ "\t" + "Error durring resource cleanups!");
             e.printStackTrace();
         }
     }
