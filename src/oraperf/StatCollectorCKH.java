@@ -196,7 +196,7 @@ public class StatCollectorCKH extends Thread {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                if (snapcounter == 1 ){
+                if (snapcounter == 6 ){
                     try {
                         statsPreparedStatement.execute();
                         queryResult = statsPreparedStatement.getResultSet();
