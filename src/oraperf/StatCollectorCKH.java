@@ -40,45 +40,58 @@ public class StatCollectorCKH extends Thread {
     private String dbUniqueName;
     private String dbHostName;
     private Connection con;
-    private PreparedStatement waitsPreparedStatement;
-    private PreparedStatement statsPreparedStatement;
+    private PreparedStatement oraWaitsPreparedStatement;
+    private PreparedStatement oraSysStatsPreparedStatement;
+    private PreparedStatement oraSesStatsPreparedStatement;
     private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
     private long currentDateTime;
     private LocalDate currentDate;
-    private ClickHousePreparedStatement sessionsPreparedStatement;
-    private ClickHousePreparedStatement sysstatsPreparedStatement;
+    private ClickHousePreparedStatement ckhSessionsPreparedStatement;
+    private ClickHousePreparedStatement ckhSysStatsPreparedStatement;
+    private ClickHousePreparedStatement ckhSesStatsPreparedStatement;
     private ClickHouseConnection connClickHouse;
     private final ClickHouseProperties connClickHouseProperties;
     private final String connClickHouseString;
-    private final String insertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-    private final String insertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?,?)";
-    private final String sysstatQuery = "select name,class,value from v$sysstat where value<>0";
-    private final String waitsQuery
-            = "SELECT "
+    private final String ckhInsertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?,?)";
+    private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?,?)";
+    private final String oraSysStatQuery = "select name,class,value from v$sysstat where value<>0";
+    private final String oraWaitsQuery
+            = "select "
             + "  sid,"
             + "  serial#,"
-            + "  decode(taddr,NULL,'N','Y'),"
+            + "  decode(taddr,null,'N','Y'),"
             + "  status,"
             + "  schemaname,"
             + "  nvl(osuser,'-'),"
             + "  nvl(machine,'-'),"
             + "  nvl(program,'-'),"
-            + "  TYPE,"
-            + "  nvl(MODULE,'-'),"
+            + "  type,"
+            + "  nvl(module,'-'),"
             + "  nvl(blocking_session,0),"
-            + "  Decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event), "
-            + "  Decode(state,'WAITED KNOWN TIME',127,'WAITED SHORT TIME',127,wait_class#),"
+            + "  decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event), "
+            + "  decode(state,'WAITED KNOWN TIME',127,'WAITED SHORT TIME',127,wait_class#),"
             + "  round(wait_time_micro/1000000,3),"
             + "  nvl(sql_id,'-'),"
-            + "  nvl(sql_exec_start,sysdate - interval '360' month),"
+            + "  nvl(sql_exec_start,to_date('19700101','YYYYMMDD'),"
             + "  sql_exec_id,"
             + "  logon_time,"
             + "  seq#,"
             + "  nvl(p1,0),"
             + "  nvl(p2,0)"
-            + " FROM gv$session"
-            + " WHERE wait_class#<>6 OR taddr IS NOT null";
-
+            + " from gv$session"
+            + " where (wait_class#<>6 or taddr is not null) and sid<>sys_context('USERENV','SID')";
+    private final String oraSesStatQuery 
+            = "select sid,name,value from v$statname " +
+            "join v$sesstat using(statistic#) " +
+            "join v$session using(sid) " +
+            "where name in ( " +
+            "'Requests to/from client','user commits','user rollbacks','user calls','recursive calls','recursive cpu usage','DB time','session pga memory','physical read total bytes','physical write total bytes','db block changes','redo size','redo size for direct writes','table fetch by rowid','table fetch continued row','lob reads','lob writes','index fetch by key','sql area evicted','session cursor cache hits','session cursor cache count','queries parallelized','Parallel operations not downgraded','Parallel operations downgraded to serial','parse time cpu','parse count (total)','parse count (hard)','parse count (failures)','sorts (memory)','sorts (disk)'\n" +
+            ") " +
+            "and value<>0 " +
+            "and type='USER' " +
+            "and not ( wait_class#=6 and wait_time_micro>60*1000000) " +
+            "and sid<>sys_context('USERENV','SID') ";
     boolean shutdown = false;
 
     public StatCollectorCKH(String inputString, String ckhConnectionString, String ckhUsername, String ckhPassword) {
@@ -107,8 +120,8 @@ public class StatCollectorCKH extends Thread {
         }
         try{
             connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
-            sessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSessionsQuery);
-            sysstatsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(insertSysStatsQuery);
+            ckhSessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSessionsQuery);
+            ckhSysStatsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSysStatsQuery);
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse server!");
             shutdown = true;
@@ -116,8 +129,8 @@ public class StatCollectorCKH extends Thread {
         }
         try {
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + connString, dbUserName, dbPassword);
-            waitsPreparedStatement = con.prepareStatement(waitsQuery);
-            statsPreparedStatement = con.prepareStatement(sysstatQuery);
+            oraWaitsPreparedStatement = con.prepareStatement(oraWaitsQuery);
+            oraSysStatsPreparedStatement = con.prepareStatement(oraSysStatQuery);
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + connString);
             shutdown = true;
@@ -125,8 +138,8 @@ public class StatCollectorCKH extends Thread {
         queryResult = null;
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
             try {
-                waitsPreparedStatement.execute();
-                queryResult = waitsPreparedStatement.getResultSet();
+                oraWaitsPreparedStatement.execute();
+                queryResult = oraWaitsPreparedStatement.getResultSet();
             } catch (SQLException e) {
                 lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + connString);
                 shutdown = true;
@@ -139,39 +152,39 @@ public class StatCollectorCKH extends Thread {
             try {
                 while (queryResult != null && queryResult.next() && !shutdown) {
                     //--
-                    sessionsPreparedStatement.setString(1, dbUniqueName);
-                    sessionsPreparedStatement.setString(2, dbHostName);
-                    sessionsPreparedStatement.setLong(3, currentDateTime);
-                    sessionsPreparedStatement.setInt(4, queryResult.getInt(1));
-                    sessionsPreparedStatement.setInt(5, queryResult.getInt(2));
-                    sessionsPreparedStatement.setString(6, queryResult.getString(3));
-                    sessionsPreparedStatement.setString(7, queryResult.getString(4).substring(0, 1));
-                    sessionsPreparedStatement.setString(8, queryResult.getString(5));
-                    sessionsPreparedStatement.setString(9, queryResult.getString(6));
-                    sessionsPreparedStatement.setString(10, queryResult.getString(7));
-                    sessionsPreparedStatement.setString(11, queryResult.getString(8));
-                    sessionsPreparedStatement.setString(12, queryResult.getString(9).substring(0, 1));
-                    sessionsPreparedStatement.setString(13, queryResult.getString(10));
-                    sessionsPreparedStatement.setInt(14, queryResult.getInt(11));
-                    sessionsPreparedStatement.setString(15, queryResult.getString(12));
-                    sessionsPreparedStatement.setLong(16, queryResult.getLong(13));
-                    sessionsPreparedStatement.setFloat(17, queryResult.getFloat(14));
-                    sessionsPreparedStatement.setString(18, queryResult.getString(15));
-                    sessionsPreparedStatement.setLong(19, ((java.util.Date) queryResult.getTimestamp(16)).getTime() / 1000);
-                    sessionsPreparedStatement.setInt(20, queryResult.getInt(17));
-                    sessionsPreparedStatement.setLong(21, ((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
-                    sessionsPreparedStatement.setInt(22, queryResult.getInt(19));
-                    sessionsPreparedStatement.setDate(23, java.sql.Date.valueOf(currentDate));
-                    sessionsPreparedStatement.setLong(24, queryResult.getLong(20));
-                    sessionsPreparedStatement.setLong(25, queryResult.getLong(21));
-                    sessionsPreparedStatement.addBatch();
+                    ckhSessionsPreparedStatement.setString(1, dbUniqueName);
+                    ckhSessionsPreparedStatement.setString(2, dbHostName);
+                    ckhSessionsPreparedStatement.setLong(3, currentDateTime);
+                    ckhSessionsPreparedStatement.setInt(4, queryResult.getInt(1));
+                    ckhSessionsPreparedStatement.setInt(5, queryResult.getInt(2));
+                    ckhSessionsPreparedStatement.setString(6, queryResult.getString(3));
+                    ckhSessionsPreparedStatement.setString(7, queryResult.getString(4).substring(0, 1));
+                    ckhSessionsPreparedStatement.setString(8, queryResult.getString(5));
+                    ckhSessionsPreparedStatement.setString(9, queryResult.getString(6));
+                    ckhSessionsPreparedStatement.setString(10, queryResult.getString(7));
+                    ckhSessionsPreparedStatement.setString(11, queryResult.getString(8));
+                    ckhSessionsPreparedStatement.setString(12, queryResult.getString(9).substring(0, 1));
+                    ckhSessionsPreparedStatement.setString(13, queryResult.getString(10));
+                    ckhSessionsPreparedStatement.setInt(14, queryResult.getInt(11));
+                    ckhSessionsPreparedStatement.setString(15, queryResult.getString(12));
+                    ckhSessionsPreparedStatement.setLong(16, queryResult.getLong(13));
+                    ckhSessionsPreparedStatement.setFloat(17, queryResult.getFloat(14));
+                    ckhSessionsPreparedStatement.setString(18, queryResult.getString(15));
+                    ckhSessionsPreparedStatement.setLong(19, ((java.util.Date) queryResult.getTimestamp(16)).getTime() / 1000);
+                    ckhSessionsPreparedStatement.setInt(20, queryResult.getInt(17));
+                    ckhSessionsPreparedStatement.setLong(21, ((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
+                    ckhSessionsPreparedStatement.setInt(22, queryResult.getInt(19));
+                    ckhSessionsPreparedStatement.setDate(23, java.sql.Date.valueOf(currentDate));
+                    ckhSessionsPreparedStatement.setLong(24, queryResult.getLong(20));
+                    ckhSessionsPreparedStatement.setLong(25, queryResult.getLong(21));
+                    ckhSessionsPreparedStatement.addBatch();
                     //--
                 }
                 if (!shutdown) {
                     if (queryResult != null) {
                         queryResult.close();
                     }
-                    waitsPreparedStatement.clearWarnings();
+                    oraWaitsPreparedStatement.clearWarnings();
                 }
             } catch (SQLException e) {
                 lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing resultset from Database!");
@@ -179,9 +192,9 @@ public class StatCollectorCKH extends Thread {
             }
             if (!shutdown) {
                 try {
-                    sessionsPreparedStatement.executeBatch();
-                    sessionsPreparedStatement.clearBatch();
-                    sessionsPreparedStatement.clearWarnings();
+                    ckhSessionsPreparedStatement.executeBatch();
+                    ckhSessionsPreparedStatement.clearBatch();
+                    ckhSessionsPreparedStatement.clearWarnings();
                     
                 } catch (SQLException e) {
                     lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error submitting sessions data to ClickHouse!");
@@ -198,26 +211,26 @@ public class StatCollectorCKH extends Thread {
                 }
                 if (snapcounter == 1 ){
                     try {
-                        statsPreparedStatement.execute();
-                        queryResult = statsPreparedStatement.getResultSet();
+                        oraSysStatsPreparedStatement.execute();
+                        queryResult = oraSysStatsPreparedStatement.getResultSet();
                         currentDateTime = Instant.now().getEpochSecond();
                         currentDate = LocalDate.now();                                                
                         while (!shutdown && queryResult != null && queryResult.next() ) {
-                            sysstatsPreparedStatement.setString(1, dbUniqueName);
-                            sysstatsPreparedStatement.setLong(2, currentDateTime);
-                            sysstatsPreparedStatement.setDate(3, java.sql.Date.valueOf(currentDate));
-                            sysstatsPreparedStatement.setString(4, queryResult.getString(1));
-                            sysstatsPreparedStatement.setInt(5, queryResult.getInt(2));
-                            sysstatsPreparedStatement.setLong(6, (long) new BigDecimal(queryResult.getDouble(3)).setScale(0, RoundingMode.HALF_UP).doubleValue());
-                            sysstatsPreparedStatement.addBatch();
+                            ckhSysStatsPreparedStatement.setString(1, dbUniqueName);
+                            ckhSysStatsPreparedStatement.setLong(2, currentDateTime);
+                            ckhSysStatsPreparedStatement.setDate(3, java.sql.Date.valueOf(currentDate));
+                            ckhSysStatsPreparedStatement.setString(4, queryResult.getString(1));
+                            ckhSysStatsPreparedStatement.setInt(5, queryResult.getInt(2));
+                            ckhSysStatsPreparedStatement.setLong(6, (long) new BigDecimal(queryResult.getDouble(3)).setScale(0, RoundingMode.HALF_UP).doubleValue());
+                            ckhSysStatsPreparedStatement.addBatch();
                         }
                         if (queryResult != null) {
                             queryResult.close();
                         }
-                        sysstatsPreparedStatement.executeBatch();
-                        sysstatsPreparedStatement.clearBatch();
-                        sysstatsPreparedStatement.clearWarnings();
-                        statsPreparedStatement.clearWarnings(); 
+                        ckhSysStatsPreparedStatement.executeBatch();
+                        ckhSysStatsPreparedStatement.clearBatch();
+                        ckhSysStatsPreparedStatement.clearWarnings();
+                        oraSysStatsPreparedStatement.clearWarnings(); 
                         snapcounter = 0;
                     } catch (SQLException e) {
                         lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing system statistics!");
@@ -229,17 +242,17 @@ public class StatCollectorCKH extends Thread {
 
         }
         try {
-            if (waitsPreparedStatement != null && !waitsPreparedStatement.isClosed()) {
-                waitsPreparedStatement.close();
+            if (oraWaitsPreparedStatement != null && !oraWaitsPreparedStatement.isClosed()) {
+                oraWaitsPreparedStatement.close();
             }
-            if (statsPreparedStatement != null && !statsPreparedStatement.isClosed()) {
-                statsPreparedStatement.close();
+            if (oraSysStatsPreparedStatement != null && !oraSysStatsPreparedStatement.isClosed()) {
+                oraSysStatsPreparedStatement.close();
             }            
-            if (sessionsPreparedStatement != null && !sessionsPreparedStatement.isClosed()) {
-                sessionsPreparedStatement.close();
+            if (ckhSessionsPreparedStatement != null && !ckhSessionsPreparedStatement.isClosed()) {
+                ckhSessionsPreparedStatement.close();
             }
-            if (sysstatsPreparedStatement != null && !sysstatsPreparedStatement.isClosed()) {
-                sysstatsPreparedStatement.close();
+            if (ckhSysStatsPreparedStatement != null && !ckhSysStatsPreparedStatement.isClosed()) {
+                ckhSysStatsPreparedStatement.close();
             }            
             if (con != null && !con.isClosed()) {
                 con.close();
