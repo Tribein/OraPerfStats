@@ -38,11 +38,7 @@ public class OraPerf {
 
     private static final int SECONDSTOSLEEP = 60;
     private static final String DBLISTFILENAME = "db.lst";
-    private static final String CKHUSERNAME = "oracle";
-    private static final String CKHPASSWORD = "elcaro";
-    private static final String CKHCONNECTIONSTRING = "jdbc:clickhouse://10.64.139.57:8123/oradb";
-    private static final String ELASTICURL = "";
-    private static final String CKHOPTIMIZETABLE = "sessions";
+
     private static Scanner fileScanner;
     public static void main(String[] args) throws InterruptedException {
         Logger oraperfLog = LogManager.getLogManager().getLogger("");
@@ -67,7 +63,6 @@ public class OraPerf {
         Map <String, Thread> dbList = new HashMap();
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
         String dbLine; 
-        Thread optimizeThreadSessions = null;
         File dbListFile = new File(DBLISTFILENAME);
         lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
         while(true) /*for(int i=0; i<1; i++)*/{
@@ -77,8 +72,7 @@ public class OraPerf {
                     dbLine = fileScanner.nextLine();
                     if ( !dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive() ){
                         try{
-                            dbList.put(dbLine, new StatCollectorCKH(dbLine, CKHCONNECTIONSTRING,CKHUSERNAME, CKHPASSWORD ));
-                            //dbList.put(dbLine, new StatCollectorELK(dbLine,ELASTICURL));
+                            dbList.put(dbLine, new StatCollector(dbLine));
                             lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
                             dbList.get(dbLine).start();
                         }catch(Exception e){
@@ -86,12 +80,6 @@ public class OraPerf {
                             e.printStackTrace();
                         }
                     }
-                }
-                //for ClickHouse Only
-                if(optimizeThreadSessions==null || !optimizeThreadSessions.isAlive()){
-                    lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Runnign ClickHouse thread for optimize sessions table!");
-                    optimizeThreadSessions = new OptimizeCKH(CKHOPTIMIZETABLE, CKHCONNECTIONSTRING,CKHUSERNAME, CKHPASSWORD);
-                    optimizeThreadSessions.start();
                 }
                 fileScanner.close();               
             } catch (FileNotFoundException e){
