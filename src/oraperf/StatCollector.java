@@ -102,13 +102,13 @@ public class StatCollector extends Thread {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + connString);
             shutdown = true;
         }
-        StatCollectorCKH ckh = new StatCollectorCKH(dbUniqueName,dbHostName);
+        StatCollectorCKH porcessor = new StatCollectorCKH(dbUniqueName,dbHostName);
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
             try {
                 currentDateTime = Instant.now().getEpochSecond();
                 currentDate = LocalDate.now();                
                 oraWaitsPreparedStatement.execute();
-                shutdown = ! ckh.processSessions(
+                shutdown = ! porcessor.processSessions(
                             oraWaitsPreparedStatement.getResultSet(), 
                             currentDateTime, 
                             currentDate
@@ -125,7 +125,7 @@ public class StatCollector extends Thread {
                         !shutdown ) {
                     try {                    
                         oraSesStatsPreparedStatement.execute();
-                        shutdown = ! ckh.processSesStats(
+                        shutdown = ! porcessor.processSesStats(
                                 oraSesStatsPreparedStatement.getResultSet(), 
                                 currentDateTime, 
                                 currentDate
@@ -140,7 +140,7 @@ public class StatCollector extends Thread {
                 if ( snapcounter == 30 && !shutdown ){
                     try {
                         oraSysStatsPreparedStatement.execute();
-                        shutdown = ! ckh.processSysStats(
+                        shutdown = ! porcessor.processSysStats(
                                 oraSysStatsPreparedStatement.getResultSet(), 
                                 currentDateTime, 
                                 currentDate
@@ -164,8 +164,8 @@ public class StatCollector extends Thread {
 
         }
         try {
-            if (ckh.isAlive()) {
-                ckh.cleanup();
+            if (porcessor.isAlive()) {
+                porcessor.cleanup();
             }
             if (oraWaitsPreparedStatement != null && !oraWaitsPreparedStatement.isClosed()) {
                 oraWaitsPreparedStatement.close();
