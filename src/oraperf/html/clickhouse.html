@@ -7,6 +7,7 @@ and open the template in the editor.
 <html>
     <head>
         <meta charset="utf-8">
+        <title>ClickHouse Graphs</title>
         <style>
             .ns{ letter-spacing: -2px; }		
         </style>
@@ -51,13 +52,14 @@ and open the template in the editor.
             var ts;
             var timeSpan;
             var eventsHeaderData;
+            var eventsChart;
             //--changable
             var spanMinutes = 5;
-            var dbuniquename = 'rmsdb_prd';
+            var dbUniqueName = 'mskkis_prd';
             //--
             function checkClassNum(inp) {
                 for (var i in arrClassNum) {
-                    if (arrClassNum[i] == inp) {
+                    if (arrClassNum[i] === inp) {
                         return i;
                     }
                 }
@@ -76,7 +78,7 @@ and open the template in the editor.
             function drawWaitsChart() {
                 preDraw();
                 var waitsQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" +
-                        dbuniquename +
+                        dbUniqueName +
                         "' and snapTime > '" +
                         timeSpan +
                         "' group by snapTime,classnum order by snapTime asc";
@@ -97,7 +99,7 @@ and open the template in the editor.
                     title: 'Wait Class',
                     width: 1600,
                     height: 600,
-                    //hAxis: {title: 'SessionsWaiting',  titleTextStyle: {color: '#333'}},
+                    hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
                     animation: {startup: 'true', duration: 1000},
                     bars: 'vertical',
@@ -105,18 +107,22 @@ and open the template in the editor.
                     bar: {groupWidth: '75%'},
                     legend: {position: 'right', maxLines: 3},
                     colors: legendColors,
-                    isStacked: true,
+                    isStacked: true
                 };
                 var waitsChart = new google.visualization.ColumnChart(document.getElementById('waitsregion'));
                 waitsChart.draw(data, options);
                 //--Register Events 
                 //--
                 function waitsSelectHandler(e) {
-                    var sel = waitsChart.getSelection();
-                    if (typeof sel[0] !== 'undefined') {
-                        if (typeof arrWaitClass[(Number(sel[0].column) + 1) / 2] !== 'undefined') {
+                    if (waitsChart.getSelection().length === 0) {
+						if(typeof eventsChart !== 'undefined'){
+							eventsChart.clearChart();
+						}
+					}else{
+						 var sel = waitsChart.getSelection();
+						 if(typeof arrWaitClass[(Number(sel[0].column) + 1) / 2] !== 'undefined') {
                             drawEventsChart((Number(sel[0].column) + 1) / 2);
-                        }
+						}
                     }
                 }
                 google.visualization.events.addListener(waitsChart, 'select', waitsSelectHandler);
@@ -131,7 +137,7 @@ and open the template in the editor.
                     return null;
                 }
                 var eventsQuery = "select snapTime,event, count(1) val from sessions_buffer where dbuniquename='" +
-                        dbuniquename +
+                        dbUniqueName +
                         "' and snapTime > '" +
                         timeSpan +
                         "' and classnum=" +
@@ -142,16 +148,16 @@ and open the template in the editor.
                     title: 'Events',
                     width: 1600,
                     height: 600,
-                    //hAxis: {title: 'SessionsWaiting',  titleTextStyle: {color: '#333'}},
+                    hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
-                    //animation : { startup : 'true' ,duration : 1000 },
+                    animation : { startup : 'true' ,duration : 1000 },
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '75%'},
                     legend: {position: 'right', maxLines: 3},
-                    isStacked: true,
+                    isStacked: true
                 };
-                var eventsChart = new google.visualization.ColumnChart(document.getElementById('eventsregion'));
+                eventsChart = new google.visualization.ColumnChart(document.getElementById('eventsregion'));
                 eventsChart.draw(data, options);
                 function eventsSelectHandler(e) {
 
@@ -161,17 +167,24 @@ and open the template in the editor.
             //------EVENTS	  
             //------SESSIONS 
             function drawSessionsTable() {
-                var sessionsQuery = "select sid,classnum,cnt,tot,ni,module,machine,schemaname,serial,sipHash64(concat(module,machine,schemaname,toString(serial),toString(sid))) as sessid from (select sid,serial,classnum,cnt,tot,machine,module,schemaname from (" +
-                        "select sid,serial,module,machine,schemaname,classnum,count(1) as cnt,1 as dummy from sessions_buffer where classnum<>6 and dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' group by sid,serial,module,machine,schemaname,classnum" +
+                var sessionsQuery = "select "+
+                        "sid,classnum,cnt,tot,ni,module,machine,schemaname,serial,sipHash64(concat(module,machine,schemaname,toString(serial),toString(sid))) as sessid"+
+                        " from (select sid,serial,classnum,cnt,tot,machine,module,schemaname from (" +
+                        "select sid,serial,module,machine,schemaname,classnum,count(1) as cnt,1 as dummy "+ 
+                        "from sessions_buffer where classnum<>6 and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' "+
+                        "group by sid,serial,module,machine,schemaname,classnum" +
                         ") all left join (" +
-                        "select 1 as dummy,count(st) as tot from (select snapTime as st from sessions_buffer where dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' group by st)" +
+                        "select 1 as dummy,count(st) as tot from (select snapTime as st "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' "+
+                        "group by st)" +
                         ") using dummy) all inner join (" +
                         "select sid,serial,module,machine,schemaname,ni from (" +
-                        "select sid,serial,module,machine,schemaname,count(1) as ni from sessions_buffer where dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' and classnum<>6 group by sid,serial,module,machine,schemaname having count(1)>0 order by ni desc" +
+                        "select sid,serial,module,machine,schemaname,count(1) as ni "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' and classnum<>6 "+
+                        "group by sid,serial,module,machine,schemaname having count(1)>0 order by ni desc" +
                         ") limit 10" +
                         ") using sid,serial,module,machine,schemaname " +
                         "order by ni desc,sid asc,cnt asc";
-                alert(sessionsQuery);
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'SID,SERIAL');
                 data.addColumn('string', 'SCHEMA');
@@ -192,15 +205,20 @@ and open the template in the editor.
             //------SQL 
             function drawSQLsTable() {
                 var sqlsQuery = "select sqlid,sql_id,classnum,cnt,tot,ni from (select sqlid,sql_id,classnum,cnt,tot from (" +
-                        "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt, 1 as dummy from sessions_buffer where dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' and sql_id <> '-\0\0\0\0\0\0\0\0\0\0\0\0' and classnum<>6 group by sqlid,sql_id,classnum" +
+                        "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' and sql_id <> '-\0\0\0\0\0\0\0\0\0\0\0\0' and classnum<>6 "+
+                        "group by sqlid,sql_id,classnum" +
                         ") all left join (" +
-                        "select 1 as dummy,count(st) as tot from (select snapTime as st from sessions_buffer where dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' group by st)" +
-                        ") using dummy) all inner join (" +
+                        "select sql_id,count(1) as tot from sessions_buffer "+
+                        "where sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' "+
+                        "group by sql_id"+
+                        ") using sql_id) all inner join (" +
                         "select sql_id,ni from (" +
-                        "select sql_id,count(1) as ni from sessions_buffer where classnum<>6 and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' group by sql_id having count(1)>0 order by ni desc" +
+                        "select sql_id,count(1) as ni from sessions_buffer "+
+                        "where classnum<>6 and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' "+
+                        "group by sql_id having count(1)>0 order by ni desc" +
                         ") limit 10" +
-                        ") using sql_id order by ni desc"
-                //alert(sqlsQuery);
+                        ") using sql_id order by ni desc,sql_id,cnt asc";
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'SQL ID');
                 data.addColumn('string', 'WAITS');
@@ -230,7 +248,7 @@ and open the template in the editor.
                 //--
                 function searchHeader(inp) {
                     for (var hi in eventsHeaderData) {
-                        if (eventsHeaderData[hi] == inp) {
+                        if (eventsHeaderData[hi] === inp) {
                             return hi;
                         }
                     }
@@ -245,7 +263,7 @@ and open the template in the editor.
                 for (var i = 0; i < dataLines.length; i++) {
                     if (dataLines[i].length > 0) {
                         rowData = dataLines[i].split(/[\t]+/);
-                        if (searchHeader(rowData[1]) == -1) {
+                        if (searchHeader(rowData[1]) === -1) {
                             eventsHeaderData[eventsHeaderData.length] = rowData[1];
                         }
                     }
@@ -365,6 +383,7 @@ and open the template in the editor.
     </head>
 
     <body onLoad=''>
+		<div id="query"></div>
         <div id="waitsregion"></div>
         <div id="eventsregion"></div>
         <div>
