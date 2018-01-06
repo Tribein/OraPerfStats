@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -32,63 +33,77 @@ import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-
 public class OraPerf {
 
     private static final int SECONDSTOSLEEP = 60;
     private static final String DBLISTFILENAME = "db.lst";
-
     private static Scanner fileScanner;
+    private static ArrayList<String> oraDBList;
+
+    private static ArrayList<String> getListFromFile(File dbListFile) throws FileNotFoundException {
+        ArrayList<String> retList = new ArrayList<String>();
+        fileScanner = new Scanner(dbListFile);
+        while (fileScanner.hasNext()) {
+            retList.add(fileScanner.nextLine());
+        }
+        fileScanner.close();
+        return retList;
+    }
+
+    private static ArrayList<String> getListFromOraDB() {
+        ArrayList<String> retList = new ArrayList<>();
+        return retList;
+    }
+
     public static void main(String[] args) throws InterruptedException {
         Logger oraperfLog = LogManager.getLogManager().getLogger("");
         oraperfLog.setLevel(Level.WARNING);
         Handler[] handlers = oraperfLog.getHandlers();
-        for(Handler handler : handlers) {
+        for (Handler handler : handlers) {
             oraperfLog.removeHandler(handler);
-        }        
-        Handler conHdlr=new ConsoleHandler();
+        }
+        Handler conHdlr = new ConsoleHandler();
         conHdlr.setFormatter(
-                new java.util.logging.Formatter(){
-                    @Override
-                    public String format( LogRecord record ){
-                        return record.getMessage()+ "\n";
-                    }
-                }
+                new java.util.logging.Formatter() {
+            @Override
+            public String format(LogRecord record) {
+                return record.getMessage() + "\n";
+            }
+        }
         );
         oraperfLog.addHandler(conHdlr);
-        
+
         SL4JLogger lg = new SL4JLogger();
-       
-        Map <String, Thread> dbList = new HashMap();
+
+        Map<String, Thread> dbList = new HashMap();
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
-        String dbLine; 
+        String dbLine;
         File dbListFile = new File(DBLISTFILENAME);
         lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
-        while(true) /*for(int i=0; i<1; i++)*/{
-            try{
-                fileScanner = new Scanner(dbListFile);
-                while ( fileScanner.hasNext()){
-                    dbLine = fileScanner.nextLine();
-                    if ( !dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive() ){
-                        try{
+        while (true) /*for(int i=0; i<1; i++)*/ {
+            try {
+                oraDBList = getListFromFile(dbListFile);
+                for (int i = 0; i < oraDBList.size(); i++) {
+                    dbLine = oraDBList.get(i);
+                    if (!dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive()) {
+                        try {
                             dbList.put(dbLine, new StatCollector(dbLine));
-                            lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: "+dbLine);
+                            lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
                             dbList.get(dbLine).start();
-                        }catch(Exception e){
-                            lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error running thread for "+dbLine);
+                        } catch (Exception e) {
+                            lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error running thread for " + dbLine);
                             e.printStackTrace();
                         }
                     }
                 }
-                fileScanner.close();               
-            } catch (FileNotFoundException e){
-                lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" +"Error reading database list!");
+            } catch (FileNotFoundException e) {
+                lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error reading database list!");
                 e.printStackTrace();
                 System.exit(2);
             }
-                TimeUnit.SECONDS.sleep(SECONDSTOSLEEP);
+            TimeUnit.SECONDS.sleep(SECONDSTOSLEEP);
         }
         //Done
     }
-    
+
 }

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            .ns{ letter-spacing: -2px; }		
+        </style>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script type="text/javascript">
+            google.charts.load('current', {'packages': ['corechart']});
+            google.charts.load('current', {'packages': ['table']});
+            //google.charts.load('current', {'packages':['bar']});
+            google.charts.setOnLoadCallback(drawWaitsChart);
+            var arrWaitClass = [
+                'Timestamp',
+                'System I/O',
+                'User I/O',
+                'Commit',
+                'Network',
+                'CPU',
+                'Administrative',
+                'Concurrency',
+                'Application',
+                'Configuration',
+                'Queueing',
+                'Scheduler',
+                'Other'
+            ];
+            var arrWaitClassStyle = [
+                '',
+                'DeepSkyBlue',
+                'Blue',
+                'Orange',
+                'Moccasin',
+                'LimeGreen',
+                'Silver',
+                'DarkRed',
+                'Red',
+                'Sienna',
+                'MistyRose',
+                'PaleGreen',
+                'Magenta'
+            ];
+            var arrClassNum = [12, 8, 9, 6, 7, 3, 0, 4, 2, 1, 11, 10];
+            arrClassNum[127] = 5;
+            var ts;
+            var timeSpan;
+            var eventsHeaderData;
+            //--changable
+            var spanMinutes = 5;
+            var dbuniquename = 'rmsdb_prd';
+            //--
+            function checkClassNum(inp) {
+                for (var i in arrClassNum) {
+                    if (arrClassNum[i] == inp) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+            //--
+            function preDraw() {
+                ts = new Date((new Date()).getTime() - 1000 * 60 * spanMinutes);
+                timeSpan = ts.getFullYear() + '-' +
+                        ("0" + ts.getMonth() + 1).slice(-2) + '-' + ("0" + ts.getDate()).slice(-2)
+                        + ' ' +
+                        ("0" + ts.getHours()).slice(-2) + ':' + ("0" + ts.getMinutes()).slice(-2) + ':' + ("0" + ts.getSeconds()).slice(-2)
+                        ;
+            }
+            //------WAITS
+            function drawWaitsChart() {
+                preDraw();
+                var waitsQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" +
+                        dbuniquename +
+                        "' and snapTime > '" +
+                        timeSpan +
+                        "' group by snapTime,classnum order by snapTime asc";
+                var data = new google.visualization.DataTable();
+                //--add Columns
+                data.addColumn('string', arrWaitClass[0]);
+                for (var i = 1; i < arrWaitClass.length; i++) {
+                    data.addColumn('number', arrWaitClass[i]);
+                    data.addColumn({type: 'string', role: "style"});
+                }
+                //-- add Data
+                data.addRows(parseWaitsData(getData(waitsQuery)));
+                var legendColors = [];
+                for (var i = 1; i < arrWaitClass.length; i++) {
+                    legendColors[i - 1] = arrWaitClassStyle[i];
+                }
+                var options = {
+                    title: 'Wait Class',
+                    width: 1600,
+                    height: 600,
+                    //hAxis: {title: 'SessionsWaiting',  titleTextStyle: {color: '#333'}},
+                    vAxis: {minValue: 0, format: '####'},
+                    animation: {startup: 'true', duration: 1000},
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '75%'},
+                    legend: {position: 'right', maxLines: 3},
+                    colors: legendColors,
+                    isStacked: true,
+                };
+                var waitsChart = new google.visualization.ColumnChart(document.getElementById('waitsregion'));
+                waitsChart.draw(data, options);
+                //--Register Events 
+                //--
+                function waitsSelectHandler(e) {
+                    var sel = waitsChart.getSelection();
+                    if (typeof sel[0] !== 'undefined') {
+                        if (typeof arrWaitClass[(Number(sel[0].column) + 1) / 2] !== 'undefined') {
+                            drawEventsChart((Number(sel[0].column) + 1) / 2);
+                        }
+                    }
+                }
+                google.visualization.events.addListener(waitsChart, 'select', waitsSelectHandler);
+                drawSessionsTable();
+                drawSQLsTable();
+            }
+            //------WAITS
+            //------EVENTS
+            function drawEventsChart(classNum) {
+                classNum = checkClassNum(classNum);
+                if (classNum < 0) {
+                    return null;
+                }
+                var eventsQuery = "select snapTime,event, count(1) val from sessions_buffer where dbuniquename='" +
+                        dbuniquename +
+                        "' and snapTime > '" +
+                        timeSpan +
+                        "' and classnum=" +
+                        classNum +
+                        " group by snapTime,event order by snapTime asc, val asc";
+                var data = google.visualization.arrayToDataTable(parseEventsData(getData(eventsQuery)));
+                var options = {
+                    title: 'Events',
+                    width: 1600,
+                    height: 600,
+                    //hAxis: {title: 'SessionsWaiting',  titleTextStyle: {color: '#333'}},
+                    vAxis: {minValue: 0, format: '####'},
+                    //animation : { startup : 'true' ,duration : 1000 },
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '75%'},
+                    legend: {position: 'right', maxLines: 3},
+                    isStacked: true,
+                };
+                var eventsChart = new google.visualization.ColumnChart(document.getElementById('eventsregion'));
+                eventsChart.draw(data, options);
+                function eventsSelectHandler(e) {
+
+                }
+                google.visualization.events.addListener(eventsChart, 'select', eventsSelectHandler);
+            }
+            //------EVENTS	  
+            //------SESSIONS 
+            function drawSessionsTable() {
+                var sessionsQuery = "select sid,classnum,cnt,tot,ni,module,machine,schemaname,serial,sipHash64(concat(module,machine,schemaname,toString(serial),toString(sid))) as sessid from (select sid,serial,classnum,cnt,tot,machine,module,schemaname from (" +
+                        "select sid,serial,module,machine,schemaname,classnum,count(1) as cnt,1 as dummy from sessions_buffer where classnum<>6 and dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' group by sid,serial,module,machine,schemaname,classnum" +
+                        ") all left join (" +
+                        "select 1 as dummy,count(st) as tot from (select snapTime as st from sessions_buffer where dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' group by st)" +
+                        ") using dummy) all inner join (" +
+                        "select sid,serial,module,machine,schemaname,ni from (" +
+                        "select sid,serial,module,machine,schemaname,count(1) as ni from sessions_buffer where dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' and classnum<>6 group by sid,serial,module,machine,schemaname having count(1)>0 order by ni desc" +
+                        ") limit 10" +
+                        ") using sid,serial,module,machine,schemaname " +
+                        "order by ni desc,sid asc,cnt asc";
+                alert(sessionsQuery);
+                var data = new google.visualization.DataTable();
+                data.addColumn('string', 'SID,SERIAL');
+                data.addColumn('string', 'SCHEMA');
+                data.addColumn('string', 'MODULE@MACHINE');
+                data.addColumn('string', 'WAITS');
+                data.addRows(parseSessionsData(getData(sessionsQuery)));
+                var options = {
+                    title: 'Sessions',
+                    width: '69%',
+                    height: '100%',
+                    allowHtml: true,
+                    showRowNumber: false
+                };
+                var sessionsTable = new google.visualization.Table(document.getElementById('sessionsregion'));
+                sessionsTable.draw(data, options);
+            }
+            //------SESSIONS  
+            //------SQL 
+            function drawSQLsTable() {
+                var sqlsQuery = "select sqlid,sql_id,classnum,cnt,tot,ni from (select sqlid,sql_id,classnum,cnt,tot from (" +
+                        "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt, 1 as dummy from sessions_buffer where dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' and sql_id <> '-\0\0\0\0\0\0\0\0\0\0\0\0' and classnum<>6 group by sqlid,sql_id,classnum" +
+                        ") all left join (" +
+                        "select 1 as dummy,count(st) as tot from (select snapTime as st from sessions_buffer where dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' group by st)" +
+                        ") using dummy) all inner join (" +
+                        "select sql_id,ni from (" +
+                        "select sql_id,count(1) as ni from sessions_buffer where classnum<>6 and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbuniquename + "' and snapTime > '" + timeSpan + "' group by sql_id having count(1)>0 order by ni desc" +
+                        ") limit 10" +
+                        ") using sql_id order by ni desc"
+                //alert(sqlsQuery);
+                var data = new google.visualization.DataTable();
+                data.addColumn('string', 'SQL ID');
+                data.addColumn('string', 'WAITS');
+                data.addRows(parseSQLsData(getData(sqlsQuery)));
+                var options = {
+                    title: 'SQL',
+                    width: '29%',
+                    height: '100%',
+                    allowHtml: true,
+                    showRowNumber: false
+                };
+                var sqlsTable = new google.visualization.Table(document.getElementById('sqlsregion'));
+                sqlsTable.draw(data, options);
+            }
+            //------SQL            
+            //--
+            function getData(query) {
+                var xmlHttp = new XMLHttpRequest();
+                var xmlHttpOutput;
+                xmlHttp.open("POST", 'http://10.64.139.57:18123/?database=oradb&query=', false); // false for synchronous request
+                xmlHttp.send(query);
+                return xmlHttp.responseText;
+            }
+
+            //--
+            function parseEventsData(inputData) {
+                //--
+                function searchHeader(inp) {
+                    for (var hi in eventsHeaderData) {
+                        if (eventsHeaderData[hi] == inp) {
+                            return hi;
+                        }
+                    }
+                    return -1;
+                }
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                var tmpData = [];
+                var rowData = [];
+                eventsHeaderData = ['Timestamp'];
+                var idx;
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+                        if (searchHeader(rowData[1]) == -1) {
+                            eventsHeaderData[eventsHeaderData.length] = rowData[1];
+                        }
+                    }
+                }
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+                        idx = Number(rowData[0].replace(/[:-\s]/g, ""));
+                        if (typeof tmpData[idx] === 'undefined') {
+                            tmpData[idx] = [];
+                            tmpData[idx][0] = String(rowData[0]);
+                            for (var ti = 1; ti < eventsHeaderData.length; ti++) {
+                                tmpData[idx][ti] = 0;
+                            }
+                        }
+                        tmpData[idx][searchHeader(rowData[1])] = Number(rowData[2]);
+                    }
+                }
+                outData.push(eventsHeaderData);
+                for (var ei in tmpData) {
+                    outData.push(tmpData[ei]);
+                }
+                return outData;
+            }
+            //--
+            function parseWaitsData(inputData) {
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                var tmpData = [];
+                var rowData = [];
+                var idx;
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+                        idx = Number(rowData[0].replace(/[:-\s]/g, ""));
+                        if (typeof tmpData[idx] === 'undefined') {
+                            tmpData[idx] = [rowData[0], 0, "", 0, "", 0, "", 0, "", 0, "", 0, "", 0, "", 0, "", 0, "", 0, "", 0, "", 0, ""];
+                        }
+                        if (Number(rowData[1]) !== 6) {
+                            tmpData[idx][arrClassNum[Number(rowData[1])] * 2 - 1] = Number(rowData[2]);
+                            tmpData[idx][arrClassNum[Number(rowData[1])] * 2] = arrWaitClassStyle[arrClassNum[Number(rowData[1])]];
+                        }
+                    }
+                }
+                for (var wi in tmpData) {
+                    outData.push(tmpData[wi]);
+                }
+                return outData;
+            }
+            //--
+            function colorPercentWait(current, total, classnum, nonidle) {
+                var out = '<font class="ns" title="' + arrWaitClass[arrClassNum[classnum]] + " " + (Math.round(100 * current / total)) + '%" color="' + arrWaitClassStyle[arrClassNum[classnum]] + '">';
+                var maxchars = 20 * Math.ceil(nonidle / total);
+                for (var i = 0; i < Math.ceil(maxchars * current / total); i++) {
+                    out += "■";
+                }
+                out += '</font>';
+                return out;
+            }
+            //--
+            function parseSessionsData(inputData) {
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                var tmpData = [];
+                var rowData = [];
+                var tmpIdx = [];
+                var k = 0;
+                var idx;
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+                        idx = Number(rowData[9]);
+                        if (typeof tmpIdx[idx] === 'undefined') {
+                            tmpIdx[idx] = k;
+                            tmpData[k] = [rowData[0] + "," + rowData[8], rowData[7], rowData[5] + "@" + rowData[6], colorPercentWait(rowData[2], rowData[3], rowData[1], rowData[4])];
+                            k++;
+                        } else {
+                            tmpData[tmpIdx[idx]][3] = tmpData[tmpIdx[idx]][3] + colorPercentWait(rowData[2], rowData[3], rowData[1], rowData[4]);
+                        }
+                    }
+                }
+                for (var si in tmpData) {
+                    outData.push(tmpData[si]);
+                }
+                return outData;
+            }
+            //--
+            //--
+            function parseSQLsData(inputData) {
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                var tmpData = [];
+                var rowData = [];
+                var tmpIdx = [];
+                var k = 0;
+                var idx;
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+                        idx = Number(rowData[0]);
+                        if (typeof tmpIdx[idx] === 'undefined') {
+                            tmpIdx[idx] = k;
+                            tmpData[k] = [rowData[1], colorPercentWait(rowData[3], rowData[4], rowData[2], rowData[5])];
+                            k++;
+                        } else {
+                            tmpData[tmpIdx[idx]][1] = tmpData[tmpIdx[idx]][1] + colorPercentWait(rowData[3], rowData[4], rowData[2], rowData[5]);
+                        }
+                    }
+                }
+                for (var si in tmpData) {
+                    outData.push(tmpData[si]);
+                }
+                return outData;
+            }
+            //--	  
+        </script>
+    </head>
+
+    <body onLoad=''>
+        <div id="waitsregion"></div>
+        <div id="eventsregion"></div>
+        <div>
+            <span id="sqlsregion"></span>
+            &nbsp;&nbsp;
+            <span id="sessionsregion"></span>
+        </div>
+    </body>
+</html>
