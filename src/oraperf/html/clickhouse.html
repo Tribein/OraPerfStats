@@ -50,7 +50,9 @@ and open the template in the editor.
             var arrClassNum = [12, 8, 9, 6, 7, 3, 0, 4, 2, 1, 11, 10];
             arrClassNum[127] = 5;
             var ts;
-            var timeSpan;
+            var te;
+            var timeSpan1;
+            var timeSpan2;
             var eventsHeaderData;
             var eventsChart;
             //--changable
@@ -68,12 +70,18 @@ and open the template in the editor.
             }
             //--
             function preDraw() {
-                ts = new Date((new Date()).getTime() - 1000 * 60 * spanMinutes);
-                timeSpan = ts.getFullYear() + '-' +
+                te = new Date();
+                ts = new Date(te.getTime() - 1000 * 60 * spanMinutes);
+                timeSpan1 = ts.getFullYear() + '-' +
                         ("0" + ts.getMonth() + 1).slice(-2) + '-' + ("0" + ts.getDate()).slice(-2)
                         + ' ' +
                         ("0" + ts.getHours()).slice(-2) + ':' + ("0" + ts.getMinutes()).slice(-2) + ':' + ("0" + ts.getSeconds()).slice(-2)
                         ;
+                timeSpan2 = te.getFullYear() + '-' +
+                        ("0" + te.getMonth() + 1).slice(-2) + '-' + ("0" + te.getDate()).slice(-2)
+                        + ' ' +
+                        ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
+                        ;                        
             }
             //------WAITS
             function drawWaitsChart() {
@@ -81,7 +89,7 @@ and open the template in the editor.
                 var waitsQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
                         "' and snapTime > '" +
-                        timeSpan +
+                        timeSpan1 +
                         "' group by snapTime,classnum order by snapTime asc";
                 var data = new google.visualization.DataTable();
                 //--add Columns
@@ -141,7 +149,7 @@ and open the template in the editor.
                 var eventsQuery = "select snapTime,event, count(1) val,classnum from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
                         "' and snapTime > '" +
-                        timeSpan +
+                        timeSpan1 +
                         "' group by snapTime,event,classnum order by snapTime asc, val asc";
                 var data = google.visualization.arrayToDataTable(parseEventsData(getData(eventsQuery),Number(classNum)));
                 var options = {
@@ -173,7 +181,7 @@ and open the template in the editor.
                 var locksQuery = "select snapTime, sum(if(blocking_session=0,0,1)) as val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
                         "' and snapTime > '" +
-                        timeSpan +
+                        timeSpan1 +
                         "' group by snapTime order by snapTime asc";
                 var data = new google.visualization.DataTable();
 				data.addColumn('string', 'Timestamp');
@@ -209,16 +217,16 @@ and open the template in the editor.
                         "sid,classnum,cnt,tot,ni,module,machine,schemaname,serial,sipHash64(concat(module,machine,schemaname,toString(serial),toString(sid))) as sessid"+
                         " from (select sid,serial,classnum,cnt,tot,machine,module,schemaname from (" +
                         "select sid,serial,module,machine,schemaname,classnum,count(1) as cnt,1 as dummy "+ 
-                        "from sessions_buffer where classnum<>6 and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' "+
+                        "from sessions_buffer where classnum<>6 and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' "+
                         "group by sid,serial,module,machine,schemaname,classnum" +
                         ") all left join (" +
                         "select 1 as dummy,count(st) as tot from (select snapTime as st "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' "+
                         "group by st)" +
                         ") using dummy) all inner join (" +
                         "select sid,serial,module,machine,schemaname,ni from (" +
                         "select sid,serial,module,machine,schemaname,count(1) as ni "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' and classnum<>6 "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' and classnum<>6 "+
                         "group by sid,serial,module,machine,schemaname having count(1)>0 order by ni desc" +
                         ") limit 10" +
                         ") using sid,serial,module,machine,schemaname " +
@@ -245,16 +253,16 @@ and open the template in the editor.
             function drawSQLsTable() {
                 var sqlsQuery = "select sqlid,sql_id,classnum,cnt,tot,ni from (select sqlid,sql_id,classnum,cnt,tot from (" +
                         "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' and sql_id <> '-\0\0\0\0\0\0\0\0\0\0\0\0' and classnum<>6 "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' and sql_id <> '-\0\0\0\0\0\0\0\0\0\0\0\0' and classnum<>6 "+
                         "group by sqlid,sql_id,classnum" +
                         ") all left join (" +
                         "select sql_id,count(1) as tot from sessions_buffer "+
-                        "where sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' "+
+                        "where sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' "+
                         "group by sql_id"+
                         ") using sql_id) all inner join (" +
                         "select sql_id,ni from (" +
                         "select sql_id,count(1) as ni from sessions_buffer "+
-                        "where classnum<>6 and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan + "' "+
+                        "where classnum<>6 and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' "+
                         "group by sql_id having count(1)>0 order by ni desc" +
                         ") limit 10" +
                         ") using sql_id order by ni desc,sql_id,cnt asc";
