@@ -46,7 +46,7 @@ public class StatCollector extends Thread {
             + "  serial#,"
             + "  decode(taddr,null,'N','Y'),"
             + "  status,"
-            + "  schemaname,"
+            + "  nvl(username,schemaname),"
             + "  nvl(osuser,'-'),"
             + "  nvl(machine,'-'),"
             + "  nvl(program,'-'),"

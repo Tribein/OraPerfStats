@@ -185,6 +185,7 @@ and open the template in the editor.
                         ") limit 10" +
                         ") using sid,serial,module,machine,schemaname " +
                         "order by ni desc,sid asc,cnt asc";
+                //document.getElementById("query").innerHTML=sessionsQuery;
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'SID,SERIAL');
                 data.addColumn('string', 'SCHEMA');
