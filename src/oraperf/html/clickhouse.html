@@ -17,6 +17,7 @@ and open the template in the editor.
             google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
             google.charts.setOnLoadCallback(drawWaitsChart);
+            var arrLocksTree = ['SID','Serial','Machine','Module','Program','Blocking Session','Logon Time','SQLID','SQL Exec Start Time','Event','SEQUENCE','P1','P2'];
             var arrWaitClass = [
                 'Timestamp',
                 'System I/O',
@@ -55,9 +56,10 @@ and open the template in the editor.
             var timeSpan2;
             var eventsHeaderData;
             var eventsChart;
+            var locksTreeTable;
             //--changable
             var spanMinutes = 5;
-            var dbUniqueName = 'mskkis_prd';
+            var dbUniqueName = 'dwh_m';
             var sessionsBlocked = 0;
             //--
             function checkClassNum(inp) {
@@ -88,9 +90,7 @@ and open the template in the editor.
                 preDraw();
                 var waitsQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
-                        "' and snapTime > '" +
-                        timeSpan1 +
-                        "' group by snapTime,classnum order by snapTime asc";
+                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' group by snapTime,classnum order by snapTime asc";
                 var data = new google.visualization.DataTable();
                 //--add Columns
                 data.addColumn('string', arrWaitClass[0]);
@@ -106,7 +106,7 @@ and open the template in the editor.
                 }
                 var options = {
                     title: 'Wait Class',
-                    width: 1600,
+                    width: 1800,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
@@ -116,7 +116,8 @@ and open the template in the editor.
                     bar: {groupWidth: '95%'},
                     legend: {position: 'right', maxLines: 3},
                     colors: legendColors,
-                    isStacked: true
+                    isStacked: true,
+                    backgroundColor: { fill:'transparent' }
                 };
                 var waitsChart = new google.visualization.ColumnChart(document.getElementById('waitsregion'));
                 waitsChart.draw(data, options);
@@ -131,6 +132,7 @@ and open the template in the editor.
 						 var sel = waitsChart.getSelection();
 						 if(typeof arrWaitClass[(Number(sel[0].column) + 1) / 2] !== 'undefined') {
                             drawEventsChart((Number(sel[0].column) + 1) / 2);
+                            document.getElementById('eventsregion').scrollIntoView();
 						}
                     }
                 }
@@ -148,14 +150,12 @@ and open the template in the editor.
                 }
                 var eventsQuery = "select snapTime,event, count(1) val,classnum from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
-                        "' and snapTime > '" +
-                        timeSpan1 +
-                        "' group by snapTime,event,classnum order by snapTime asc, val asc";
+                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' group by snapTime,event,classnum order by snapTime asc, val asc";
                 var data = google.visualization.arrayToDataTable(parseEventsData(getData(eventsQuery),Number(classNum)));
                 var options = {
                     title: 'Events',
-                    width: 1600,
-                    height: 400,
+                    width: 1800,
+                    height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
                     animation : { startup : 'true' ,duration : 1000 },
@@ -163,7 +163,8 @@ and open the template in the editor.
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
                     legend: {position: 'right', maxLines: 3},
-                    isStacked: true
+                    isStacked: true,
+                    backgroundColor: { fill:'transparent' }
                 };
                 if (data.getNumberOfRows()===0){
 					return;
@@ -176,29 +177,45 @@ and open the template in the editor.
                 google.visualization.events.addListener(eventsChart, 'select', eventsSelectHandler);
             }
             //------EVENTS
+            //------LOCKSTREE
+            function drawLocksTreeTable(input) {
+				locksTreeQuery = "select sid,serial,machine,module,program,blocking_session,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2 from sessions_buffer "+
+				"where dbuniquename='"+dbUniqueName+"' and snapTime='"+input+"'";
+				var data = google.visualization.arrayToDataTable(parseLocksTreeData(getData(locksTreeQuery)));
+                var locksTreeTable = new google.visualization.Table(document.getElementById('lockstreeregion'));
+                var options = {
+                    title: 'LocksTree',
+                    width: '100%',
+                    height: '100%',
+                    allowHtml: true,
+                    showRowNumber: false,
+                    backgroundColor: { fill:'transparent' }
+                };                			
+                locksTreeTable.draw(data, options);	
+			}
+            //------LOCKSTREE            
             //------BLOCKINGS
             function drawLocksChart() {
                 var locksQuery = "select snapTime, sum(if(blocking_session=0,0,1)) as val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
-                        "' and snapTime > '" +
-                        timeSpan1 +
-                        "' group by snapTime order by snapTime asc";
+                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' group by snapTime order by snapTime asc";
                 var data = new google.visualization.DataTable();
 				data.addColumn('string', 'Timestamp');
                 data.addColumn('number', 'Sessons blocked');
                 data.addRows(parseLocksData(getData(locksQuery)));
                 var options = {
                     title: 'Blocking Sessions',
-                    width: 1600,
-                    height: 200,
+                    width: 1800,
+                    height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
                     animation : { startup : 'true' ,duration : 1000 },
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'none'},
-                    isStacked: true
+                    legend: {position: 'right'},
+                    isStacked: true,
+                    backgroundColor: { fill:'transparent' }
                 };
                 if (sessionsBlocked===0){
 					return;
@@ -206,7 +223,15 @@ and open the template in the editor.
                 var locksChart = new google.visualization.ColumnChart(document.getElementById('locksregion'));
                 locksChart.draw(data, options);
                 function locksSelectHandler(e) {
-
+                    if (locksChart.getSelection().length === 0) {
+						if(typeof locksTreeTable !== 'undefined'){
+							locksTreeTable.clearChart();
+						}
+					}else{
+						 var sel = locksChart.getSelection();
+                         drawLocksTreeTable(data.getValue(sel[0].row,0));
+                         document.getElementById('lockstreeregion').scrollIntoView();
+                    }
                 }
                 google.visualization.events.addListener(locksChart, 'select', locksSelectHandler);
             }            	  
@@ -217,16 +242,16 @@ and open the template in the editor.
                         "sid,classnum,cnt,tot,ni,module,machine,schemaname,serial,sipHash64(concat(module,machine,schemaname,toString(serial),toString(sid))) as sessid"+
                         " from (select sid,serial,classnum,cnt,tot,machine,module,schemaname from (" +
                         "select sid,serial,module,machine,schemaname,classnum,count(1) as cnt,1 as dummy "+ 
-                        "from sessions_buffer where classnum<>6 and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' "+
+                        "from sessions_buffer where classnum<>6 and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
                         "group by sid,serial,module,machine,schemaname,classnum" +
                         ") all left join (" +
                         "select 1 as dummy,count(st) as tot from (select snapTime as st "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
                         "group by st)" +
                         ") using dummy) all inner join (" +
                         "select sid,serial,module,machine,schemaname,ni from (" +
                         "select sid,serial,module,machine,schemaname,count(1) as ni "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' and classnum<>6 "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' and classnum<>6 "+
                         "group by sid,serial,module,machine,schemaname having count(1)>0 order by ni desc" +
                         ") limit 10" +
                         ") using sid,serial,module,machine,schemaname " +
@@ -243,7 +268,8 @@ and open the template in the editor.
                     width: '69%',
                     height: '100%',
                     allowHtml: true,
-                    showRowNumber: false
+                    showRowNumber: false,
+                    backgroundColor: { fill:'transparent' }
                 };
                 var sessionsTable = new google.visualization.Table(document.getElementById('sessionsregion'));
                 sessionsTable.draw(data, options);
@@ -253,16 +279,16 @@ and open the template in the editor.
             function drawSQLsTable() {
                 var sqlsQuery = "select sqlid,sql_id,classnum,cnt,tot,ni from (select sqlid,sql_id,classnum,cnt,tot from (" +
                         "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' and sql_id <> '-\0\0\0\0\0\0\0\0\0\0\0\0' and classnum<>6 "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' and sql_id <> '-\0\0\0\0\0\0\0\0\0\0\0\0' and classnum<>6 "+
                         "group by sqlid,sql_id,classnum" +
                         ") all left join (" +
                         "select sql_id,count(1) as tot from sessions_buffer "+
-                        "where sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' "+
+                        "where sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
                         "group by sql_id"+
                         ") using sql_id) all inner join (" +
                         "select sql_id,ni from (" +
                         "select sql_id,count(1) as ni from sessions_buffer "+
-                        "where classnum<>6 and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime > '" + timeSpan1 + "' "+
+                        "where classnum<>6 and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
                         "group by sql_id having count(1)>0 order by ni desc" +
                         ") limit 10" +
                         ") using sql_id order by ni desc,sql_id,cnt asc";
@@ -275,7 +301,8 @@ and open the template in the editor.
                     width: '29%',
                     height: '100%',
                     allowHtml: true,
-                    showRowNumber: false
+                    showRowNumber: false,
+                    backgroundColor: { fill:'transparent' }
                 };
                 var sqlsTable = new google.visualization.Table(document.getElementById('sqlsregion'));
                 sqlsTable.draw(data, options);
@@ -450,14 +477,37 @@ and open the template in the editor.
                 }
                 return outData;
             }
-            //--	  
+            //--
+            function parseLocksTreeData(inputData) {
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                var tmpData = [];
+                var rowData = [];
+                var idx;
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+                        idx = Number(rowData[0]);
+                        tmpData[idx] = [];
+                        for(var j=0; j<arrLocksTree.length; j++){
+							tmpData[idx][j] = rowData[j];
+						}
+                    }
+                }
+                outData.push(arrLocksTree);
+                for (var si in tmpData) {
+                    outData.push(tmpData[si]);
+                }
+                return outData;			
+			}	  
+            //--
         </script>
     </head>
 
     <body onLoad=''>
-		<div id="query"></div>
         <div id="waitsregion"></div>
         <div id="locksregion"></div>
+        <div id="lockstreeregion"></div>
         <div id="eventsregion"></div>
         <div>
             <span id="sqlsregion"></span>
