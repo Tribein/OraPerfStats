@@ -64,7 +64,7 @@ public class StatCollector extends Thread {
             + "  nvl(p1,0),"
             + "  nvl(p2,0)"
             + " from gv$session"
-            + " where (wait_class#<>6 or taddr is not null) and sid<>sys_context('USERENV','SID')";
+            + " where sid<>sys_context('USERENV','SID')";
     private final String oraSesStatQuery 
             = "select sid,name,class,value from v$statname " +
             "join v$sesstat using(statistic#) " +

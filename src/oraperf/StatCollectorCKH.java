@@ -33,7 +33,6 @@ public class StatCollectorCKH {
     private static final String CKHUSERNAME = "oracle";
     private static final String CKHPASSWORD = "elcaro";
     private static final String CKHCONNECTIONSTRING = "jdbc:clickhouse://10.64.139.57:8123/oradb";
-    private String connString;
     private String dbUniqueName;
     private String dbHostName;
     private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
@@ -96,7 +95,9 @@ public class StatCollectorCKH {
                 ckhSessionsPreparedStatement.setLong(21, ((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
                 ckhSessionsPreparedStatement.setInt(22, queryResult.getInt(19));
                 ckhSessionsPreparedStatement.setDate(23, java.sql.Date.valueOf(currentDate));
-                ckhSessionsPreparedStatement.setLong(24, queryResult.getLong(20));
+                ckhSessionsPreparedStatement.setLong(24, 
+                        (long) new BigDecimal(queryResult.getDouble(20)).setScale(0, RoundingMode.HALF_UP).doubleValue()
+                );
                 ckhSessionsPreparedStatement.setLong(25, queryResult.getLong(21));
                 ckhSessionsPreparedStatement.addBatch();
             }
@@ -104,7 +105,8 @@ public class StatCollectorCKH {
                 queryResult.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing resultset from Database!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error processing resultset from Database!");
+            e.printStackTrace();
             return false;
         }
         try {
@@ -112,7 +114,7 @@ public class StatCollectorCKH {
             ckhSessionsPreparedStatement.clearBatch();
             ckhSessionsPreparedStatement.clearWarnings();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error submitting sessions data to ClickHouse!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error submitting sessions data to ClickHouse!");
             e.printStackTrace();
             return false;
         }
@@ -139,7 +141,7 @@ public class StatCollectorCKH {
             ckhSysStatsPreparedStatement.clearBatch();
             ckhSysStatsPreparedStatement.clearWarnings();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing system statistics!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName +"\t"+"Error processing system statistics!");
             e.printStackTrace();
             return false;
         }
@@ -168,7 +170,7 @@ public class StatCollectorCKH {
             ckhSesStatsPreparedStatement.clearBatch();
             ckhSesStatsPreparedStatement.clearWarnings();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing session statistics!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error processing session statistics!");
             e.printStackTrace();
             return false;
         }
@@ -192,7 +194,7 @@ public class StatCollectorCKH {
                 connClickHouse.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error durring resource cleanups!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error durring resource cleanups!");
             e.printStackTrace();
         }
     }

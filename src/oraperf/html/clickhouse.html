@@ -17,7 +17,7 @@ and open the template in the editor.
             google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
             google.charts.setOnLoadCallback(drawWaitsChart);
-            var arrLocksTree = ['SID','Serial','Machine','Module','Program','Logon Time','SQLID','SQL Exec Start Time','Event','SEQUENCE','P1','P2','Blocking Session'];
+            var arrLocksTreeColumns = ['SID','Serial','Machine','Module','Program','Logon Time','SQLID','SQL Exec Start Time','Event','SEQUENCE','P1','P2','Blocking Session'];
             var arrWaitClass = [
                 'Timestamp',
                 'System I/O',
@@ -527,7 +527,7 @@ and open the template in the editor.
                         rowData = dataLines[i].split(/[\t]+/);
                         idx = Number(rowData[0]);
                         tmpData[idx] = [];
-                        for(var j=0; j<arrLocksTree.length; j++){
+                        for(var j=0; j<arrLocksTreeColumns.length; j++){
 							tmpData[idx][j] = rowData[j];
 						}
 						arrTree.push({ "id" : Number(rowData[0]), "parentid" : Number(rowData[12])});
@@ -550,7 +550,7 @@ and open the template in the editor.
 					recGetSID(arrTree[i],0);
 				}
 				//--
-                outData.push(arrLocksTree);
+                outData.push(arrLocksTreeColumns);
 				/*
                 for (var lti in tmpData) {
                     outData.push(tmpData[lti]);
@@ -573,9 +573,9 @@ and open the template in the editor.
 
     <body onLoad=''>
         <div id="waitsregion"></div>
+        <div id="eventsregion"></div>        
         <div id="locksregion"></div>
         <div id="lockstreeregion"></div>
-        <div id="eventsregion"></div>
         <div>
             <span id="sqlsregion"></span>
             &nbsp;&nbsp;
