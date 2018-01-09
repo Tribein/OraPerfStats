@@ -17,7 +17,7 @@ and open the template in the editor.
             google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
             google.charts.setOnLoadCallback(drawWaitsChart);
-            var arrLocksTree = ['SID','Serial','Machine','Module','Program','Blocking Session','Logon Time','SQLID','SQL Exec Start Time','Event','SEQUENCE','P1','P2'];
+            var arrLocksTree = ['SID','Serial','Machine','Module','Program','Logon Time','SQLID','SQL Exec Start Time','Event','SEQUENCE','P1','P2','Blocking Session'];
             var arrWaitClass = [
                 'Timestamp',
                 'System I/O',
@@ -71,6 +71,42 @@ and open the template in the editor.
                 return -1;
             }
             //--
+			//--------------------------------------------------------------
+			function unflatten(arr) {
+			  var tree = [],
+				  mappedArr = {},
+				  arrElem,
+				  mappedElem;
+
+			  // First map the nodes of the array to an object -> create a hash table.
+			  for(var i = 0, len = arr.length; i < len; i++) {
+				arrElem = arr[i];
+				mappedArr[arrElem.id] = arrElem;
+				mappedArr[arrElem.id]['children'] = [];
+			  }
+
+
+			  for (var id in mappedArr) {
+				if (mappedArr.hasOwnProperty(id)) {
+				  mappedElem = mappedArr[id];
+				  // If the element is not at the root level, add it to its parent array of children.
+				  if (mappedElem.parentid) {
+					try{
+						mappedArr[mappedElem.parentid]['children'].push(mappedElem);
+					}catch(e){
+					
+					}
+				  }
+				  // If the element is at the root level, add it to first level elements array.
+				  else {
+					tree.push(mappedElem);
+				  }
+				}
+			  }
+			  return tree;
+			}			
+			//--------------------------------------------------------------
+			
             function preDraw() {
                 te = new Date();
                 ts = new Date(te.getTime() - 1000 * 60 * spanMinutes);
@@ -172,15 +208,15 @@ and open the template in the editor.
                 eventsChart = new google.visualization.ColumnChart(document.getElementById('eventsregion'));
                 eventsChart.draw(data, options);
                 function eventsSelectHandler(e) {
-
                 }
                 google.visualization.events.addListener(eventsChart, 'select', eventsSelectHandler);
             }
             //------EVENTS
             //------LOCKSTREE
             function drawLocksTreeTable(input) {
-				locksTreeQuery = "select sid,serial,machine,module,program,blocking_session,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2 from sessions_buffer "+
-				"where dbuniquename='"+dbUniqueName+"' and snapTime='"+input+"'";
+				locksTreeQuery = "select sid,serial,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session from sessions_buffer "+
+				"where dbuniquename='"+dbUniqueName+"' and snapTime='"+input+"' and ("+
+				"blocking_session<>0 or sid in (select blocking_session from sessions_buffer where dbuniquename='"+dbUniqueName+"' and snapTime='"+input+"') )";
 				var data = google.visualization.arrayToDataTable(parseLocksTreeData(getData(locksTreeQuery)));
                 var locksTreeTable = new google.visualization.Table(document.getElementById('lockstreeregion'));
                 var options = {
@@ -316,7 +352,6 @@ and open the template in the editor.
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
             }
-
             //--
             function parseEventsData(inputData,classNum) {
                 //--
@@ -415,9 +450,9 @@ and open the template in the editor.
             //--
             function colorPercentWait(current, total, classnum, nonidle) {
                 var out = '<font class="ns" title="' + arrWaitClass[arrClassNum[classnum]] + " " + (Math.round(100 * current / total)) + '%" color="' + arrWaitClassStyle[arrClassNum[classnum]] + '">';
-                var maxchars = 20 * Math.ceil(nonidle / total);
+                var maxchars = 100 * Math.ceil(nonidle / total);
                 for (var i = 0; i < Math.ceil(maxchars * current / total); i++) {
-                    out += "■";
+                    out += "|";
                 }
                 out += '</font>';
                 return out;
@@ -484,6 +519,9 @@ and open the template in the editor.
                 var tmpData = [];
                 var rowData = [];
                 var idx;
+				var arrTree = [];
+				var arrSIDSorted = [];
+				var arrSIDLevel = [];				
                 for (var i = 0; i < dataLines.length; i++) {
                     if (dataLines[i].length > 0) {
                         rowData = dataLines[i].split(/[\t]+/);
@@ -492,12 +530,41 @@ and open the template in the editor.
                         for(var j=0; j<arrLocksTree.length; j++){
 							tmpData[idx][j] = rowData[j];
 						}
+						arrTree.push({ "id" : Number(rowData[0]), "parentid" : Number(rowData[12])});
                     }
                 }
+				//--
+				arrTree = unflatten(arrTree);
+				function recGetSID(input,level){
+					arrSIDSorted.push(Number(input.id));
+					arrSIDLevel.push(level);
+					if (input.children.length > 0){
+						level++;
+						for (var s in input.children){
+							recGetSID(input.children[s],level);
+						}
+					}
+				}
+				//--
+				for(var i in arrTree){
+					recGetSID(arrTree[i],0);
+				}
+				//--
                 outData.push(arrLocksTree);
-                for (var si in tmpData) {
-                    outData.push(tmpData[si]);
+				/*
+                for (var lti in tmpData) {
+                    outData.push(tmpData[lti]);
                 }
+				*/
+				for (var i=0; i<arrSIDSorted.length; i++){
+					if  (arrSIDLevel[i] === 0){
+						tmpData[arrSIDSorted[i]][0] = '<strong>'+ tmpData[arrSIDSorted[i]][0]+'</strong>';;
+					}
+					for (var j=0;j<arrSIDLevel[i];j++){
+						tmpData[arrSIDSorted[i]][0] = '&nbsp;&nbsp;&nbsp;&nbsp;'+ tmpData[arrSIDSorted[i]][0];
+					}
+					outData.push(tmpData[arrSIDSorted[i]]);
+				}
                 return outData;			
 			}	  
             //--
