@@ -57,9 +57,10 @@ and open the template in the editor.
             var eventsHeaderData;
             var eventsChart;
             var locksTreeTable;
+            var statsTable;
             //--changable
-            var spanMinutes = 5;
-            var dbUniqueName = 'dwh_m';
+            var spanMinutes = 20;
+            var dbUniqueName = 'scatprod_prd';
             var sessionsBlocked = 0;
             //--
             function checkClassNum(inp) {
@@ -224,10 +225,23 @@ and open the template in the editor.
                     width: '100%',
                     height: '100%',
                     allowHtml: true,
-                    showRowNumber: false,
+                    showRowNumber: true,
                     backgroundColor: { fill:'transparent' }
                 };                			
-                locksTreeTable.draw(data, options);	
+                locksTreeTable.draw(data, options);
+                	
+                function locksTreeSelectHandler(e) {
+                    if (locksTreeTable.getSelection().length === 0) {
+						if(typeof statsTable !== 'undefined'){
+							statsTable.clearChart();
+						}
+					}else{
+						 var sel = locksTreeTable.getSelection();
+                         drawStatsTable(data.getValue(sel[0].row,0).match(/[0-9]+/)[0]);
+                         document.getElementById('statsregion').scrollIntoView();
+                    }
+                }
+                google.visualization.events.addListener(locksTreeTable, 'select', locksTreeSelectHandler);                   
 			}
             //------LOCKSTREE            
             //------BLOCKINGS
@@ -309,6 +323,19 @@ and open the template in the editor.
                 };
                 var sessionsTable = new google.visualization.Table(document.getElementById('sessionsregion'));
                 sessionsTable.draw(data, options);
+                
+                function sessionsSelectHandler(e) {
+                    if (sessionsTable.getSelection().length === 0) {
+						if(typeof statsTable !== 'undefined'){
+							statsTable.clearChart();
+						}
+					}else{
+						 var sel = sessionsTable.getSelection();
+                         drawStatsTable(data.getValue(sel[0].row,0).split(',')[0]);
+                         document.getElementById('statsregion').scrollIntoView();
+                    }
+                }
+                google.visualization.events.addListener(sessionsTable, 'select', sessionsSelectHandler);                 
             }
             //------SESSIONS  
             //------SQL 
@@ -343,7 +370,37 @@ and open the template in the editor.
                 var sqlsTable = new google.visualization.Table(document.getElementById('sqlsregion'));
                 sqlsTable.draw(data, options);
             }
-            //------SQL            
+            //------SQL
+            //--STATS            
+            function drawStatsTable(inputsid) {
+				if(typeof inputsid === 'undefined'){
+					return null;
+				}
+                var statsQuery = "select sn,endvalue-beginvalue as vl from ("+
+					"select statName as sn,value as beginvalue from sesstats where dbuniquename='"+dbUniqueName+"' and snapTime = ("+
+						"select min(snapTime) from sesstats where dbuniquename='"+dbUniqueName+"' and sid="+inputsid+" and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+					") and sid="+inputsid+
+                ") any inner join ("+
+					"select statName as sn,value as endvalue from sesstats where dbuniquename='"+dbUniqueName+"' and snapTime = ("+
+						"select max(snapTime) from sesstats where dbuniquename='"+dbUniqueName+"' and sid="+inputsid+" and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+					") and sid="+inputsid+
+                ") using sn where (endvalue-beginvalue)<>0 order by vl desc";
+                var data = new google.visualization.DataTable();
+                data.addColumn('string', 'Statistic');
+                data.addColumn('number', 'Value diff');
+                data.addRows(parseStatsData(getData(statsQuery)));
+                var options = {
+                    title: 'Statistics for SID '+inputsid,
+                    width: '100%',
+                    height: '100%',
+                    allowHtml: true,
+                    showRowNumber: false,
+                    backgroundColor: { fill:'transparent' }
+                };
+                statsTable = new google.visualization.Table(document.getElementById('statsregion'));
+                statsTable.draw(data, options);               
+            }            
+            //--STATS
             //--
             function getData(query) {
                 var xmlHttp = new XMLHttpRequest();
@@ -425,6 +482,20 @@ and open the template in the editor.
                 return outData;
             }
             //--
+            //--
+            function parseStatsData(inputData) {
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                var rowData = [];
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+						rowData = dataLines[i].split(/[\t]+/);
+                        outData.push([rowData[0], Number(rowData[1])]);
+                    }
+                }
+                return outData;
+            }
+            //--            
             function parseLocksData(inputData) {
                 var dataLines = inputData.split(/[\n]+/);
                 var outData = [];
@@ -581,5 +652,6 @@ and open the template in the editor.
             &nbsp;&nbsp;
             <span id="sessionsregion"></span>
         </div>
+        <div id="statsregion"></div>
     </body>
 </html>
