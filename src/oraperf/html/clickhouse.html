@@ -59,7 +59,7 @@ and open the template in the editor.
             var locksTreeTable;
             var statsTable;
             //--changable
-            var spanMinutes = 20;
+            var spanMinutes = 10;
             var dbUniqueName = 'scatprod_prd';
             var sessionsBlocked = 0;
             //--
@@ -342,19 +342,20 @@ and open the template in the editor.
             function drawSQLsTable() {
                 var sqlsQuery = "select sqlid,sql_id,classnum,cnt,tot,ni from (select sqlid,sql_id,classnum,cnt,tot from (" +
                         "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' and sql_id <> '-\0\0\0\0\0\0\0\0\0\0\0\0' and classnum<>6 "+
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' and toStringCutToZero(sql_id)<>'-' and classnum<>6 "+
                         "group by sqlid,sql_id,classnum" +
                         ") all left join (" +
                         "select sql_id,count(1) as tot from sessions_buffer "+
-                        "where sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
+                        "where toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
                         "group by sql_id"+
                         ") using sql_id) all inner join (" +
                         "select sql_id,ni from (" +
                         "select sql_id,count(1) as ni from sessions_buffer "+
-                        "where classnum<>6 and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
+                        "where classnum<>6 and toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
                         "group by sql_id having count(1)>0 order by ni desc" +
                         ") limit 10" +
                         ") using sql_id order by ni desc,sql_id,cnt asc";
+                //alert(sqlsQuery);
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'SQL ID');
                 data.addColumn('string', 'WAITS');
@@ -377,12 +378,12 @@ and open the template in the editor.
 					return null;
 				}
                 var statsQuery = "select sn,endvalue-beginvalue as vl from ("+
-					"select statName as sn,value as beginvalue from sesstats where dbuniquename='"+dbUniqueName+"' and snapTime = ("+
-						"select min(snapTime) from sesstats where dbuniquename='"+dbUniqueName+"' and sid="+inputsid+" and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+					"select statName as sn,value as beginvalue from sesstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime = ("+
+						"select min(snapTime) from sesstats_buffer where dbuniquename='"+dbUniqueName+"' and sid="+inputsid+" and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					") and sid="+inputsid+
                 ") any inner join ("+
-					"select statName as sn,value as endvalue from sesstats where dbuniquename='"+dbUniqueName+"' and snapTime = ("+
-						"select max(snapTime) from sesstats where dbuniquename='"+dbUniqueName+"' and sid="+inputsid+" and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+					"select statName as sn,value as endvalue from sesstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime = ("+
+						"select max(snapTime) from sesstats_buffer where dbuniquename='"+dbUniqueName+"' and sid="+inputsid+" and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					") and sid="+inputsid+
                 ") using sn where (endvalue-beginvalue)<>0 order by vl desc";
                 var data = new google.visualization.DataTable();
@@ -521,7 +522,7 @@ and open the template in the editor.
             //--
             function colorPercentWait(current, total, classnum, nonidle) {
                 var out = '<font class="ns" title="' + arrWaitClass[arrClassNum[classnum]] + " " + (Math.round(100 * current / total)) + '%" color="' + arrWaitClassStyle[arrClassNum[classnum]] + '">';
-                var maxchars = 100 * Math.ceil(nonidle / total);
+                var maxchars = 100;// * Math.ceil(nonidle / total);
                 for (var i = 0; i < Math.ceil(maxchars * current / total); i++) {
                     out += "|";
                 }

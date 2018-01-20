@@ -63,19 +63,20 @@ public class StatCollector extends Thread {
             + "  seq#,"
             + "  nvl(p1,0),"
             + "  nvl(p2,0)"
-            + " from gv$session"
-            + " where sid<>sys_context('USERENV','SID')";
+            + " from gv$session a"
+            + " where sid<>sys_context('USERENV','SID') and ("
+            + " wait_class#<>6 or exists"
+            + " ( select 1 from gv$session b where a.inst_id=b.inst_id and (a.sid = b.blocking_session or a.sid = b.final_blocking_session) )"
+            + " )";
     private final String oraSesStatQuery 
-            = "select sid,name,class,value from v$statname " +
-            "join v$sesstat using(statistic#) " +
-            "join v$session using(sid) " +
-            "where name in ( " +
-            "'Requests to/from client','user commits','user rollbacks','user calls','recursive calls','recursive cpu usage','DB time','session pga memory','physical read total bytes','physical write total bytes','db block changes','redo size','redo size for direct writes','table fetch by rowid','table fetch continued row','lob reads','lob writes','index fetch by key','sql area evicted','session cursor cache hits','session cursor cache count','queries parallelized','Parallel operations not downgraded','Parallel operations downgraded to serial','parse time cpu','parse count (total)','parse count (hard)','parse count (failures)','sorts (memory)','sorts (disk)'" +
-            ") " +
-            "and value<>0 " +
-            "and type='USER' " +
-            "and not ( wait_class#=6 and wait_time_micro>60*1000000) " +
-            "and sid<>sys_context('USERENV','SID') ";
+            = "select sid,name,class,value from "
+            + " (select sid from v$session where type='USER' and sid<>sys_context('USERENV','SID') and ( wait_class#<>6 or (wait_class#=6 and seconds_in_wait < 10) ))" 
+            + " join v$sesstat using(sid) " 
+            + " join v$statname using(statistic#)"
+            + "where name in ( " 
+            + "'Requests to/from client','user commits','user rollbacks','user calls','recursive calls','recursive cpu usage','DB time','session pga memory','physical read total bytes','physical write total bytes','db block changes','redo size','redo size for direct writes','table fetch by rowid','table fetch continued row','lob reads','lob writes','index fetch by key','sql area evicted','session cursor cache hits','session cursor cache count','queries parallelized','Parallel operations not downgraded','Parallel operations downgraded to serial','parse time cpu','parse count (total)','parse count (hard)','parse count (failures)','sorts (memory)','sorts (disk)'"
+            + ") " +
+            "and value<>0 ";
     boolean shutdown = false;
 
     public StatCollector(String inputString) {
