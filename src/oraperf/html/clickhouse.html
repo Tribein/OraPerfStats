@@ -17,7 +17,7 @@ and open the template in the editor.
             google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
             google.charts.setOnLoadCallback(drawWaitsChart);
-            var arrLocksTreeColumns = ['SID','Serial','Machine','Module','Program','Logon Time','SQLID','SQL Exec Start Time','Event','SEQUENCE','P1','P2','Blocking Session'];
+            var arrLocksTreeColumns = ['SID', 'Serial', 'Machine', 'Module', 'Program', 'Logon Time', 'SQLID', 'SQL Exec Start Time', 'Event', 'SEQUENCE', 'P1', 'P2', 'Blocking Session'];
             var arrWaitClass = [
                 'Timestamp',
                 'System I/O',
@@ -72,42 +72,42 @@ and open the template in the editor.
                 return -1;
             }
             //--
-			//--------------------------------------------------------------
-			function unflatten(arr) {
-			  var tree = [],
-				  mappedArr = {},
-				  arrElem,
-				  mappedElem;
+            //--------------------------------------------------------------
+            function unflatten(arr) {
+                var tree = [],
+                        mappedArr = {},
+                        arrElem,
+                        mappedElem;
 
-			  // First map the nodes of the array to an object -> create a hash table.
-			  for(var i = 0, len = arr.length; i < len; i++) {
-				arrElem = arr[i];
-				mappedArr[arrElem.id] = arrElem;
-				mappedArr[arrElem.id]['children'] = [];
-			  }
+                // First map the nodes of the array to an object -> create a hash table.
+                for (var i = 0, len = arr.length; i < len; i++) {
+                    arrElem = arr[i];
+                    mappedArr[arrElem.id] = arrElem;
+                    mappedArr[arrElem.id]['children'] = [];
+                }
 
 
-			  for (var id in mappedArr) {
-				if (mappedArr.hasOwnProperty(id)) {
-				  mappedElem = mappedArr[id];
-				  // If the element is not at the root level, add it to its parent array of children.
-				  if (mappedElem.parentid) {
-					try{
-						mappedArr[mappedElem.parentid]['children'].push(mappedElem);
-					}catch(e){
-					
-					}
-				  }
-				  // If the element is at the root level, add it to first level elements array.
-				  else {
-					tree.push(mappedElem);
-				  }
-				}
-			  }
-			  return tree;
-			}			
-			//--------------------------------------------------------------
-			
+                for (var id in mappedArr) {
+                    if (mappedArr.hasOwnProperty(id)) {
+                        mappedElem = mappedArr[id];
+                        // If the element is not at the root level, add it to its parent array of children.
+                        if (mappedElem.parentid) {
+                            try {
+                                mappedArr[mappedElem.parentid]['children'].push(mappedElem);
+                            } catch (e) {
+
+                            }
+                        }
+                        // If the element is at the root level, add it to first level elements array.
+                        else {
+                            tree.push(mappedElem);
+                        }
+                    }
+                }
+                return tree;
+            }
+            //--------------------------------------------------------------
+
             function preDraw() {
                 te = new Date();
                 ts = new Date(te.getTime() - 1000 * 60 * spanMinutes);
@@ -120,14 +120,14 @@ and open the template in the editor.
                         ("0" + te.getMonth() + 1).slice(-2) + '-' + ("0" + te.getDate()).slice(-2)
                         + ' ' +
                         ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
-                        ;                        
+                        ;
             }
             //------WAITS
             function drawWaitsChart() {
                 preDraw();
                 var waitsQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
-                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' group by snapTime,classnum order by snapTime asc";
+                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,classnum order by snapTime asc";
                 var data = new google.visualization.DataTable();
                 //--add Columns
                 data.addColumn('string', arrWaitClass[0]);
@@ -154,7 +154,7 @@ and open the template in the editor.
                     legend: {position: 'right', maxLines: 3},
                     colors: legendColors,
                     isStacked: true,
-                    backgroundColor: { fill:'transparent' }
+                    backgroundColor: {fill: 'transparent'}
                 };
                 var waitsChart = new google.visualization.ColumnChart(document.getElementById('waitsregion'));
                 waitsChart.draw(data, options);
@@ -162,15 +162,15 @@ and open the template in the editor.
                 //--
                 function waitsSelectHandler(e) {
                     if (waitsChart.getSelection().length === 0) {
-						if(typeof eventsChart !== 'undefined'){
-							eventsChart.clearChart();
-						}
-					}else{
-						 var sel = waitsChart.getSelection();
-						 if(typeof arrWaitClass[(Number(sel[0].column) + 1) / 2] !== 'undefined') {
+                        if (typeof eventsChart !== 'undefined') {
+                            eventsChart.clearChart();
+                        }
+                    } else {
+                        var sel = waitsChart.getSelection();
+                        if (typeof arrWaitClass[(Number(sel[0].column) + 1) / 2] !== 'undefined') {
                             drawEventsChart((Number(sel[0].column) + 1) / 2);
                             document.getElementById('eventsregion').scrollIntoView();
-						}
+                        }
                     }
                 }
                 google.visualization.events.addListener(waitsChart, 'select', waitsSelectHandler);
@@ -187,25 +187,25 @@ and open the template in the editor.
                 }
                 var eventsQuery = "select snapTime,event, count(1) val,classnum from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
-                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' group by snapTime,event,classnum order by snapTime asc, val asc";
-                var data = google.visualization.arrayToDataTable(parseEventsData(getData(eventsQuery),Number(classNum)));
+                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,event,classnum order by snapTime asc, val asc";
+                var data = google.visualization.arrayToDataTable(parseEventsData(getData(eventsQuery), Number(classNum)));
                 var options = {
                     title: 'Events',
                     width: 1800,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
-                    animation : { startup : 'true' ,duration : 1000 },
+                    animation: {startup: 'true', duration: 1000},
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
                     legend: {position: 'right', maxLines: 3},
                     isStacked: true,
-                    backgroundColor: { fill:'transparent' }
+                    backgroundColor: {fill: 'transparent'}
                 };
-                if (data.getNumberOfRows()===0){
-					return;
-				}                
+                if (data.getNumberOfRows() === 0) {
+                    return;
+                }
                 eventsChart = new google.visualization.ColumnChart(document.getElementById('eventsregion'));
                 eventsChart.draw(data, options);
                 function eventsSelectHandler(e) {
@@ -215,10 +215,10 @@ and open the template in the editor.
             //------EVENTS
             //------LOCKSTREE
             function drawLocksTreeTable(input) {
-				locksTreeQuery = "select sid,serial,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session from sessions_buffer "+
-				"where dbuniquename='"+dbUniqueName+"' and snapTime='"+input+"' and ("+
-				"blocking_session<>0 or sid in (select blocking_session from sessions_buffer where dbuniquename='"+dbUniqueName+"' and snapTime='"+input+"') )";
-				var data = google.visualization.arrayToDataTable(parseLocksTreeData(getData(locksTreeQuery)));
+                locksTreeQuery = "select sid,serial,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session from sessions_buffer " +
+                        "where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "' and (" +
+                        "blocking_session<>0 or sid in (select blocking_session from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "') )";
+                var data = google.visualization.arrayToDataTable(parseLocksTreeData(getData(locksTreeQuery)));
                 var locksTreeTable = new google.visualization.Table(document.getElementById('lockstreeregion'));
                 var options = {
                     title: 'LocksTree',
@@ -226,31 +226,31 @@ and open the template in the editor.
                     height: '100%',
                     allowHtml: true,
                     showRowNumber: true,
-                    backgroundColor: { fill:'transparent' }
-                };                			
+                    backgroundColor: {fill: 'transparent'}
+                };
                 locksTreeTable.draw(data, options);
-                	
+
                 function locksTreeSelectHandler(e) {
                     if (locksTreeTable.getSelection().length === 0) {
-						if(typeof statsTable !== 'undefined'){
-							statsTable.clearChart();
-						}
-					}else{
-						 var sel = locksTreeTable.getSelection();
-                         drawStatsTable(data.getValue(sel[0].row,0).match(/[0-9]+/)[0]);
-                         document.getElementById('statsregion').scrollIntoView();
+                        if (typeof statsTable !== 'undefined') {
+                            statsTable.clearChart();
+                        }
+                    } else {
+                        var sel = locksTreeTable.getSelection();
+                        drawStatsTable(data.getValue(sel[0].row, 0).match(/[0-9]+/)[0]);
+                        document.getElementById('statsregion').scrollIntoView();
                     }
                 }
-                google.visualization.events.addListener(locksTreeTable, 'select', locksTreeSelectHandler);                   
-			}
+                google.visualization.events.addListener(locksTreeTable, 'select', locksTreeSelectHandler);
+            }
             //------LOCKSTREE            
             //------BLOCKINGS
             function drawLocksChart() {
                 var locksQuery = "select snapTime, sum(if(blocking_session=0,0,1)) as val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
-                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' group by snapTime order by snapTime asc";
+                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime order by snapTime asc";
                 var data = new google.visualization.DataTable();
-				data.addColumn('string', 'Timestamp');
+                data.addColumn('string', 'Timestamp');
                 data.addColumn('number', 'Sessons blocked');
                 data.addRows(parseLocksData(getData(locksQuery)));
                 var options = {
@@ -259,49 +259,49 @@ and open the template in the editor.
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
-                    animation : { startup : 'true' ,duration : 1000 },
+                    animation: {startup: 'true', duration: 1000},
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
                     legend: {position: 'right'},
                     isStacked: true,
-                    backgroundColor: { fill:'transparent' }
+                    backgroundColor: {fill: 'transparent'}
                 };
-                if (sessionsBlocked===0){
-					return;
-				}
+                if (sessionsBlocked === 0) {
+                    return;
+                }
                 var locksChart = new google.visualization.ColumnChart(document.getElementById('locksregion'));
                 locksChart.draw(data, options);
                 function locksSelectHandler(e) {
                     if (locksChart.getSelection().length === 0) {
-						if(typeof locksTreeTable !== 'undefined'){
-							locksTreeTable.clearChart();
-						}
-					}else{
-						 var sel = locksChart.getSelection();
-                         drawLocksTreeTable(data.getValue(sel[0].row,0));
-                         document.getElementById('lockstreeregion').scrollIntoView();
+                        if (typeof locksTreeTable !== 'undefined') {
+                            locksTreeTable.clearChart();
+                        }
+                    } else {
+                        var sel = locksChart.getSelection();
+                        drawLocksTreeTable(data.getValue(sel[0].row, 0));
+                        document.getElementById('lockstreeregion').scrollIntoView();
                     }
                 }
                 google.visualization.events.addListener(locksChart, 'select', locksSelectHandler);
-            }            	  
+            }
             //------BLOCKINGS
             //------SESSIONS 
             function drawSessionsTable() {
-                var sessionsQuery = "select "+
-                        "sid,classnum,cnt,tot,ni,module,machine,schemaname,serial,sipHash64(concat(module,machine,schemaname,toString(serial),toString(sid))) as sessid"+
+                var sessionsQuery = "select " +
+                        "sid,classnum,cnt,tot,ni,module,machine,schemaname,serial,sipHash64(concat(module,machine,schemaname,toString(serial),toString(sid))) as sessid" +
                         " from (select sid,serial,classnum,cnt,tot,machine,module,schemaname from (" +
-                        "select sid,serial,module,machine,schemaname,classnum,count(1) as cnt,1 as dummy "+ 
-                        "from sessions_buffer where classnum<>6 and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
+                        "select sid,serial,module,machine,schemaname,classnum,count(1) as cnt,1 as dummy " +
+                        "from sessions_buffer where classnum<>6 and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
                         "group by sid,serial,module,machine,schemaname,classnum" +
                         ") all left join (" +
-                        "select 1 as dummy,count(st) as tot from (select snapTime as st "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
+                        "select 1 as dummy,count(st) as tot from (select snapTime as st " +
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
                         "group by st)" +
                         ") using dummy) all inner join (" +
                         "select sid,serial,module,machine,schemaname,ni from (" +
-                        "select sid,serial,module,machine,schemaname,count(1) as ni "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' and classnum<>6 "+
+                        "select sid,serial,module,machine,schemaname,count(1) as ni " +
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' and classnum<>6 " +
                         "group by sid,serial,module,machine,schemaname having count(1)>0 order by ni desc" +
                         ") limit 10" +
                         ") using sid,serial,module,machine,schemaname " +
@@ -319,39 +319,39 @@ and open the template in the editor.
                     height: '100%',
                     allowHtml: true,
                     showRowNumber: false,
-                    backgroundColor: { fill:'transparent' }
+                    backgroundColor: {fill: 'transparent'}
                 };
                 var sessionsTable = new google.visualization.Table(document.getElementById('sessionsregion'));
                 sessionsTable.draw(data, options);
-                
+
                 function sessionsSelectHandler(e) {
                     if (sessionsTable.getSelection().length === 0) {
-						if(typeof statsTable !== 'undefined'){
-							statsTable.clearChart();
-						}
-					}else{
-						 var sel = sessionsTable.getSelection();
-                         drawStatsTable(data.getValue(sel[0].row,0).split(',')[0]);
-                         document.getElementById('statsregion').scrollIntoView();
+                        if (typeof statsTable !== 'undefined') {
+                            statsTable.clearChart();
+                        }
+                    } else {
+                        var sel = sessionsTable.getSelection();
+                        drawStatsTable(data.getValue(sel[0].row, 0).split(',')[0]);
+                        document.getElementById('statsregion').scrollIntoView();
                     }
                 }
-                google.visualization.events.addListener(sessionsTable, 'select', sessionsSelectHandler);                 
+                google.visualization.events.addListener(sessionsTable, 'select', sessionsSelectHandler);
             }
             //------SESSIONS  
             //------SQL 
             function drawSQLsTable() {
                 var sqlsQuery = "select sqlid,sql_id,classnum,cnt,tot,ni from (select sqlid,sql_id,classnum,cnt,tot from (" +
-                        "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt "+
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' and toStringCutToZero(sql_id)<>'-' and classnum<>6 "+
+                        "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt " +
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' and toStringCutToZero(sql_id)<>'-' and classnum<>6 " +
                         "group by sqlid,sql_id,classnum" +
                         ") all left join (" +
-                        "select sql_id,count(1) as tot from sessions_buffer "+
-                        "where toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
-                        "group by sql_id"+
+                        "select sql_id,count(1) as tot from sessions_buffer " +
+                        "where toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
+                        "group by sql_id" +
                         ") using sql_id) all inner join (" +
                         "select sql_id,ni from (" +
-                        "select sql_id,count(1) as ni from sessions_buffer "+
-                        "where classnum<>6 and toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '"+timeSpan2+"' "+
+                        "select sql_id,count(1) as ni from sessions_buffer " +
+                        "where classnum<>6 and toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
                         "group by sql_id having count(1)>0 order by ni desc" +
                         ") limit 10" +
                         ") using sql_id order by ni desc,sql_id,cnt asc";
@@ -366,7 +366,7 @@ and open the template in the editor.
                     height: '100%',
                     allowHtml: true,
                     showRowNumber: false,
-                    backgroundColor: { fill:'transparent' }
+                    backgroundColor: {fill: 'transparent'}
                 };
                 var sqlsTable = new google.visualization.Table(document.getElementById('sqlsregion'));
                 sqlsTable.draw(data, options);
@@ -374,33 +374,32 @@ and open the template in the editor.
             //------SQL
             //--STATS            
             function drawStatsTable(inputsid) {
-				if(typeof inputsid === 'undefined'){
-					return null;
-				}
-                var statsQuery = "select sn,endvalue-beginvalue as vl from ("+
-					"select statName as sn,value as beginvalue from sesstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime = ("+
-						"select min(snapTime) from sesstats_buffer where dbuniquename='"+dbUniqueName+"' and sid="+inputsid+" and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
-					") and sid="+inputsid+
-                ") any inner join ("+
-					"select statName as sn,value as endvalue from sesstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime = ("+
-						"select max(snapTime) from sesstats_buffer where dbuniquename='"+dbUniqueName+"' and sid="+inputsid+" and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
-					") and sid="+inputsid+
-                ") using sn where (endvalue-beginvalue)<>0 order by vl desc";
+                if (typeof inputsid === 'undefined') {
+                    return null;
+                }
+                var statsQuery = "select sn,endvalue-beginvalue as vl from (" +
+                        "select statName as sn,value as beginvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
+                        "select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+                        ") and sid=" + inputsid +
+                        ") any inner join (" +
+                        "select statName as sn,value as endvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
+                        "select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+                        ") and sid=" + inputsid +
+                        ") using sn where (endvalue-beginvalue)<>0 order by vl desc";
                 var data = new google.visualization.DataTable();
-                data.addColumn('string', 'Statistic');
+                data.addColumn('string', 'Statistic for SID ' + inputsid);
                 data.addColumn('number', 'Value diff');
                 data.addRows(parseStatsData(getData(statsQuery)));
                 var options = {
-                    title: 'Statistics for SID '+inputsid,
                     width: '100%',
                     height: '100%',
                     allowHtml: true,
                     showRowNumber: false,
-                    backgroundColor: { fill:'transparent' }
+                    backgroundColor: {fill: 'transparent'}
                 };
                 statsTable = new google.visualization.Table(document.getElementById('statsregion'));
-                statsTable.draw(data, options);               
-            }            
+                statsTable.draw(data, options);
+            }
             //--STATS
             //--
             function getData(query) {
@@ -411,7 +410,7 @@ and open the template in the editor.
                 return xmlHttp.responseText;
             }
             //--
-            function parseEventsData(inputData,classNum) {
+            function parseEventsData(inputData, classNum) {
                 //--
                 function searchHeader(inp) {
                     for (var hi in eventsHeaderData) {
@@ -430,7 +429,7 @@ and open the template in the editor.
                 for (var i = 0; i < dataLines.length; i++) {
                     if (dataLines[i].length > 0) {
                         rowData = dataLines[i].split(/[\t]+/);
-                        if (searchHeader(rowData[1]) === -1 && Number(rowData[3]) === classNum ) {
+                        if (searchHeader(rowData[1]) === -1 && Number(rowData[3]) === classNum) {
                             eventsHeaderData[eventsHeaderData.length] = rowData[1];
                         }
                     }
@@ -446,9 +445,9 @@ and open the template in the editor.
                                 tmpData[idx][ti] = 0;
                             }
                         }
-                        if(Number(rowData[3]) === classNum){
-							tmpData[idx][searchHeader(rowData[1])] = Number(rowData[2]);
-						}
+                        if (Number(rowData[3]) === classNum) {
+                            tmpData[idx][searchHeader(rowData[1])] = Number(rowData[2]);
+                        }
                     }
                 }
                 outData.push(eventsHeaderData);
@@ -490,7 +489,7 @@ and open the template in the editor.
                 var rowData = [];
                 for (var i = 0; i < dataLines.length; i++) {
                     if (dataLines[i].length > 0) {
-						rowData = dataLines[i].split(/[\t]+/);
+                        rowData = dataLines[i].split(/[\t]+/);
                         outData.push([rowData[0], Number(rowData[1])]);
                     }
                 }
@@ -508,17 +507,17 @@ and open the template in the editor.
                     if (dataLines[i].length > 0) {
                         rowData = dataLines[i].split(/[\t]+/);
                         idx = Number(rowData[0].replace(/[:-\s]/g, ""));
-                        tmpData[idx] = [rowData[0],Number(rowData[1])];
-                        if(sessionsBlocked === 0 && Number(rowData[1]) !== 0 ){
-							sessionsBlocked = 1;
-						}
+                        tmpData[idx] = [rowData[0], Number(rowData[1])];
+                        if (sessionsBlocked === 0 && Number(rowData[1]) !== 0) {
+                            sessionsBlocked = 1;
+                        }
                     }
                 }
                 for (var li in tmpData) {
                     outData.push(tmpData[li]);
                 }
                 return outData;
-            }            
+            }
             //--
             function colorPercentWait(current, total, classnum, nonidle) {
                 var out = '<font class="ns" title="' + arrWaitClass[arrClassNum[classnum]] + " " + (Math.round(100 * current / total)) + '%" color="' + arrWaitClassStyle[arrClassNum[classnum]] + '">';
@@ -591,54 +590,55 @@ and open the template in the editor.
                 var tmpData = [];
                 var rowData = [];
                 var idx;
-				var arrTree = [];
-				var arrSIDSorted = [];
-				var arrSIDLevel = [];				
+                var arrTree = [];
+                var arrSIDSorted = [];
+                var arrSIDLevel = [];
                 for (var i = 0; i < dataLines.length; i++) {
                     if (dataLines[i].length > 0) {
                         rowData = dataLines[i].split(/[\t]+/);
                         idx = Number(rowData[0]);
                         tmpData[idx] = [];
-                        for(var j=0; j<arrLocksTreeColumns.length; j++){
-							tmpData[idx][j] = rowData[j];
-						}
-						arrTree.push({ "id" : Number(rowData[0]), "parentid" : Number(rowData[12])});
+                        for (var j = 0; j < arrLocksTreeColumns.length; j++) {
+                            tmpData[idx][j] = rowData[j];
+                        }
+                        arrTree.push({"id": Number(rowData[0]), "parentid": Number(rowData[12])});
                     }
                 }
-				//--
-				arrTree = unflatten(arrTree);
-				function recGetSID(input,level){
-					arrSIDSorted.push(Number(input.id));
-					arrSIDLevel.push(level);
-					if (input.children.length > 0){
-						level++;
-						for (var s in input.children){
-							recGetSID(input.children[s],level);
-						}
-					}
-				}
-				//--
-				for(var i in arrTree){
-					recGetSID(arrTree[i],0);
-				}
-				//--
-                outData.push(arrLocksTreeColumns);
-				/*
-                for (var lti in tmpData) {
-                    outData.push(tmpData[lti]);
+                //--
+                arrTree = unflatten(arrTree);
+                function recGetSID(input, level) {
+                    arrSIDSorted.push(Number(input.id));
+                    arrSIDLevel.push(level);
+                    if (input.children.length > 0) {
+                        level++;
+                        for (var s in input.children) {
+                            recGetSID(input.children[s], level);
+                        }
+                    }
                 }
-				*/
-				for (var i=0; i<arrSIDSorted.length; i++){
-					if  (arrSIDLevel[i] === 0){
-						tmpData[arrSIDSorted[i]][0] = '<strong>'+ tmpData[arrSIDSorted[i]][0]+'</strong>';;
-					}
-					for (var j=0;j<arrSIDLevel[i];j++){
-						tmpData[arrSIDSorted[i]][0] = '&nbsp;&nbsp;&nbsp;&nbsp;'+ tmpData[arrSIDSorted[i]][0];
-					}
-					outData.push(tmpData[arrSIDSorted[i]]);
-				}
-                return outData;			
-			}	  
+                //--
+                for (var i in arrTree) {
+                    recGetSID(arrTree[i], 0);
+                }
+                //--
+                outData.push(arrLocksTreeColumns);
+                /*
+                 for (var lti in tmpData) {
+                 outData.push(tmpData[lti]);
+                 }
+                 */
+                for (var i = 0; i < arrSIDSorted.length; i++) {
+                    if (arrSIDLevel[i] === 0) {
+                        tmpData[arrSIDSorted[i]][0] = '<strong>' + tmpData[arrSIDSorted[i]][0] + '</strong>';
+                        ;
+                    }
+                    for (var j = 0; j < arrSIDLevel[i]; j++) {
+                        tmpData[arrSIDSorted[i]][0] = '&nbsp;&nbsp;&nbsp;&nbsp;' + tmpData[arrSIDSorted[i]][0];
+                    }
+                    outData.push(tmpData[arrSIDSorted[i]]);
+                }
+                return outData;
+            }
             //--
         </script>
     </head>
