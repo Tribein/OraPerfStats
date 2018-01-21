@@ -13,6 +13,216 @@ and open the template in the editor.
         </style>
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
         <script type="text/javascript">
+			function toColor(num) {
+				num >>>= 0;
+				var b = num & 0xFF,
+				g = (num & 0xFF00) >>> 8,
+				r = (num & 0xFF0000) >>> 16,
+				a = ( (num & 0xFF000000) >>> 24 ) / 255 ;
+				return "rgba(" + [r, g, b, a].join(",") + ")";
+			}			
+			String.prototype.hashCode = function() {
+				var hash = 0, i, chr;
+				if (this.length === 0) return hash;
+				for (i = 0; i < this.length; i++) {
+					chr   = this.charCodeAt(i);
+					hash  = ((hash << 5) - hash) + chr;
+					hash |= 0; // Convert to 32bit integer
+				}
+				return (hash + 2147483647) + 1;
+			};			
+var eventsName = [
+'ADR block file read',
+'ADR block file write',
+'ADR file lock',
+'ARCH wait for archivelog lock',
+'ASM background starting',
+'ASM file metadata operation',
+'ASM: MARK subscribe to msg channel',
+'asynch descriptor resize',
+'BFILE closure',
+'BFILE get length',
+'BFILE internal seek',
+'BFILE open',
+'BFILE read',
+'buffer deadlock',
+'control file heartbeat',
+'CRS call completion',
+'CSS group membership query',
+'CSS group registration',
+'CSS initialization',
+'CSS operation: action',
+'CSS operation: data query',
+'CSS operation: query',
+'CSS Xgrp shared operation',
+'cursor: pin X',
+'Data file init write',
+'Data Pump slave startup',
+'Datapump dump file I/O',
+'db file single write',
+'DBMS_LDAP: LDAP operation ',
+'direct path sync',
+'dispatcher timer',
+'enq: CF - contention',
+'enq: CR - block range reuse ckpt',
+'enq: CU - contention',
+'enq: DX - contention',
+'enq: FB - contention',
+'enq: JD - contention',
+'enq: JS - contention',
+'enq: JS - q mem clnup lck',
+'enq: JS - queue lock',
+'enq: PR - contention',
+'enq: PV - syncstart',
+'enq: SQ - contention',
+'enq: TQ - DDL contention',
+'enq: TQ - TM contention',
+'enq: TX - contention',
+'enq: US - contention',
+'enq: WF - contention',
+'enq: WL - contention',
+'enq: XL - fault extent map',
+'HS message to agent',
+'inactive transaction branch',
+'instance state change',
+'JOX Jit Process Sleep',
+'JS kgl get object wait',
+'kksfbc child completion',
+'ksdxexeotherwait',
+'kupp process wait',
+'latch: active service list',
+'latch: cache buffer handles',
+'latch: cache buffers lru chain',
+'latch: call allocation',
+'latch: checkpoint queue latch',
+'latch: enqueue hash chains',
+'latch free',
+'latch: lob segment hash table latch',
+'latch: messages',
+'latch: object queue header operation',
+'latch: redo allocation',
+'latch: session allocation',
+'latch: undo global data',
+'LGWR wait for redo copy',
+'log buffer space',
+'OJVM: Generic',
+'process diagnostic dump',
+'process terminate',
+'rdbms ipc reply',
+'reliable message',
+'RMAN backup & recovery I/O',
+'SecureFile mutex',
+'SGA: allocation forcing component growth',
+'shared server idle wait',
+'SQL*Net more data to dblink',
+'SQL*Net vector data from client',
+'SQL*Net vector data from dblink',
+'Streams AQ: emn coordinator waiting for slave to start',
+'Streams AQ: qmn coordinator waiting for slave to start',
+'Streams AQ: waiting for messages in the queue',
+'switch logfile command',
+'utl_file I/O',
+'VKRM Idle',
+'wait for EMON to spawn',
+'wait list latch free'
+];
+var eventsHash = [
+2123462742,
+1407848735,
+49530622,
+729474897,
+1264872877,
+1143191573,
+1858941351,
+1587991761,
+966624473,
+1436606354,
+450146841,
+3505021036,
+3505099704,
+1725563759,
+13417595,
+1393620098,
+1449059932,
+3425088023,
+4059224189,
+938755654,
+2196731106,
+3370716856,
+2639430434,
+281265425,
+942239133,
+2972884402,
+2854643107,
+3682970377,
+2063453610,
+116860479,
+631135372,
+2637462417,
+200595876,
+3644017634,
+3634893568,
+592417752,
+1316540442,
+2323095659,
+1873360958,
+3921893974,
+3284030546,
+2346304744,
+4017277302,
+4060366987,
+3513710894,
+1985918736,
+1726296374,
+2723727525,
+3985343071,
+3355303701,
+1014424462,
+3446495993,
+3295328202,
+3533329550,
+2970454277,
+37002444,
+4008573103,
+3010184188,
+584755545,
+3686374195,
+899758747,
+910769720,
+2765738183,
+3876185698,
+4150660808,
+3563555800,
+1295728566,
+1825353882,
+2761448088,
+228363924,
+1408249141,
+233899295,
+2128151682,
+3301721663,
+3983776540,
+4294050288,
+3015550044,
+817670705,
+580024926,
+648397010,
+2141949071,
+4192939007,
+482229011,
+2223224681,
+2242711830,
+1416350173,
+2905229137,
+2817323886,
+2872679679,
+1682110903,
+889140836,
+2257419277,
+3132328671
+];	
+var eventsColor = [
+];		
             google.charts.load('current', {'packages': ['corechart']});
             google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
@@ -341,14 +551,15 @@ and open the template in the editor.
             //------SQL 
             function drawSQLsTable() {
                 var sqlsQuery = "select sqlid,sql_id,classnum,cnt,tot,ni from (select sqlid,sql_id,classnum,cnt,tot from (" +
-                        "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt " +
+                        "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt, 1 as dummy " +
                         "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' and toStringCutToZero(sql_id)<>'-' and classnum<>6 " +
                         "group by sqlid,sql_id,classnum" +
                         ") all left join (" +
-                        "select sql_id,count(1) as tot from sessions_buffer " +
+                        "select 1 as dummy,count(st) as tot from (" +
+						"select snapTime as st from sessions_buffer " +
                         "where toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
-                        "group by sql_id" +
-                        ") using sql_id) all inner join (" +
+                        "group by snapTime)" +
+                        ") using dummy) all inner join (" +
                         "select sql_id,ni from (" +
                         "select sql_id,count(1) as ni from sessions_buffer " +
                         "where classnum<>6 and toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
