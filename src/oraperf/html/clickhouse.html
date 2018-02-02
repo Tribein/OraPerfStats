@@ -130,7 +130,7 @@ and open the template in the editor.
                 te = new Date();
                 ts = new Date(te.getTime() - 1000 * 60 * spanMinutes);
                 timeSpan1 = ts.getFullYear() + '-' +
-                        ("0" + ts.getMonth() + 1).slice(-2) + '-' + ("0" + ts.getDate()).slice(-2)
+                        ("0" + (ts.getMonth() + 1)).slice(-2) + '-' + ("0" + ts.getDate()).slice(-2)
                         + ' ' +
                         ("0" + ts.getHours()).slice(-2) + ':' + ("0" + ts.getMinutes()).slice(-2) + ':' + ("0" + ts.getSeconds()).slice(-2)
                         ;
