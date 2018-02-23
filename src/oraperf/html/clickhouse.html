@@ -78,8 +78,9 @@ and open the template in the editor.
             var statsTable;
             //--changable
             var spanMinutes = 10;
-            var dbUniqueName = 'scatprod_prd';
+            var dbUniqueName = 'sefarm_prd';
             var sessionsBlocked = 0;
+            var loadimg = "circle.gif";
             //--
             function checkClassNum(inp) {
                 for (var i in arrClassNum) {
@@ -142,7 +143,8 @@ and open the template in the editor.
             }
             //------WAITS
             function drawWaitsChart() {
-                preDraw();
+                preDraw();				
+				var drawRegion = "waitsregion";
                 var waitsQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
                         "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,classnum order by snapTime asc";
@@ -174,7 +176,7 @@ and open the template in the editor.
                     isStacked: true,
                     backgroundColor: {fill: 'transparent'}
                 };
-                var waitsChart = new google.visualization.ColumnChart(document.getElementById('waitsregion'));
+                var waitsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 waitsChart.draw(data, options);
                 //--Register Events 
                 //--
@@ -203,10 +205,14 @@ and open the template in the editor.
                 if (classNum < 0) {
                     return null;
                 }
+				var drawRegion = "eventsregion";
                 var eventsQuery = "select snapTime,event, count(1) val,classnum from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
                         "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,event,classnum order by snapTime asc, val asc";
                 var data = google.visualization.arrayToDataTable(parseEventsData(getData(eventsQuery), Number(classNum)));
+                if (data.getNumberOfRows() === 0) {
+                    return;
+                }                
                 var options = {
                     title: 'Events',
                     width: 1800,
@@ -221,10 +227,7 @@ and open the template in the editor.
                     isStacked: true,
                     backgroundColor: {fill: 'transparent'}
                 };
-                if (data.getNumberOfRows() === 0) {
-                    return;
-                }
-                eventsChart = new google.visualization.ColumnChart(document.getElementById('eventsregion'));
+                eventsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 eventsChart.draw(data, options);
                 function eventsSelectHandler(e) {
                 }
@@ -233,11 +236,11 @@ and open the template in the editor.
             //------EVENTS
             //------LOCKSTREE
             function drawLocksTreeTable(input) {
+				var drawRegion = "lockstreeregion";
                 locksTreeQuery = "select sid,serial,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session from sessions_buffer " +
                         "where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "' and (" +
                         "blocking_session<>0 or sid in (select blocking_session from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "') )";
                 var data = google.visualization.arrayToDataTable(parseLocksTreeData(getData(locksTreeQuery)));
-                var locksTreeTable = new google.visualization.Table(document.getElementById('lockstreeregion'));
                 var options = {
                     title: 'LocksTree',
                     width: '100%',
@@ -246,6 +249,7 @@ and open the template in the editor.
                     showRowNumber: true,
                     backgroundColor: {fill: 'transparent'}
                 };
+                var locksTreeTable = new google.visualization.Table(document.getElementById(drawRegion));
                 locksTreeTable.draw(data, options);
 
                 function locksTreeSelectHandler(e) {
@@ -255,6 +259,11 @@ and open the template in the editor.
                         }
                     } else {
                         var sel = locksTreeTable.getSelection();
+                        document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
+							data.getValue(sel[0].row, 6)+
+							'</b>:<br />'+
+							getSQLText(data.getValue(sel[0].row, 6)).replace(/\\n/g,'<br />')+
+							'</span>';
                         drawStatsTable(data.getValue(sel[0].row, 0).match(/[0-9]+/)[0]);
                         document.getElementById('statsregion').scrollIntoView();
                     }
@@ -264,6 +273,7 @@ and open the template in the editor.
             //------LOCKSTREE            
             //------BLOCKINGS
             function drawLocksChart() {
+				var drawRegion = "locksregion";
                 var locksQuery = "select snapTime, sum(if(blocking_session=0,0,1)) as val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
                         "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime order by snapTime asc";
@@ -288,7 +298,7 @@ and open the template in the editor.
                 if (sessionsBlocked === 0) {
                     return;
                 }
-                var locksChart = new google.visualization.ColumnChart(document.getElementById('locksregion'));
+                var locksChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 locksChart.draw(data, options);
                 function locksSelectHandler(e) {
                     if (locksChart.getSelection().length === 0) {
@@ -306,6 +316,7 @@ and open the template in the editor.
             //------BLOCKINGS
             //------SESSIONS 
             function drawSessionsTable() {
+				var drawRegion = "sessionsregion";
                 var sessionsQuery = "select " +
                         "sid,classnum,cnt,tot,ni,module,machine,schemaname,serial,sipHash64(concat(module,machine,schemaname,toString(serial),toString(sid))) as sessid" +
                         " from (select sid,serial,classnum,cnt,tot,machine,module,schemaname from (" +
@@ -339,7 +350,7 @@ and open the template in the editor.
                     showRowNumber: false,
                     backgroundColor: {fill: 'transparent'}
                 };
-                var sessionsTable = new google.visualization.Table(document.getElementById('sessionsregion'));
+                var sessionsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 sessionsTable.draw(data, options);
 
                 function sessionsSelectHandler(e) {
@@ -358,6 +369,7 @@ and open the template in the editor.
             //------SESSIONS  
             //------SQL 
             function drawSQLsTable() {
+				var drawRegion = "sqlsregion";
                 var sqlsQuery = "select sqlid,sql_id,classnum,cnt,tot,ni from (select sqlid,sql_id,classnum,cnt,tot from (" +
                         "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt, 1 as dummy " +
                         "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' and toStringCutToZero(sql_id)<>'-' and classnum<>6 " +
@@ -387,8 +399,24 @@ and open the template in the editor.
                     showRowNumber: false,
                     backgroundColor: {fill: 'transparent'}
                 };
-                var sqlsTable = new google.visualization.Table(document.getElementById('sqlsregion'));
+                var sqlsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 sqlsTable.draw(data, options);
+                function sqlidSelectHandler(e) {
+                    if (sqlsTable.getSelection().length === 0) {
+                        if (typeof sqlsTable !== 'undefined') {
+                            document.getElementById('sqltextregion').innerHTML='';
+                        }
+                    } else {
+                        var sel = sqlsTable.getSelection();
+                        document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
+							data.getValue(sel[0].row, 0)+
+							'</b>:<br />'+
+							getSQLText(data.getValue(sel[0].row, 0)).replace(/\\n/g,'<br />')+
+							'</span>';
+                        document.getElementById('sqltextregion').scrollIntoView();
+                    }
+                }
+                google.visualization.events.addListener(sqlsTable, 'select', sqlidSelectHandler);                
             }
             //------SQL
             //--STATS            
@@ -396,6 +424,7 @@ and open the template in the editor.
                 if (typeof inputsid === 'undefined') {
                     return null;
                 }
+				var drawRegion = "statsregion";
                 var statsQuery = "select sn,endvalue-beginvalue as vl from (" +
                         "select statName as sn,value as beginvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
                         "select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
@@ -416,10 +445,21 @@ and open the template in the editor.
                     showRowNumber: false,
                     backgroundColor: {fill: 'transparent'}
                 };
-                statsTable = new google.visualization.Table(document.getElementById('statsregion'));
+                statsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 statsTable.draw(data, options);
             }
             //--STATS
+            //--SQLTEXT
+            function getSQLText(sqlid){
+				if(sqlid.length == 13){
+					var sqlTextQuery = "select sqltext from sqltexts_buffer where sqlid='"+sqlid+"'";
+					var	sqltext = getData(sqlTextQuery);
+					return sqltext;
+				}else{
+					return "Wrong SQLID"
+				}
+			}
+            //--SQLTEXT
             //--
             function getData(query) {
                 var xmlHttp = new XMLHttpRequest();
@@ -667,6 +707,7 @@ and open the template in the editor.
         <div id="eventsregion"></div>        
         <div id="locksregion"></div>
         <div id="lockstreeregion"></div>
+        <div id="sqltextregion"></div>
         <div>
             <span id="sqlsregion"></span>
             &nbsp;&nbsp;
