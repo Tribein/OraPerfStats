@@ -27,6 +27,7 @@ public class StatCollector extends Thread {
 
     private final int secondsBetweenSnaps = 10;
     private int snapcounter = 0;
+    private int sqlcounter = 0;
     private final String dbUserName = "dbsnmp";
     private final String dbPassword = "dbsnmp";
     private String connString;
@@ -36,6 +37,7 @@ public class StatCollector extends Thread {
     private PreparedStatement oraWaitsPreparedStatement;
     private PreparedStatement oraSysStatsPreparedStatement;
     private PreparedStatement oraSesStatsPreparedStatement;
+    private PreparedStatement oraSQLTextsPreparedStatement;
     private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
     private long currentDateTime;
     private LocalDate currentDate;
@@ -68,15 +70,16 @@ public class StatCollector extends Thread {
             + "  wait_class#<>6 or exists"
             + "  ( select 1 from gv$session b where a.inst_id=b.inst_id and (a.sid = b.blocking_session or a.sid = b.final_blocking_session) )"
             + "  )";
-    private final String oraSesStatQuery 
+    private final String oraSesStatQuery
             = "select sid,name,class,value from"
-            + " (select sid from v$session where type='USER' and sid<>sys_context('USERENV','SID') and ( wait_class#<>6 or (wait_class#=6 and seconds_in_wait < 10) ))" 
-            + " join v$sesstat using(sid)" 
+            + " (select sid from v$session where type='USER' and sid<>sys_context('USERENV','SID') and ( wait_class#<>6 or (wait_class#=6 and seconds_in_wait < 10) ))"
+            + " join v$sesstat using(sid)"
             + " join v$statname using(statistic#)"
-            + " where name in ( " 
+            + " where name in ( "
             + "'Requests to/from client','user commits','user rollbacks','user calls','recursive calls','recursive cpu usage','DB time','session pga memory','physical read total bytes','physical write total bytes','db block changes','redo size','redo size for direct writes','table fetch by rowid','table fetch continued row','lob reads','lob writes','index fetch by key','sql area evicted','session cursor cache hits','session cursor cache count','queries parallelized','Parallel operations not downgraded','Parallel operations downgraded to serial','parse time cpu','parse count (total)','parse count (hard)','parse count (failures)','sorts (memory)','sorts (disk)'"
-            + " ) " +
-            " and value<>0";
+            + " ) "
+            + " and value<>0";
+    private final String oraSQLTextsQuery = "select sql_id,sql_fulltext from v$sqlarea";
     boolean shutdown = false;
 
     public StatCollector(String inputString) {
@@ -103,20 +106,22 @@ public class StatCollector extends Thread {
             oraSysStatsPreparedStatement.setFetchSize(1000);
             oraSesStatsPreparedStatement = con.prepareStatement(oraSesStatQuery);
             oraSesStatsPreparedStatement.setFetchSize(1000);
+            oraSQLTextsPreparedStatement = con.prepareStatement(oraSQLTextsQuery);
+            oraSesStatsPreparedStatement.setFetchSize(2000);
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + connString);
             shutdown = true;
         }
-        StatCollectorCKH porcessor = new StatCollectorCKH(dbUniqueName,dbHostName);
+        StatCollectorCKH porcessor = new StatCollectorCKH(dbUniqueName, dbHostName);
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
             try {
                 currentDateTime = Instant.now().getEpochSecond();
-                currentDate = LocalDate.now();                
+                currentDate = LocalDate.now();
                 oraWaitsPreparedStatement.execute();
-                shutdown = ! porcessor.processSessions(
-                            oraWaitsPreparedStatement.getResultSet(), 
-                            currentDateTime, 
-                            currentDate
+                shutdown = !porcessor.processSessions(
+                        oraWaitsPreparedStatement.getResultSet(),
+                        currentDateTime,
+                        currentDate
                 );
                 oraWaitsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
@@ -124,42 +129,58 @@ public class StatCollector extends Thread {
                 shutdown = true;
                 e.printStackTrace();
             }
-                if ( 
-                        (snapcounter == 6 || snapcounter == 12 || snapcounter == 18 || snapcounter == 24 || snapcounter == 30) 
-                        && 
-                        !shutdown ) {
-                    try {                    
-                        oraSesStatsPreparedStatement.execute();
-                        shutdown = ! porcessor.processSesStats(
-                                oraSesStatsPreparedStatement.getResultSet(), 
-                                currentDateTime, 
-                                currentDate
-                        );
-                        oraSesStatsPreparedStatement.clearWarnings();                         
-                    } catch (SQLException e) {
-                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing session statistics!");
-                        shutdown = true;
-                        e.printStackTrace();
-                    }                        
-                }            
-                if ( snapcounter == 30 && !shutdown ){
-                    try {
-                        oraSysStatsPreparedStatement.execute();
-                        shutdown = ! porcessor.processSysStats(
-                                oraSysStatsPreparedStatement.getResultSet(), 
-                                currentDateTime, 
-                                currentDate
-                        );
-                        oraSysStatsPreparedStatement.clearWarnings(); 
-                        snapcounter = 0;
-                    } catch (SQLException e) {
-                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing system statistics!");
-                        shutdown = true;
-                        e.printStackTrace();
-                    }
-                }                                                
-            if (!shutdown) {
+            if ((snapcounter == 6 || snapcounter == 12 || snapcounter == 18 || snapcounter == 24 || snapcounter == 30)
+                    && !shutdown) {
                 try {
+                    oraSesStatsPreparedStatement.execute();
+                    shutdown = !porcessor.processSesStats(
+                            oraSesStatsPreparedStatement.getResultSet(),
+                            currentDateTime,
+                            currentDate
+                    );
+                    oraSesStatsPreparedStatement.clearWarnings();
+                } catch (SQLException e) {
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing session statistics!");
+                    shutdown = true;
+                    e.printStackTrace();
+                }
+            }
+            if (snapcounter == 30 && !shutdown) {
+                try {
+                    oraSysStatsPreparedStatement.execute();
+                    shutdown = !porcessor.processSysStats(
+                            oraSysStatsPreparedStatement.getResultSet(),
+                            currentDateTime,
+                            currentDate
+                    );
+                    oraSysStatsPreparedStatement.clearWarnings();
+                    snapcounter = 0;
+                } catch (SQLException e) {
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing system statistics!");
+                    shutdown = true;
+                    e.printStackTrace();
+                }
+            }
+            if (!shutdown) {
+                sqlcounter++;
+                try {
+                    if (sqlcounter == 1) {
+                        sqlcounter = 0;
+                        try {
+                            oraSQLTextsPreparedStatement.execute();
+                            shutdown = !porcessor.processSQLTexts(
+                                    oraSQLTextsPreparedStatement.getResultSet(),
+                                    currentDateTime,
+                                    currentDate
+                            );
+                            oraSQLTextsPreparedStatement.clearWarnings();
+                        } catch (SQLException e) {
+                            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error processing sql texts!");
+                            shutdown = true;
+                            e.printStackTrace();
+                        }
+
+                    }
                     TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
                     snapcounter++;
                 } catch (InterruptedException e) {
@@ -177,15 +198,18 @@ public class StatCollector extends Thread {
             }
             if (oraSysStatsPreparedStatement != null && !oraSysStatsPreparedStatement.isClosed()) {
                 oraSysStatsPreparedStatement.close();
-            }            
+            }
             if (oraSesStatsPreparedStatement != null && !oraSesStatsPreparedStatement.isClosed()) {
                 oraSesStatsPreparedStatement.close();
-            }                        
+            }
+            if (oraSQLTextsPreparedStatement != null && !oraSQLTextsPreparedStatement.isClosed()) {
+                oraSQLTextsPreparedStatement.close();
+            }
             if (con != null && !con.isClosed()) {
                 con.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString+ "\t" + "Error durring resource cleanups!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + connString + "\t" + "Error durring resource cleanups!");
             e.printStackTrace();
         }
     }

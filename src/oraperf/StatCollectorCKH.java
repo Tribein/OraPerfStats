@@ -39,12 +39,14 @@ public class StatCollectorCKH {
     private ClickHousePreparedStatement ckhSessionsPreparedStatement;
     private ClickHousePreparedStatement ckhSysStatsPreparedStatement;
     private ClickHousePreparedStatement ckhSesStatsPreparedStatement;
+    private ClickHousePreparedStatement ckhSQLTextsPreparedStatement;
     private ClickHouseConnection connClickHouse;
     private final ClickHouseProperties connClickHouseProperties;
     private final String connClickHouseString;
     private final String ckhInsertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?,?)";
     private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?,?)";
+    private final String ckhInsertSQLTextsQuery = "insert into sqltexts_buffer values (?,?,?,?)";
     SL4JLogger lg;
 
     public StatCollectorCKH(String inpDBUniqename, String inpDBHostName) {
@@ -63,6 +65,7 @@ public class StatCollectorCKH {
             ckhSessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSessionsQuery);
             ckhSysStatsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSysStatsQuery);
             ckhSesStatsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSesStatsQuery);
+            ckhSQLTextsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSQLTextsQuery);
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse server!");
             e.printStackTrace();
@@ -171,6 +174,28 @@ public class StatCollectorCKH {
             ckhSesStatsPreparedStatement.clearWarnings();
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error processing session statistics!");
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+    public boolean processSQLTexts (ResultSet queryResult, long currentDateTime, LocalDate currentDate) {
+        try{
+            while (queryResult != null && queryResult.next()) {
+                ckhSQLTextsPreparedStatement.setDate(1, java.sql.Date.valueOf(currentDate));
+                ckhSQLTextsPreparedStatement.setString(2, queryResult.getString(1));
+                ckhSQLTextsPreparedStatement.setString(3, queryResult.getString(2));
+                ckhSQLTextsPreparedStatement.setLong(4, currentDateTime);
+                ckhSQLTextsPreparedStatement.addBatch();
+            }
+           if(queryResult != null){
+                queryResult.close();
+            }            
+            ckhSQLTextsPreparedStatement.executeBatch();
+            ckhSQLTextsPreparedStatement.clearBatch();
+            ckhSQLTextsPreparedStatement.clearWarnings();           
+        } catch (SQLException e) {
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error processing sql texts!");
             e.printStackTrace();
             return false;
         }
