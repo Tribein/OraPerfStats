@@ -164,7 +164,7 @@ public class StatCollector extends Thread {
             if (!shutdown) {
                 sqlcounter++;
                 try {
-                    if (sqlcounter == 1) {
+                    if (sqlcounter == 180) {
                         sqlcounter = 0;
                         try {
                             oraSQLTextsPreparedStatement.execute();
@@ -180,6 +180,8 @@ public class StatCollector extends Thread {
                             e.printStackTrace();
                         }
 
+                    }else{
+                        sqlcounter++;
                     }
                     TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
                     snapcounter++;
