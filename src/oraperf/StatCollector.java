@@ -79,8 +79,9 @@ public class StatCollector extends Thread {
             + "'Requests to/from client','user commits','user rollbacks','user calls','recursive calls','recursive cpu usage','DB time','session pga memory','physical read total bytes','physical write total bytes','db block changes','redo size','redo size for direct writes','table fetch by rowid','table fetch continued row','lob reads','lob writes','index fetch by key','sql area evicted','session cursor cache hits','session cursor cache count','queries parallelized','Parallel operations not downgraded','Parallel operations downgraded to serial','parse time cpu','parse count (total)','parse count (hard)','parse count (failures)','sorts (memory)','sorts (disk)'"
             + " ) "
             + " and value<>0";
-    private final String oraSQLTextsQuery = "select sql_id,sql_fulltext from v$sqlarea";
+    private final String oraSQLTextsQuery = "select sql_id,sql_text from v$sqlarea";
     boolean shutdown = false;
+    long begints,endts;
 
     public StatCollector(String inputString) {
         connString = inputString;
@@ -129,6 +130,7 @@ public class StatCollector extends Thread {
                 shutdown = true;
                 e.printStackTrace();
             }
+            begints = System.currentTimeMillis();
             if ((snapcounter == 6 || snapcounter == 12 || snapcounter == 18 || snapcounter == 24 || snapcounter == 30)
                     && !shutdown) {
                 try {
@@ -161,6 +163,7 @@ public class StatCollector extends Thread {
                     e.printStackTrace();
                 }
             }
+            endts = System.currentTimeMillis();
             if (!shutdown) {
                 sqlcounter++;
                 try {
@@ -181,13 +184,17 @@ public class StatCollector extends Thread {
                         }
 
                     }else{
-                        sqlcounter++;
+                        //if (endts-begints < 10000){
+                            TimeUnit.SECONDS.sleep(secondsBetweenSnaps /*- Math.toIntExact((endts-begints)/1000) */);
+                        //}
                     }
-                    TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
-                    snapcounter++;
                 } catch (InterruptedException e) {
                     e.printStackTrace();
-                }
+                }/*
+                catch (ArithmeticException e){
+                    e.printStackTrace();
+                }*/
+                snapcounter++;
             }
 
         }
