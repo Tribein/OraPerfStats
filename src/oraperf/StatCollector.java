@@ -71,8 +71,8 @@ public class StatCollector extends Thread {
             + "  ( select 1 from gv$session b where a.inst_id=b.inst_id and (a.sid = b.blocking_session or a.sid = b.final_blocking_session) )"
             + "  )";
     private final String oraSesStatQuery
-            = "select sid,name,class,value from"
-            + " (select sid from v$session where type='USER' and sid<>sys_context('USERENV','SID') and ( wait_class#<>6 or (wait_class#=6 and seconds_in_wait < 10) ))"
+            = "select sid,name,class,value, sserial from"
+            + " (select sid,serial# sserial from v$session where type='USER' and sid<>sys_context('USERENV','SID') and ( wait_class#<>6 or (wait_class#=6 and seconds_in_wait < 10) ))"
             + " join v$sesstat using(sid)"
             + " join v$statname using(statistic#)"
             + " where name in ( "

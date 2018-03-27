@@ -136,7 +136,7 @@ and open the template in the editor.
                         ("0" + ts.getHours()).slice(-2) + ':' + ("0" + ts.getMinutes()).slice(-2) + ':' + ("0" + ts.getSeconds()).slice(-2)
                         ;
                 timeSpan2 = te.getFullYear() + '-' +
-                        ("0" + te.getMonth() + 1).slice(-2) + '-' + ("0" + te.getDate()).slice(-2)
+                        ("0" + (te.getMonth() + 1)).slice(-2) + '-' + ("0" + te.getDate()).slice(-2)
                         + ' ' +
                         ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
                         ;
@@ -148,6 +148,7 @@ and open the template in the editor.
                 var waitsQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
                         "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,classnum order by snapTime asc";
+                //alert(waitsQuery);
                 var data = new google.visualization.DataTable();
                 //--add Columns
                 data.addColumn('string', arrWaitClass[0]);
@@ -360,7 +361,7 @@ and open the template in the editor.
                         }
                     } else {
                         var sel = sessionsTable.getSelection();
-                        drawStatsTable(data.getValue(sel[0].row, 0).split(',')[0]);
+                        drawStatsTable(data.getValue(sel[0].row, 0).split(',')[0],data.getValue(sel[0].row, 0).split(',')[1]);
                         document.getElementById('statsregion').scrollIntoView();
                     }
                 }
@@ -420,19 +421,19 @@ and open the template in the editor.
             }
             //------SQL
             //--STATS            
-            function drawStatsTable(inputsid) {
+            function drawStatsTable(inputsid,inputserial) {
                 if (typeof inputsid === 'undefined') {
                     return null;
                 }
 				var drawRegion = "statsregion";
                 var statsQuery = "select sn,endvalue-beginvalue as vl from (" +
                         "select statName as sn,value as beginvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
-                        "select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
-                        ") and sid=" + inputsid +
+                        "select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and serial="+inputserial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+                        ") and sid=" + inputsid + " and serial="+inputserial+
                         ") any inner join (" +
                         "select statName as sn,value as endvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
-                        "select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
-                        ") and sid=" + inputsid +
+                        "select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and serial="+inputserial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+                        ") and sid=" + inputsid + " and serial="+inputserial+
                         ") using sn where (endvalue-beginvalue)<>0 order by vl desc";
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'Statistic for SID ' + inputsid);

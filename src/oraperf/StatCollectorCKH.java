@@ -45,7 +45,7 @@ public class StatCollectorCKH {
     private final String connClickHouseString;
     private final String ckhInsertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?,?)";
-    private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?,?)";
+    private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?,?,?)";
     private final String ckhInsertSQLTextsQuery = "insert into sqltexts_buffer values (?,?,?,?)";
     SL4JLogger lg;
 
@@ -159,9 +159,10 @@ public class StatCollectorCKH {
                 ckhSesStatsPreparedStatement.setLong(2, currentDateTime);
                 ckhSesStatsPreparedStatement.setDate(3, java.sql.Date.valueOf(currentDate));
                 ckhSesStatsPreparedStatement.setInt(4, queryResult.getInt(1));
-                ckhSesStatsPreparedStatement.setString(5, queryResult.getString(2));
-                ckhSesStatsPreparedStatement.setInt(6, queryResult.getInt(3));
-                ckhSesStatsPreparedStatement.setLong(7,
+                ckhSesStatsPreparedStatement.setInt(5, queryResult.getInt(5));
+                ckhSesStatsPreparedStatement.setString(6, queryResult.getString(2));
+                ckhSesStatsPreparedStatement.setInt(7, queryResult.getInt(3));
+                ckhSesStatsPreparedStatement.setLong(8,
                         (long) new BigDecimal(queryResult.getDouble(4)).setScale(0, RoundingMode.HALF_UP).doubleValue()
                 );
                 ckhSesStatsPreparedStatement.addBatch();
