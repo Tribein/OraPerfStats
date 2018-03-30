@@ -412,7 +412,7 @@ and open the template in the editor.
                         document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
 							data.getValue(sel[0].row, 0)+
 							'</b>:<br />'+
-							getSQLText(data.getValue(sel[0].row, 0)).replace(/\\n/g,'<br />').replace("\'","'")+
+							getSQLText(data.getValue(sel[0].row, 0)).replace(/\\n/g,'<br />').replace("\'","'").replace(/\\\'/g,"'")+
 							'</span>';
                         document.getElementById('sqltextregion').scrollIntoView();
                     }
