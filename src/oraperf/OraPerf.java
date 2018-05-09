@@ -17,12 +17,16 @@
 package oraperf;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.ConsoleHandler;
@@ -34,11 +38,17 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 public class OraPerf {
-
+    private static final String PROPERTIESFILENAME= "oraperf.properties";
     private static final int SECONDSTOSLEEP = 60;
-    private static final String DBLISTFILENAME = "db.lst";
     private static Scanner fileScanner;
-    private static ArrayList<String> oraDBList;
+    private static ArrayList<String> oraDBList;    
+    private static String DBLISTFILENAME       = "";
+    private static String DBUSERNAME           = "";
+    private static String DBPASSWORD           = "";
+    private static String CKHUSERNAME          = "";
+    private static String CKHPASSWORD          = "";
+    private static String CKHCONNECTIONSTRING  = "";
+
 
     private static ArrayList<String> getListFromFile(File dbListFile) throws FileNotFoundException {
         ArrayList<String> retList = new ArrayList<String>();
@@ -50,12 +60,30 @@ public class OraPerf {
         return retList;
     }
 
-    private static ArrayList<String> getListFromOraDB() {
+    private ArrayList<String> getListFromOraDB() {
         ArrayList<String> retList = new ArrayList<>();
         return retList;
     }
+    
+    private static boolean processProperties(String fileName) {
+        Properties properties = new Properties();
+        try{
+            properties.load(new FileInputStream(fileName));
+            DBUSERNAME = properties.getProperty("DBUSERNAME");
+            DBPASSWORD = properties.getProperty("DBPASSWORD");
+            DBLISTFILENAME = properties.getProperty("DBLISTFILENAME");
+            CKHUSERNAME = properties.getProperty("CKHUSERNAME");
+            CKHPASSWORD = properties.getProperty("CKHPASSWORD");
+            CKHCONNECTIONSTRING = properties.getProperty("CKHCONNECTIONSTRING");
+            return true;
+        } catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     public static void main(String[] args) throws InterruptedException {
+        processProperties(PROPERTIESFILENAME);
         Logger oraperfLog = LogManager.getLogManager().getLogger("");
         oraperfLog.setLevel(Level.WARNING);
         Handler[] handlers = oraperfLog.getHandlers();
@@ -87,7 +115,7 @@ public class OraPerf {
                     dbLine = oraDBList.get(i);
                     if (!dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive()) {
                         try {
-                            dbList.put(dbLine, new StatCollector(dbLine));
+                            dbList.put(dbLine, new StatCollector(dbLine,DBUSERNAME,DBPASSWORD,CKHUSERNAME,CKHPASSWORD,CKHCONNECTIONSTRING));
                             lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
                             dbList.get(dbLine).start();
                         } catch (Exception e) {

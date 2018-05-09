@@ -30,9 +30,9 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 public class StatCollectorCKH {
 
-    private static final String CKHUSERNAME = "oracle";
-    private static final String CKHPASSWORD = "elcaro";
-    private static final String CKHCONNECTIONSTRING = "jdbc:clickhouse://10.64.139.57:8123/oradb";
+    private String CKHUSERNAME;
+    private String CKHPASSWORD;
+    private String CKHCONNECTIONSTRING;
     private String dbUniqueName;
     private String dbHostName;
     private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
@@ -49,7 +49,11 @@ public class StatCollectorCKH {
     private final String ckhInsertSQLTextsQuery = "insert into sqltexts_buffer values (?,?,?,?)";
     SL4JLogger lg;
 
-    public StatCollectorCKH(String inpDBUniqename, String inpDBHostName) {
+    public StatCollectorCKH(String inpDBUniqename, String inpDBHostName, String ckhUserName, String ckhPassword, String ckhConnectionString) {
+        CKHUSERNAME = ckhUserName;
+        CKHPASSWORD = ckhPassword;
+        CKHCONNECTIONSTRING = ckhConnectionString;
+        
         connClickHouseString = CKHCONNECTIONSTRING;
         connClickHouseProperties = new ClickHouseProperties().withCredentials(CKHUSERNAME, CKHPASSWORD);
         dbUniqueName = inpDBUniqename;
