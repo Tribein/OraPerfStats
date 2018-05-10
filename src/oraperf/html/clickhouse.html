@@ -412,7 +412,7 @@ and open the template in the editor.
                         document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
 							data.getValue(sel[0].row, 0)+
 							'</b>:<br />'+
-							getSQLText(data.getValue(sel[0].row, 0)).replace(/\\n/g,'<br />')+
+							getSQLText(data.getValue(sel[0].row, 0)).replace(/\\n/g,'<br />').replace("\'","'").replace(/\\\'/g,"'")+
 							'</span>';
                         document.getElementById('sqltextregion').scrollIntoView();
                     }
@@ -453,7 +453,7 @@ and open the template in the editor.
             //--SQLTEXT
             function getSQLText(sqlid){
 				if(sqlid.length == 13){
-					var sqlTextQuery = "select sqltext from sqltexts_buffer where sqlid='"+sqlid+"'";
+					var sqlTextQuery = "select distinct sqltext from sqltexts_buffer where sqlid='"+sqlid+"'";
 					var	sqltext = getData(sqlTextQuery);
 					return sqltext;
 				}else{
