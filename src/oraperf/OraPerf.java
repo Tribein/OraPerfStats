@@ -19,8 +19,6 @@ package oraperf;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -38,36 +36,48 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 public class OraPerf {
-    private static final String PROPERTIESFILENAME= "oraperf.properties";
+
+    private static final String PROPERTIESFILENAME = "oraperf.properties";
     private static final int SECONDSTOSLEEP = 60;
     private static Scanner fileScanner;
-    private static ArrayList<String> oraDBList;    
-    private static String DBLISTFILENAME       = "";
-    private static String DBUSERNAME           = "";
-    private static String DBPASSWORD           = "";
-    private static String CKHUSERNAME          = "";
-    private static String CKHPASSWORD          = "";
-    private static String CKHCONNECTIONSTRING  = "";
+    private static ArrayList<String> oraDBList;
+    private static String DBLISTFILENAME = "";
+    private static String DBUSERNAME = "";
+    private static String DBPASSWORD = "";
+    private static String CKHUSERNAME = "";
+    private static String CKHPASSWORD = "";
+    private static String CKHCONNECTIONSTRING = "";
 
-
-    private static ArrayList<String> getListFromFile(File dbListFile) throws FileNotFoundException {
+    private static ArrayList<String> getListFromFile(File dbListFile) {
         ArrayList<String> retList = new ArrayList<String>();
-        fileScanner = new Scanner(dbListFile);
-        while (fileScanner.hasNext()) {
-            retList.add(fileScanner.nextLine());
+        try {
+            fileScanner = new Scanner(dbListFile);
+            while (fileScanner.hasNext()) {
+                retList.add(fileScanner.nextLine());
+            }
+            fileScanner.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("Error reading database list!");
+            e.printStackTrace();
+
+        } finally {
+            return retList;
         }
-        fileScanner.close();
-        return retList;
     }
 
     private ArrayList<String> getListFromOraDB() {
         ArrayList<String> retList = new ArrayList<>();
         return retList;
     }
-    
+
+    private ArrayList<String> getListFromHTTP() {
+        ArrayList<String> retList = new ArrayList<>();
+        return retList;
+    }
+
     private static boolean processProperties(String fileName) {
         Properties properties = new Properties();
-        try{
+        try {
             properties.load(new FileInputStream(fileName));
             DBUSERNAME = properties.getProperty("DBUSERNAME");
             DBPASSWORD = properties.getProperty("DBPASSWORD");
@@ -76,14 +86,16 @@ public class OraPerf {
             CKHPASSWORD = properties.getProperty("CKHPASSWORD");
             CKHCONNECTIONSTRING = properties.getProperty("CKHCONNECTIONSTRING");
             return true;
-        } catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
     }
 
     public static void main(String[] args) throws InterruptedException {
-        processProperties(PROPERTIESFILENAME);
+        if (!processProperties(PROPERTIESFILENAME)) {
+            System.exit(1);
+        }
         Logger oraperfLog = LogManager.getLogManager().getLogger("");
         oraperfLog.setLevel(Level.WARNING);
         Handler[] handlers = oraperfLog.getHandlers();
@@ -109,25 +121,19 @@ public class OraPerf {
         File dbListFile = new File(DBLISTFILENAME);
         lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
         while (true) /*for(int i=0; i<1; i++)*/ {
-            try {
-                oraDBList = getListFromFile(dbListFile);
-                for (int i = 0; i < oraDBList.size(); i++) {
-                    dbLine = oraDBList.get(i);
-                    if (!dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive()) {
-                        try {
-                            dbList.put(dbLine, new StatCollector(dbLine,DBUSERNAME,DBPASSWORD,CKHUSERNAME,CKHPASSWORD,CKHCONNECTIONSTRING));
-                            lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
-                            dbList.get(dbLine).start();
-                        } catch (Exception e) {
-                            lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error running thread for " + dbLine);
-                            e.printStackTrace();
-                        }
+            oraDBList = getListFromFile(dbListFile);
+            for (int i = 0; i < oraDBList.size(); i++) {
+                dbLine = oraDBList.get(i);
+                if (!dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive()) {
+                    try {
+                        dbList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHUSERNAME, CKHPASSWORD, CKHCONNECTIONSTRING));
+                        lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
+                        dbList.get(dbLine).start();
+                    } catch (Exception e) {
+                        lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error running thread for " + dbLine);
+                        e.printStackTrace();
                     }
                 }
-            } catch (FileNotFoundException e) {
-                lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error reading database list!");
-                e.printStackTrace();
-                System.exit(2);
             }
             TimeUnit.SECONDS.sleep(SECONDSTOSLEEP);
         }

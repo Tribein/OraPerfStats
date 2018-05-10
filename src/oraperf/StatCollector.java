@@ -90,11 +90,11 @@ public class StatCollector extends Thread {
         dbConnectionString = inputString;
         dbUniqueName = inputString.split("/")[1];
         dbHostName = inputString.split(":")[0];
-        dbUserName=dbUSN;
-        dbPassword=dbPWD;
-        ckhUserName=ckhUSN;
-        ckhPassword=ckhPWD;
-        ckhConnectionString=ckhCSTR;
+        dbUserName = dbUSN;
+        dbPassword = dbPWD;
+        ckhUserName = ckhUSN;
+        ckhPassword = ckhPWD;
+        ckhConnectionString = ckhCSTR;
     }
 
     @Override
