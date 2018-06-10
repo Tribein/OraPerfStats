@@ -16,6 +16,7 @@
  */
 package oraperf;
 
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -39,6 +40,7 @@ public class OraPerf {
 
     private static final String PROPERTIESFILENAME = "oraperf.properties";
     private static final int SECONDSTOSLEEP = 60;
+    private static final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
     private static Scanner fileScanner;
     private static ArrayList<String> oraDBList;
     private static String DBLISTFILENAME = "";
@@ -47,6 +49,10 @@ public class OraPerf {
     private static String CKHUSERNAME = "";
     private static String CKHPASSWORD = "";
     private static String CKHCONNECTIONSTRING = "";
+    private static SL4JLogger lg;
+    private static ComboPooledDataSource CKHDataSource;
+
+    static Map<String, Thread> dbList = new HashMap();
 
     private static ArrayList<String> getListFromFile(File dbListFile) {
         ArrayList<String> retList = new ArrayList<String>();
@@ -74,7 +80,9 @@ public class OraPerf {
         ArrayList<String> retList = new ArrayList<>();
         return retList;
     }
-
+    private static ArrayList<String> getOraDBList(){
+        return getListFromFile(new File(DBLISTFILENAME));
+    }
     private static boolean processProperties(String fileName) {
         Properties properties = new Properties();
         try {
@@ -92,10 +100,8 @@ public class OraPerf {
         }
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        if (!processProperties(PROPERTIESFILENAME)) {
-            System.exit(1);
-        }
+    private static void configureLogger() {
+
         Logger oraperfLog = LogManager.getLogManager().getLogger("");
         oraperfLog.setLevel(Level.WARNING);
         Handler[] handlers = oraperfLog.getHandlers();
@@ -112,26 +118,54 @@ public class OraPerf {
         }
         );
         oraperfLog.addHandler(conHdlr);
+    }
 
-        SL4JLogger lg = new SL4JLogger();
+    private static ComboPooledDataSource initDataSource() {
+        ComboPooledDataSource cpds = new ComboPooledDataSource();
+        try{
+            cpds.setDriverClass( "ru.yandex.clickhouse.ClickHouseDriver" ); 
+            cpds.setJdbcUrl( CKHCONNECTIONSTRING );
+            cpds.setUser( CKHUSERNAME );                                  
+            cpds.setPassword( CKHPASSWORD );                                  
+            cpds.setMinPoolSize(5);                                     
+            cpds.setAcquireIncrement(5);
+            cpds.setMaxPoolSize(20);
+            return cpds;
+        }catch(Exception e){
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse server!");
+            return null;
+        }
+    }
 
-        Map<String, Thread> dbList = new HashMap();
-        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
+    public static void main(String[] args) throws InterruptedException {
+        if (!processProperties(PROPERTIESFILENAME)) {
+            System.exit(1);
+        }
+
+        configureLogger();
+
+        lg = new SL4JLogger();
+
+        CKHDataSource = initDataSource();
+
         String dbLine;
-        File dbListFile = new File(DBLISTFILENAME);
-        lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Starting");
+
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting");
+
         while (true) /*for(int i=0; i<1; i++)*/ {
-            oraDBList = getListFromFile(dbListFile);
-            for (int i = 0; i < oraDBList.size(); i++) {
-                dbLine = oraDBList.get(i);
-                if (!dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive()) {
-                    try {
-                        dbList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHUSERNAME, CKHPASSWORD, CKHCONNECTIONSTRING));
-                        lg.LogWarn(dateFormat.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
-                        dbList.get(dbLine).start();
-                    } catch (Exception e) {
-                        lg.LogError(dateFormat.format(LocalDateTime.now()) + "\t" + "Error running thread for " + dbLine);
-                        e.printStackTrace();
+            if (CKHDataSource != null) {
+                oraDBList = getOraDBList();
+                for (int i = 0; i < oraDBList.size(); i++) {
+                    dbLine = oraDBList.get(i);
+                    if (!dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive()) {
+                        try {
+                            dbList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT));
+                            lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
+                            dbList.get(dbLine).start();
+                        } catch (Exception e) {
+                            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Error running thread for " + dbLine);
+                            e.printStackTrace();
+                        }
                     }
                 }
             }

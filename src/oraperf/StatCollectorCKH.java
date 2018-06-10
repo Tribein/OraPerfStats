@@ -16,6 +16,7 @@
  */
 package oraperf;
 
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
@@ -23,53 +24,37 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-import ru.yandex.clickhouse.ClickHouseDriver;
-import ru.yandex.clickhouse.ClickHouseConnection;
-import ru.yandex.clickhouse.ClickHousePreparedStatement;
-import ru.yandex.clickhouse.settings.ClickHouseProperties;
-
 public class StatCollectorCKH {
 
-    private String CKHUSERNAME;
-    private String CKHPASSWORD;
-    private String CKHCONNECTIONSTRING;
     private String dbUniqueName;
     private String dbHostName;
-    private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
-    private ClickHousePreparedStatement ckhSessionsPreparedStatement;
-    private ClickHousePreparedStatement ckhSysStatsPreparedStatement;
-    private ClickHousePreparedStatement ckhSesStatsPreparedStatement;
-    private ClickHousePreparedStatement ckhSQLTextsPreparedStatement;
-    private ClickHouseConnection connClickHouse;
-    private final ClickHouseProperties connClickHouseProperties;
-    private final String connClickHouseString;
+    private final DateTimeFormatter dateFormatData;
+    private PreparedStatement ckhSessionsPreparedStatement;
+    private PreparedStatement ckhSysStatsPreparedStatement;
+    private PreparedStatement ckhSesStatsPreparedStatement;
+    private PreparedStatement ckhSQLTextsPreparedStatement;
+    private Connection connClickHouse;
+    private ComboPooledDataSource ckhDataSource;
     private final String ckhInsertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?,?)";
     private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?,?,?)";
     private final String ckhInsertSQLTextsQuery = "insert into sqltexts_buffer values (?,?,?,?)";
     SL4JLogger lg;
 
-    public StatCollectorCKH(String inpDBUniqename, String inpDBHostName, String ckhUserName, String ckhPassword, String ckhConnectionString) {
-        CKHUSERNAME = ckhUserName;
-        CKHPASSWORD = ckhPassword;
-        CKHCONNECTIONSTRING = ckhConnectionString;
+    public StatCollectorCKH(String inpDBUniqename, String inpDBHostName, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT) {
+        dateFormatData              = dtFMT;
+        dbUniqueName                = inpDBUniqename;
+        dbHostName                  = inpDBHostName;
+        ckhDataSource               = ckhDS;
         
-        connClickHouseString = CKHCONNECTIONSTRING;
-        connClickHouseProperties = new ClickHouseProperties().withCredentials(CKHUSERNAME, CKHPASSWORD);
-        dbUniqueName = inpDBUniqename;
-        dbHostName = inpDBHostName;
         lg = new SL4JLogger();
+        
         try {
-            Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
-        } catch (ClassNotFoundException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load ClickHouse driver!");
-        }
-        try {
-            connClickHouse = new ClickHouseDriver().connect(connClickHouseString, connClickHouseProperties);
-            ckhSessionsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSessionsQuery);
-            ckhSysStatsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSysStatsQuery);
-            ckhSesStatsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSesStatsQuery);
-            ckhSQLTextsPreparedStatement = (ClickHousePreparedStatement) connClickHouse.prepareStatement(ckhInsertSQLTextsQuery);
+            connClickHouse = ckhDataSource.getConnection();
+            ckhSessionsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSessionsQuery);
+            ckhSysStatsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSysStatsQuery);
+            ckhSesStatsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSesStatsQuery);
+            ckhSQLTextsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLTextsQuery);
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse server!");
             e.printStackTrace();
@@ -118,6 +103,7 @@ public class StatCollectorCKH {
         }
         try {
             ckhSessionsPreparedStatement.executeBatch();
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + ckhSessionsPreparedStatement.toString());
             ckhSessionsPreparedStatement.clearBatch();
             ckhSessionsPreparedStatement.clearWarnings();
         } catch (SQLException e) {
@@ -184,6 +170,7 @@ public class StatCollectorCKH {
         }
         return true;
     }
+    
     public boolean processSQLTexts (ResultSet queryResult, long currentDateTime, LocalDate currentDate) {
         try{
             while (queryResult != null && queryResult.next()) {
@@ -206,9 +193,11 @@ public class StatCollectorCKH {
         }
         return true;
     }
+    
     public boolean isAlive(){
         return true;
     }
+    
     public void cleanup() {
         try {
             if (ckhSessionsPreparedStatement != null && !ckhSessionsPreparedStatement.isClosed()) {

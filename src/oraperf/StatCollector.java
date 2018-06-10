@@ -16,6 +16,7 @@
  */
 package oraperf;
 
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 import java.sql.*;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -33,17 +34,16 @@ public class StatCollector extends Thread {
     private String dbConnectionString;
     private String dbUniqueName;
     private String dbHostName;
-    private String ckhUserName;
-    private String ckhPassword;
-    private String ckhConnectionString;
+    private ComboPooledDataSource ckhDataSource;
     private Connection con;
     private PreparedStatement oraWaitsPreparedStatement;
     private PreparedStatement oraSysStatsPreparedStatement;
     private PreparedStatement oraSesStatsPreparedStatement;
     private PreparedStatement oraSQLTextsPreparedStatement;
-    private final DateTimeFormatter dateFormatData = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
+    private DateTimeFormatter dateFormatData;
     private long currentDateTime;
     private LocalDate currentDate;
+    private StatCollectorCKH porcessor;
     private final String oraSysStatQuery = "select name,class,value from v$sysstat where value<>0";
     private final String oraWaitsQuery
             = "select "
@@ -84,22 +84,20 @@ public class StatCollector extends Thread {
             + " and value<>0";
     private final String oraSQLTextsQuery = "select sql_id,sql_text from v$sqlarea";
     boolean shutdown = false;
-    long begints,endts;
+    //long begints,endts;
+    SL4JLogger lg;
 
-    public StatCollector(String inputString, String dbUSN, String dbPWD, String  ckhUSN,String ckhPWD,String ckhCSTR) {
-        dbConnectionString = inputString;
-        dbUniqueName = inputString.split("/")[1];
-        dbHostName = inputString.split(":")[0];
-        dbUserName = dbUSN;
-        dbPassword = dbPWD;
-        ckhUserName = ckhUSN;
-        ckhPassword = ckhPWD;
-        ckhConnectionString = ckhCSTR;
-    }
-
-    @Override
-    public void run() {
-        SL4JLogger lg = new SL4JLogger();
+    public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT) {
+        dbConnectionString      = inputString;
+        dbUniqueName            = inputString.split("/")[1];
+        dbHostName              = inputString.split(":")[0];
+        dbUserName              = dbUSN;
+        dbPassword              = dbPWD;
+        ckhDataSource           = ckhDS;
+        dateFormatData          = dtFMT;
+        
+        lg = new SL4JLogger();
+        
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
         } catch (ClassNotFoundException e) {
@@ -117,17 +115,22 @@ public class StatCollector extends Thread {
             oraSesStatsPreparedStatement.setFetchSize(1000);
             oraSQLTextsPreparedStatement = con.prepareStatement(oraSQLTextsQuery);
             oraSesStatsPreparedStatement.setFetchSize(2000);
+            
+            porcessor = new StatCollectorCKH(dbUniqueName, dbHostName, ckhDataSource ,dateFormatData);        
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + dbConnectionString);
             shutdown = true;
         }
-        StatCollectorCKH porcessor = new StatCollectorCKH(dbUniqueName, dbHostName, ckhUserName, ckhPassword, ckhConnectionString);
+    }
+
+    @Override
+    public void run() {
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
             try {
                 currentDateTime = Instant.now().getEpochSecond();
                 currentDate = LocalDate.now();
                 oraWaitsPreparedStatement.execute();
-                shutdown = !porcessor.processSessions(
+                shutdown = ! porcessor.processSessions(
                         oraWaitsPreparedStatement.getResultSet(),
                         currentDateTime,
                         currentDate
@@ -138,12 +141,12 @@ public class StatCollector extends Thread {
                 shutdown = true;
                 e.printStackTrace();
             }
-            begints = System.currentTimeMillis();
+            //begints = System.currentTimeMillis();
             if ((snapcounter == 6 || snapcounter == 12 || snapcounter == 18 || snapcounter == 24 || snapcounter == 30)
                     && !shutdown) {
                 try {
                     oraSesStatsPreparedStatement.execute();
-                    shutdown = !porcessor.processSesStats(
+                    shutdown = ! porcessor.processSesStats(
                             oraSesStatsPreparedStatement.getResultSet(),
                             currentDateTime,
                             currentDate
@@ -158,7 +161,7 @@ public class StatCollector extends Thread {
             if (snapcounter == 30 && !shutdown) {
                 try {
                     oraSysStatsPreparedStatement.execute();
-                    shutdown = !porcessor.processSysStats(
+                    shutdown = ! porcessor.processSysStats(
                             oraSysStatsPreparedStatement.getResultSet(),
                             currentDateTime,
                             currentDate
@@ -171,7 +174,7 @@ public class StatCollector extends Thread {
                     e.printStackTrace();
                 }
             }
-            endts = System.currentTimeMillis();
+            //endts = System.currentTimeMillis();
             if (!shutdown) {
                 sqlcounter++;
                 try {
@@ -179,7 +182,7 @@ public class StatCollector extends Thread {
                         sqlcounter = 0;
                         try {
                             oraSQLTextsPreparedStatement.execute();
-                            shutdown = !porcessor.processSQLTexts(
+                            shutdown = ! porcessor.processSQLTexts(
                                     oraSQLTextsPreparedStatement.getResultSet(),
                                     currentDateTime,
                                     currentDate
@@ -192,16 +195,11 @@ public class StatCollector extends Thread {
                         }
 
                     }else{
-                        //if (endts-begints < 10000){
-                            TimeUnit.SECONDS.sleep(secondsBetweenSnaps /*- Math.toIntExact((endts-begints)/1000) */);
-                        //}
+                            TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
                     }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
-                }/*
-                catch (ArithmeticException e){
-                    e.printStackTrace();
-                }*/
+                }
                 snapcounter++;
             }
 
