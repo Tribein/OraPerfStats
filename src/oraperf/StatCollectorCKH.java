@@ -103,7 +103,6 @@ public class StatCollectorCKH {
         }
         try {
             ckhSessionsPreparedStatement.executeBatch();
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + ckhSessionsPreparedStatement.toString());
             ckhSessionsPreparedStatement.clearBatch();
             ckhSessionsPreparedStatement.clearWarnings();
         } catch (SQLException e) {
