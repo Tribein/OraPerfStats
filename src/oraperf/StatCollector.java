@@ -26,9 +26,13 @@ import java.util.concurrent.TimeUnit;
 
 public class StatCollector extends Thread {
 
+    SL4JLogger lg;
+
     private final int secondsBetweenSessSnaps = 10;
     private final int secondsBetweenSessStatsSnaps = 30;
     private final int secondsBetweenSysSnaps = 120;
+    private final DateTimeFormatter ckhDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    
     private int threadType; //0 -waits, 1 - sess stats, 2 - sys stats & sql texts
     private String dbUserName;
     private String dbPassword;
@@ -42,10 +46,11 @@ public class StatCollector extends Thread {
     private PreparedStatement oraSesStatsPreparedStatement;
     private PreparedStatement oraSQLTextsPreparedStatement;
     private DateTimeFormatter dateFormatData;
-    private final DateTimeFormatter ckhDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private long currentDateTime;
     private String currentDate;
     private StatCollectorCKH porcessor;
+    private boolean shutdown = false;
+        
     private final String oraSysStatQuery = "select name,class,value from v$sysstat where value<>0";
     private final String oraWaitsQuery
             = "select "
@@ -85,8 +90,6 @@ public class StatCollector extends Thread {
             + " ) "
             + " and value<>0";
     private final String oraSQLTextsQuery = "select sql_id,sql_text from v$sqlarea";
-    boolean shutdown = false;
-    SL4JLogger lg;
 
     public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int runTType) {
         dbConnectionString = inputString;
