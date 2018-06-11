@@ -1,1 +1,1 @@
-Script to create clickhouse schema
+Scripts to create clickhouse schema
