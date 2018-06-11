@@ -25,6 +25,8 @@ import java.time.format.DateTimeFormatter;
 
 public class StatCollectorCKH {
 
+    SL4JLogger lg;
+    
     private String dbUniqueName;
     private String dbHostName;
     private DateTimeFormatter dateFormatData;
@@ -34,11 +36,11 @@ public class StatCollectorCKH {
     private PreparedStatement ckhSQLTextsPreparedStatement;
     private Connection connClickHouse;
     private ComboPooledDataSource ckhDataSource;
+    
     private final String ckhInsertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?,?)";
     private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?,?,?)";
     private final String ckhInsertSQLTextsQuery = "insert into sqltexts_buffer values (?,?,?,?)";
-    SL4JLogger lg;
 
     public StatCollectorCKH(String inpDBUniqename, String inpDBHostName, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT) {
         dateFormatData              = dtFMT;

@@ -32,7 +32,7 @@ public class StatCollector extends Thread {
     private final int secondsBetweenSessStatsSnaps = 30;
     private final int secondsBetweenSysSnaps = 120;
     private final DateTimeFormatter ckhDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    
+
     private int threadType; //0 -waits, 1 - sess stats, 2 - sys stats & sql texts
     private String dbUserName;
     private String dbPassword;
@@ -50,7 +50,7 @@ public class StatCollector extends Thread {
     private String currentDate;
     private StatCollectorCKH porcessor;
     private boolean shutdown = false;
-        
+
     private final String oraSysStatQuery = "select name,class,value from v$sysstat where value<>0";
     private final String oraWaitsQuery
             = "select "
@@ -92,46 +92,21 @@ public class StatCollector extends Thread {
     private final String oraSQLTextsQuery = "select sql_id,sql_text from v$sqlarea";
 
     public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int runTType) {
-        dbConnectionString = inputString;
-        dbUniqueName = inputString.split("/")[1];
-        dbHostName = inputString.split(":")[0];
-        dbUserName = dbUSN;
-        dbPassword = dbPWD;
-        ckhDataSource = ckhDS;
-        dateFormatData = dtFMT;
-        threadType = runTType;
-
-        lg = new SL4JLogger();
-
-        try {
-            Class.forName("oracle.jdbc.driver.OracleDriver");
-        } catch (ClassNotFoundException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
-            shutdown = true;
-        }
-        try {
-            con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, dbUserName, dbPassword);
-            con.setAutoCommit(false);
-            oraWaitsPreparedStatement = con.prepareStatement(oraWaitsQuery);
-            oraWaitsPreparedStatement.setFetchSize(1000);
-            oraSysStatsPreparedStatement = con.prepareStatement(oraSysStatQuery);
-            oraSysStatsPreparedStatement.setFetchSize(1000);
-            oraSesStatsPreparedStatement = con.prepareStatement(oraSesStatQuery);
-            oraSesStatsPreparedStatement.setFetchSize(1000);
-            oraSQLTextsPreparedStatement = con.prepareStatement(oraSQLTextsQuery);
-            oraSesStatsPreparedStatement.setFetchSize(2000);
-
-            porcessor = new StatCollectorCKH(dbUniqueName, dbHostName, ckhDataSource, dateFormatData);
-        } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + dbConnectionString);
-            shutdown = true;
-        }
+        dbConnectionString      = inputString;
+        dbUniqueName            = inputString.split("/")[1];
+        dbHostName              = inputString.split(":")[0];
+        dbUserName              = dbUSN;
+        dbPassword              = dbPWD;
+        ckhDataSource           = ckhDS;
+        dateFormatData          = dtFMT;
+        threadType              = runTType;
     }
 
-    private void setDateTimeVars(){
-                currentDateTime = Instant.now().getEpochSecond();
-                currentDate = LocalDate.now().format(ckhDateTimeFormatter);        
+    private void setDateTimeVars() {
+        currentDateTime = Instant.now().getEpochSecond();
+        currentDate = LocalDate.now().format(ckhDateTimeFormatter);
     }
+
     private void runSessionsRoutines() throws InterruptedException {
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
             try {
@@ -155,7 +130,7 @@ public class StatCollector extends Thread {
     private void runSessStatsRoutines() throws InterruptedException {
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
             try {
-                setDateTimeVars();                
+                setDateTimeVars();
                 oraSesStatsPreparedStatement.execute();
                 shutdown = !porcessor.processSesStats(
                         oraSesStatsPreparedStatement.getResultSet(),
@@ -177,7 +152,7 @@ public class StatCollector extends Thread {
         long begints, endts;
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
             try {
-                setDateTimeVars();                
+                setDateTimeVars();
                 oraSysStatsPreparedStatement.execute();
                 shutdown = !porcessor.processSysStats(
                         oraSysStatsPreparedStatement.getResultSet(),
@@ -217,9 +192,9 @@ public class StatCollector extends Thread {
         }
     }
 
-    private void cleanup(){
-         try {
-            if (porcessor.isAlive()) {
+    private void cleanup() {
+        try {
+            if (porcessor != null && porcessor.isAlive()) {
                 porcessor.cleanup();
             }
             if (oraWaitsPreparedStatement != null && !oraWaitsPreparedStatement.isClosed()) {
@@ -240,28 +215,60 @@ public class StatCollector extends Thread {
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!");
             e.printStackTrace();
+        }
+    }
+    
+    private void openConnection(){
+         try {
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+            con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, dbUserName, dbPassword);
+            con.setAutoCommit(false);
+            porcessor = new StatCollectorCKH(dbUniqueName, dbHostName, ckhDataSource, dateFormatData);
+        } catch (ClassNotFoundException e) {
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
+            shutdown = true;
+        } catch (SQLException e) {
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + dbConnectionString);
+            shutdown = true;
         }       
     }
     
     @Override
     public void run() {
-        try {
-            switch (threadType) {
-                case 0:
-                    runSessionsRoutines();
-                    break;
-                case 1:
-                    runSessStatsRoutines();
-                    break;
-                case 2:
-                    runSysRoutines();
-                    break;
-                default:
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Unknown thread type provided!");
+        
+        lg = new SL4JLogger();
+        
+        openConnection();
+
+        if (!shutdown) {
+            try {
+                switch (threadType) {
+                    case 0:
+                        oraWaitsPreparedStatement = con.prepareStatement(oraWaitsQuery);
+                        oraWaitsPreparedStatement.setFetchSize(1000);
+                        runSessionsRoutines();
+                        break;
+                    case 1:
+                        oraSesStatsPreparedStatement = con.prepareStatement(oraSesStatQuery);
+                        oraSesStatsPreparedStatement.setFetchSize(1000);
+                        runSessStatsRoutines();
+                        break;
+                    case 2:
+                        oraSysStatsPreparedStatement = con.prepareStatement(oraSysStatQuery);
+                        oraSysStatsPreparedStatement.setFetchSize(500);
+                        oraSQLTextsPreparedStatement = con.prepareStatement(oraSQLTextsQuery);
+                        oraSQLTextsPreparedStatement.setFetchSize(1000);
+                        runSysRoutines();
+                        break;
+                    default:
+                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Unknown thread type provided!");
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (SQLException e) {
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot prepare statements for  Oracle database: " + dbConnectionString);
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            cleanup();
         }
-        cleanup();
     }
 }

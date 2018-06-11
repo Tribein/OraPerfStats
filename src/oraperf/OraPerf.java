@@ -38,9 +38,12 @@ import java.util.logging.Logger;
 
 public class OraPerf {
 
+    private static SL4JLogger lg;
+    
     private static final String PROPERTIESFILENAME = "oraperf.properties";
     private static final int SECONDSTOSLEEP = 60;
     private static final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
+    
     private static Scanner fileScanner;
     private static ArrayList<String> oraDBList;
     private static String DBLISTFILENAME = "";
@@ -49,7 +52,6 @@ public class OraPerf {
     private static String CKHUSERNAME = "";
     private static String CKHPASSWORD = "";
     private static String CKHCONNECTIONSTRING = "";
-    private static SL4JLogger lg;
     private static ComboPooledDataSource CKHDataSource;
 
     static Map<String, Thread> dbSessionsList = new HashMap();
@@ -131,9 +133,9 @@ public class OraPerf {
             cpds.setJdbcUrl(CKHCONNECTIONSTRING);
             cpds.setUser(CKHUSERNAME);
             cpds.setPassword(CKHPASSWORD);
-            cpds.setMinPoolSize(5);
-            cpds.setAcquireIncrement(5);
-            cpds.setMaxPoolSize(20);
+            cpds.setMinPoolSize(100);
+            cpds.setAcquireIncrement(100);
+            cpds.setMaxPoolSize(5000);
             return cpds;
         } catch (Exception e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse server!");
@@ -200,7 +202,7 @@ public class OraPerf {
                 oraDBList = getOraDBList();
                 for (int i = 0; i < oraDBList.size(); i++) {
                     dbLine = oraDBList.get(i);
-                    lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
+                    //lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
                     //session waits
                     processSessions(dbLine);
                     //session stats
