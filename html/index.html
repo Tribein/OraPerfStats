@@ -3,6 +3,7 @@
 	<meta charset="utf-8">
 	<style>
 	.ns{ letter-spacing: -2px; }
+	.sc {  }	
 	</style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
@@ -219,10 +220,11 @@
                 var options = {
                     title: 'LocksTree',
                     width: '100%',
-                    height: '100%',
+                    //height: '100%',
                     allowHtml: true,
                     showRowNumber: true,
-                    backgroundColor: {fill: 'transparent'}
+                    backgroundColor: {fill: 'transparent'},
+                    cssClassNames: { tableCell: 'sc' }
                 };
                 var locksTreeTable = new google.visualization.Table(document.getElementById(drawRegion));
                 locksTreeTable.draw(data, options);
@@ -320,10 +322,11 @@
                 var options = {
                     title: 'Sessions',
                     width: '38%',
-                    height: '100%',
+                    //height: '100%',
                     allowHtml: true,
                     showRowNumber: false,
-                    backgroundColor: {fill: 'transparent'}
+                    backgroundColor: {fill: 'transparent'},
+                    cssClassNames: { tableCell: 'sc' }
                 };
                 var sessionsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 sessionsTable.draw(data, options);
@@ -369,10 +372,11 @@
                 var options = {
                     title: 'SQL',
                     width: '58%',
-                    height: '100%',
+                    //height: '100%',
                     allowHtml: true,
                     showRowNumber: false,
-                    backgroundColor: {fill: 'transparent'}
+                    backgroundColor: {fill: 'transparent'},
+                    cssClassNames: { tableCell: 'sc' }
                 };
                 var sqlsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 sqlsTable.draw(data, options);
@@ -415,10 +419,11 @@
                 data.addRows(parseStatsData(getData(statsQuery)));
                 var options = {
                     width: '100%',
-                    height: '100%',
+                    //height: '100%',
                     allowHtml: true,
                     showRowNumber: false,
-                    backgroundColor: {fill: 'transparent'}
+                    backgroundColor: { fill: 'transparent' },
+					cssClassNames: { tableCell: 'sc' }                    
                 };
                 statsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 statsTable.draw(data, options);
@@ -687,6 +692,7 @@
     <div id="sqltextregion"></div>
     <div>
 		<span id="sqlsregion"></span>
+		&nbsp;
 		<span id="sessionsregion"></span>
 	</div>
 	<div id="statsregion"></div>
