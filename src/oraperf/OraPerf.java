@@ -52,7 +52,9 @@ public class OraPerf {
     private static SL4JLogger lg;
     private static ComboPooledDataSource CKHDataSource;
 
-    static Map<String, Thread> dbList = new HashMap();
+    static Map<String, Thread> dbSessionsList = new HashMap();
+    static Map<String, Thread> dbSessStatsList = new HashMap();
+    static Map<String, Thread> dbSyssStatsList = new HashMap();
 
     private static ArrayList<String> getListFromFile(File dbListFile) {
         ArrayList<String> retList = new ArrayList<String>();
@@ -80,9 +82,11 @@ public class OraPerf {
         ArrayList<String> retList = new ArrayList<>();
         return retList;
     }
-    private static ArrayList<String> getOraDBList(){
+
+    private static ArrayList<String> getOraDBList() {
         return getListFromFile(new File(DBLISTFILENAME));
     }
+
     private static boolean processProperties(String fileName) {
         Properties properties = new Properties();
         try {
@@ -122,18 +126,57 @@ public class OraPerf {
 
     private static ComboPooledDataSource initDataSource() {
         ComboPooledDataSource cpds = new ComboPooledDataSource();
-        try{
-            cpds.setDriverClass( "ru.yandex.clickhouse.ClickHouseDriver" ); 
-            cpds.setJdbcUrl( CKHCONNECTIONSTRING );
-            cpds.setUser( CKHUSERNAME );                                  
-            cpds.setPassword( CKHPASSWORD );                                  
-            cpds.setMinPoolSize(5);                                     
+        try {
+            cpds.setDriverClass("ru.yandex.clickhouse.ClickHouseDriver");
+            cpds.setJdbcUrl(CKHCONNECTIONSTRING);
+            cpds.setUser(CKHUSERNAME);
+            cpds.setPassword(CKHPASSWORD);
+            cpds.setMinPoolSize(5);
             cpds.setAcquireIncrement(5);
             cpds.setMaxPoolSize(20);
             return cpds;
-        }catch(Exception e){
+        } catch (Exception e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse server!");
             return null;
+        }
+    }
+
+    private static void processSessions(String dbLine) {
+        if (!dbSessionsList.containsKey(dbLine) || dbSessionsList.get(dbLine) == null || !dbSessionsList.get(dbLine).isAlive()) {
+            try {
+                dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 0));
+                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting sessions thread for " + dbLine);
+                dbSessionsList.get(dbLine).start();
+            } catch (Exception e) {
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Error running sessions thread for " + dbLine);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static void processSessionStats(String dbLine) {
+        if (!dbSessStatsList.containsKey(dbLine) || dbSessStatsList.get(dbLine) == null || !dbSessStatsList.get(dbLine).isAlive()) {
+            try {
+                dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 1));
+                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting sessions stats thread for " + dbLine);
+                dbSessStatsList.get(dbLine).start();
+            } catch (Exception e) {
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Error running sessions stats thread for " + dbLine);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static void processSystemRoutines(String dbLine) {
+        if (!dbSyssStatsList.containsKey(dbLine) || dbSyssStatsList.get(dbLine) == null || !dbSyssStatsList.get(dbLine).isAlive()) {
+            try {
+                dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 2));
+                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting system stats thread for " + dbLine);
+                dbSyssStatsList.get(dbLine).start();
+            } catch (Exception e) {
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Error running system stats thread for " + dbLine);
+                e.printStackTrace();
+            }
         }
     }
 
@@ -157,16 +200,13 @@ public class OraPerf {
                 oraDBList = getOraDBList();
                 for (int i = 0; i < oraDBList.size(); i++) {
                     dbLine = oraDBList.get(i);
-                    if (!dbList.containsKey(dbLine) || dbList.get(dbLine) == null || !dbList.get(dbLine).isAlive()) {
-                        try {
-                            dbList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT));
-                            lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
-                            dbList.get(dbLine).start();
-                        } catch (Exception e) {
-                            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Error running thread for " + dbLine);
-                            e.printStackTrace();
-                        }
-                    }
+                    lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
+                    //session waits
+                    processSessions(dbLine);
+                    //session stats
+                    processSessionStats(dbLine);
+                    //system stats & sql texts
+                    processSystemRoutines(dbLine);
                 }
             }
             TimeUnit.SECONDS.sleep(SECONDSTOSLEEP);

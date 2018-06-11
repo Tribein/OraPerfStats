@@ -26,9 +26,10 @@ import java.util.concurrent.TimeUnit;
 
 public class StatCollector extends Thread {
 
-    private final int secondsBetweenSnaps = 10;
-    private int snapcounter = 0;
-    private int sqlcounter = 0;
+    private final int secondsBetweenSessSnaps = 10;
+    private final int secondsBetweenSessStatsSnaps = 30;
+    private final int secondsBetweenSysSnaps = 120;
+    private int threadType; //0 -waits, 1 - sess stats, 2 - sys stats & sql texts
     private String dbUserName;
     private String dbPassword;
     private String dbConnectionString;
@@ -41,8 +42,9 @@ public class StatCollector extends Thread {
     private PreparedStatement oraSesStatsPreparedStatement;
     private PreparedStatement oraSQLTextsPreparedStatement;
     private DateTimeFormatter dateFormatData;
+    private final DateTimeFormatter ckhDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private long currentDateTime;
-    private LocalDate currentDate;
+    private String currentDate;
     private StatCollectorCKH porcessor;
     private final String oraSysStatQuery = "select name,class,value from v$sysstat where value<>0";
     private final String oraWaitsQuery
@@ -84,20 +86,20 @@ public class StatCollector extends Thread {
             + " and value<>0";
     private final String oraSQLTextsQuery = "select sql_id,sql_text from v$sqlarea";
     boolean shutdown = false;
-    //long begints,endts;
     SL4JLogger lg;
 
-    public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT) {
-        dbConnectionString      = inputString;
-        dbUniqueName            = inputString.split("/")[1];
-        dbHostName              = inputString.split(":")[0];
-        dbUserName              = dbUSN;
-        dbPassword              = dbPWD;
-        ckhDataSource           = ckhDS;
-        dateFormatData          = dtFMT;
-        
+    public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int runTType) {
+        dbConnectionString = inputString;
+        dbUniqueName = inputString.split("/")[1];
+        dbHostName = inputString.split(":")[0];
+        dbUserName = dbUSN;
+        dbPassword = dbPWD;
+        ckhDataSource = ckhDS;
+        dateFormatData = dtFMT;
+        threadType = runTType;
+
         lg = new SL4JLogger();
-        
+
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
         } catch (ClassNotFoundException e) {
@@ -115,22 +117,24 @@ public class StatCollector extends Thread {
             oraSesStatsPreparedStatement.setFetchSize(1000);
             oraSQLTextsPreparedStatement = con.prepareStatement(oraSQLTextsQuery);
             oraSesStatsPreparedStatement.setFetchSize(2000);
-            
-            porcessor = new StatCollectorCKH(dbUniqueName, dbHostName, ckhDataSource ,dateFormatData);        
+
+            porcessor = new StatCollectorCKH(dbUniqueName, dbHostName, ckhDataSource, dateFormatData);
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + dbConnectionString);
             shutdown = true;
         }
     }
 
-    @Override
-    public void run() {
+    private void setDateTimeVars(){
+                currentDateTime = Instant.now().getEpochSecond();
+                currentDate = LocalDate.now().format(ckhDateTimeFormatter);        
+    }
+    private void runSessionsRoutines() throws InterruptedException {
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
             try {
-                currentDateTime = Instant.now().getEpochSecond();
-                currentDate = LocalDate.now();
+                setDateTimeVars();
                 oraWaitsPreparedStatement.execute();
-                shutdown = ! porcessor.processSessions(
+                shutdown = !porcessor.processSessions(
                         oraWaitsPreparedStatement.getResultSet(),
                         currentDateTime,
                         currentDate
@@ -141,70 +145,77 @@ public class StatCollector extends Thread {
                 shutdown = true;
                 e.printStackTrace();
             }
-            //begints = System.currentTimeMillis();
-            if ((snapcounter == 6 || snapcounter == 12 || snapcounter == 18 || snapcounter == 24 || snapcounter == 30)
-                    && !shutdown) {
-                try {
-                    oraSesStatsPreparedStatement.execute();
-                    shutdown = ! porcessor.processSesStats(
-                            oraSesStatsPreparedStatement.getResultSet(),
-                            currentDateTime,
-                            currentDate
-                    );
-                    oraSesStatsPreparedStatement.clearWarnings();
-                } catch (SQLException e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing session statistics!");
-                    shutdown = true;
-                    e.printStackTrace();
-                }
-            }
-            if (snapcounter == 30 && !shutdown) {
-                try {
-                    oraSysStatsPreparedStatement.execute();
-                    shutdown = ! porcessor.processSysStats(
-                            oraSysStatsPreparedStatement.getResultSet(),
-                            currentDateTime,
-                            currentDate
-                    );
-                    oraSysStatsPreparedStatement.clearWarnings();
-                    snapcounter = 0;
-                } catch (SQLException e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing system statistics!");
-                    shutdown = true;
-                    e.printStackTrace();
-                }
-            }
-            //endts = System.currentTimeMillis();
-            if (!shutdown) {
-                sqlcounter++;
-                try {
-                    if (sqlcounter == 180) {
-                        sqlcounter = 0;
-                        try {
-                            oraSQLTextsPreparedStatement.execute();
-                            shutdown = ! porcessor.processSQLTexts(
-                                    oraSQLTextsPreparedStatement.getResultSet(),
-                                    currentDateTime,
-                                    currentDate
-                            );
-                            oraSQLTextsPreparedStatement.clearWarnings();
-                        } catch (SQLException e) {
-                            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql texts!");
-                            shutdown = true;
-                            e.printStackTrace();
-                        }
+            TimeUnit.SECONDS.sleep(secondsBetweenSessSnaps);
+        }
+    }
 
-                    }else{
-                            TimeUnit.SECONDS.sleep(secondsBetweenSnaps);
-                    }
-                } catch (InterruptedException e) {
+    private void runSessStatsRoutines() throws InterruptedException {
+        while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
+            try {
+                setDateTimeVars();                
+                oraSesStatsPreparedStatement.execute();
+                shutdown = !porcessor.processSesStats(
+                        oraSesStatsPreparedStatement.getResultSet(),
+                        currentDateTime,
+                        currentDate
+                );
+                oraSesStatsPreparedStatement.clearWarnings();
+            } catch (SQLException e) {
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing session statistics!");
+                shutdown = true;
+                e.printStackTrace();
+            }
+            TimeUnit.SECONDS.sleep(secondsBetweenSessStatsSnaps);
+        }
+    }
+
+    private void runSysRoutines() throws InterruptedException {
+        int snapcounter = 0;
+        long begints, endts;
+        while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
+            try {
+                setDateTimeVars();                
+                oraSysStatsPreparedStatement.execute();
+                shutdown = !porcessor.processSysStats(
+                        oraSysStatsPreparedStatement.getResultSet(),
+                        currentDateTime,
+                        currentDate
+                );
+                oraSysStatsPreparedStatement.clearWarnings();
+            } catch (SQLException e) {
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing system statistics!");
+                shutdown = true;
+                e.printStackTrace();
+            }
+            if (snapcounter == 15) {
+                snapcounter = 0;
+                begints = System.currentTimeMillis();
+                try {
+                    oraSQLTextsPreparedStatement.execute();
+                    shutdown = !porcessor.processSQLTexts(
+                            oraSQLTextsPreparedStatement.getResultSet(),
+                            currentDateTime,
+                            currentDate
+                    );
+                    oraSQLTextsPreparedStatement.clearWarnings();
+                } catch (SQLException e) {
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql texts!");
+                    shutdown = true;
                     e.printStackTrace();
                 }
+                endts = System.currentTimeMillis();
+                if (endts - begints < secondsBetweenSysSnaps * 1000) {
+                    TimeUnit.SECONDS.sleep(secondsBetweenSysSnaps - (int) ((endts - begints) / 1000));
+                }
+            } else {
+                TimeUnit.SECONDS.sleep(secondsBetweenSysSnaps);
                 snapcounter++;
             }
-
         }
-        try {
+    }
+
+    private void cleanup(){
+         try {
             if (porcessor.isAlive()) {
                 porcessor.cleanup();
             }
@@ -224,8 +235,30 @@ public class StatCollector extends Thread {
                 con.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error durring resource cleanups!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!");
+            e.printStackTrace();
+        }       
+    }
+    
+    @Override
+    public void run() {
+        try {
+            switch (threadType) {
+                case 0:
+                    runSessionsRoutines();
+                    break;
+                case 1:
+                    runSessStatsRoutines();
+                    break;
+                case 2:
+                    runSysRoutines();
+                    break;
+                default:
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Unknown thread type provided!");
+            }
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        cleanup();
     }
 }

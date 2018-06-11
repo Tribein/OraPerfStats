@@ -20,7 +20,6 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -28,7 +27,7 @@ public class StatCollectorCKH {
 
     private String dbUniqueName;
     private String dbHostName;
-    private final DateTimeFormatter dateFormatData;
+    private DateTimeFormatter dateFormatData;
     private PreparedStatement ckhSessionsPreparedStatement;
     private PreparedStatement ckhSysStatsPreparedStatement;
     private PreparedStatement ckhSesStatsPreparedStatement;
@@ -61,7 +60,7 @@ public class StatCollectorCKH {
         }
     }
 
-    public boolean processSessions(ResultSet queryResult, long currentDateTime, LocalDate currentDate) throws SQLException {
+    public boolean processSessions(ResultSet queryResult, long currentDateTime, String currentDate) throws SQLException {
         try {
             while (queryResult != null && queryResult.next() ) {
                 ckhSessionsPreparedStatement.setString(1, dbUniqueName);
@@ -86,7 +85,7 @@ public class StatCollectorCKH {
                 ckhSessionsPreparedStatement.setInt(20, queryResult.getInt(17));
                 ckhSessionsPreparedStatement.setLong(21, ((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
                 ckhSessionsPreparedStatement.setInt(22, queryResult.getInt(19));
-                ckhSessionsPreparedStatement.setDate(23, java.sql.Date.valueOf(currentDate));
+                ckhSessionsPreparedStatement.setString(23, currentDate);
                 ckhSessionsPreparedStatement.setLong(24, 
                         (long) new BigDecimal(queryResult.getDouble(20)).setScale(0, RoundingMode.HALF_UP).doubleValue()
                 );
@@ -113,12 +112,12 @@ public class StatCollectorCKH {
         return true;
     }
 
-    public boolean processSysStats(ResultSet queryResult, long currentDateTime, LocalDate currentDate) {
+    public boolean processSysStats(ResultSet queryResult, long currentDateTime, String currentDate) {
         try {
             while (queryResult != null && queryResult.next()) {
                 ckhSysStatsPreparedStatement.setString(1, dbUniqueName);
                 ckhSysStatsPreparedStatement.setLong(2, currentDateTime);
-                ckhSysStatsPreparedStatement.setDate(3, java.sql.Date.valueOf(currentDate));
+                ckhSysStatsPreparedStatement.setString(3, currentDate);
                 ckhSysStatsPreparedStatement.setString(4, queryResult.getString(1));
                 ckhSysStatsPreparedStatement.setInt(5, queryResult.getInt(2));
                 ckhSysStatsPreparedStatement.setLong(6,
@@ -140,13 +139,13 @@ public class StatCollectorCKH {
         return true;
     }
 
-    public boolean processSesStats(ResultSet queryResult, long currentDateTime, LocalDate currentDate) {
+    public boolean processSesStats(ResultSet queryResult, long currentDateTime, String currentDate) {
         try {
 
             while (queryResult != null && queryResult.next()) {
                 ckhSesStatsPreparedStatement.setString(1, dbUniqueName);
                 ckhSesStatsPreparedStatement.setLong(2, currentDateTime);
-                ckhSesStatsPreparedStatement.setDate(3, java.sql.Date.valueOf(currentDate));
+                ckhSesStatsPreparedStatement.setString(3, currentDate);
                 ckhSesStatsPreparedStatement.setInt(4, queryResult.getInt(1));
                 ckhSesStatsPreparedStatement.setInt(5, queryResult.getInt(5));
                 ckhSesStatsPreparedStatement.setString(6, queryResult.getString(2));
@@ -170,10 +169,10 @@ public class StatCollectorCKH {
         return true;
     }
     
-    public boolean processSQLTexts (ResultSet queryResult, long currentDateTime, LocalDate currentDate) {
+    public boolean processSQLTexts (ResultSet queryResult, long currentDateTime, String currentDate) {
         try{
             while (queryResult != null && queryResult.next()) {
-                ckhSQLTextsPreparedStatement.setDate(1, java.sql.Date.valueOf(currentDate));
+                ckhSQLTextsPreparedStatement.setString(1, currentDate);
                 ckhSQLTextsPreparedStatement.setString(2, queryResult.getString(1));
                 ckhSQLTextsPreparedStatement.setString(3, queryResult.getString(2));
                 ckhSQLTextsPreparedStatement.setLong(4, currentDateTime);
@@ -212,7 +211,7 @@ public class StatCollectorCKH {
                 connClickHouse.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error durring resource cleanups!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error durring Clickhouse resource cleanups!");
             e.printStackTrace();
         }
     }
