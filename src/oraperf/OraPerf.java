@@ -134,7 +134,7 @@ public class OraPerf {
             cpds.setUser(CKHUSERNAME);
             cpds.setPassword(CKHPASSWORD);
             cpds.setMinPoolSize(100);
-            cpds.setAcquireIncrement(100);
+            cpds.setAcquireIncrement(10);
             cpds.setMaxPoolSize(5000);
             return cpds;
         } catch (Exception e) {
