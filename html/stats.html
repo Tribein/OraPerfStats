@@ -11,16 +11,16 @@
             google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
             google.charts.setOnLoadCallback(drawSysStatsChart);
-            statName = 'redo size';
+            var statName;
             var ts;
             var te;
             var timeSpan1;
             var timeSpan2;
             //--changable
-            var spanMinutes = 10;
+            var spanMinutes = 40;
             var dbUniqueName = 'dwh_m';
             //--
-
+			var $_GET = {};
             //--------------------------------------------------------------
             function preDraw() {
                 te = new Date();
@@ -35,6 +35,22 @@
                         + ' ' +
                         ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
                         ;
+				if(document.location.toString().indexOf('?') !== -1) {
+					var query = document.location.toString().replace(/^.*?\?/, '').replace(/#.*$/, '').split('&');
+					for(var i=0, l=query.length; i<l; i++) {
+						var aux = decodeURIComponent(query[i]).split('=');
+							$_GET[aux[0]] = aux[1];
+					}
+					statName = $_GET['statname'];
+				}else{
+					statName='redo size';
+				}
+				var sS = document.getElementById("stats");
+				for (var i=0; i< sS.options.length; i++){
+					if (sS.options[i].value === $_GET['statname']){
+						sS.options[i].selected=true;
+					}
+				}                        
             }
             //------WAITS
             function drawSysStatsChart() {
@@ -52,7 +68,14 @@
 									"and snapTime < '"+timeSpan1+"') and snapTime<='"+timeSpan2+"' order by snapTime asc"+
 						")"+
 					") using rn";
-                alert(sysStatsQuery);
+				var sysStatsQuery = "select snapTime, vl from ("+
+					"select snapTime, runningDifference(value) as vl from ("+
+						"select snapTime,value from sysstats_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"' "+
+						"and snapTime>=(select max(snapTime) from sysstats_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"' and snapTime < '"+timeSpan1+"') "+
+						"and snapTime<='"+timeSpan2+"' order by snapTime asc"+
+					")"+
+				") where snapTime>='"+timeSpan1+"'";
+                //alert(sysStatsQuery);
                 var data = new google.visualization.DataTable();
                 data.addColumn( 'string', 'Time' );
                 data.addColumn( 'number', 'Value' );
@@ -120,6 +143,40 @@
   </head>
 
   <body onLoad=''>
+	<div align="center">Statistic name:&nbsp;
+		<select id="stats" onchange="window.location='stats.html?statname='+this.options[this.selectedIndex].value">
+			<option>Requests to/from client</option>
+			<option>user commits</option>
+			<option>user rollbacks</option>
+			<option>user calls</option>
+			<option>recursive calls</option>
+			<option>recursive cpu usage</option>
+			<option>DB time</option>
+			<option>session pga memory</option>
+			<option>physical read total bytes</option>
+			<option>physical write total bytes</option>
+			<option>db block changes</option>
+			<option>redo size</option>
+			<option>redo size for direct writes</option>
+			<option>table fetch by rowid</option>
+			<option>table fetch continued row</option>
+			<option>lob reads</option>
+			<option>lob writes</option>
+			<option>index fetch by key</option>
+			<option>sql area evicted</option>
+			<option>session cursor cache hits</option>
+			<option>session cursor cache count</option>
+			<option>queries parallelized</option>
+			<option>Parallel operations not downgraded</option>
+			<option>Parallel operations downgraded to serial</option>
+			<option>parse time cpu</option>
+			<option>parse count (total)</option>
+			<option>parse count (hard)</option>
+			<option>parse count (failures)</option>
+			<option>sorts (memory)</option>
+			<option>sorts (disk)</option>
+		</select>
+	</div>
 	<div id="sysstatsregion"></div>
 	<div id="sesstatsregion"></div>
   </body>
