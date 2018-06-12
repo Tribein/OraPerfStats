@@ -1,0 +1,126 @@
+<html>
+  <head>
+	<meta charset="utf-8">
+	<style>
+	.ns{ letter-spacing: -2px; }
+	.sc {  }	
+	</style>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+            google.charts.load('current', {'packages': ['corechart']});
+            google.charts.load('current', {'packages': ['table']});
+            //google.charts.load('current', {'packages':['bar']});
+            google.charts.setOnLoadCallback(drawSysStatsChart);
+            statName = 'redo size';
+            var ts;
+            var te;
+            var timeSpan1;
+            var timeSpan2;
+            //--changable
+            var spanMinutes = 10;
+            var dbUniqueName = 'dwh_m';
+            //--
+
+            //--------------------------------------------------------------
+            function preDraw() {
+                te = new Date();
+                ts = new Date(te.getTime() - 1000 * 60 * spanMinutes);
+                timeSpan1 = ts.getFullYear() + '-' +
+                        ("0" + (ts.getMonth() + 1)).slice(-2) + '-' + ("0" + ts.getDate()).slice(-2)
+                        + ' ' +
+                        ("0" + ts.getHours()).slice(-2) + ':' + ("0" + ts.getMinutes()).slice(-2) + ':' + ("0" + ts.getSeconds()).slice(-2)
+                        ;
+                timeSpan2 = te.getFullYear() + '-' +
+                        ("0" + (te.getMonth() + 1)).slice(-2) + '-' + ("0" + te.getDate()).slice(-2)
+                        + ' ' +
+                        ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
+                        ;
+            }
+            //------WAITS
+            function drawSysStatsChart() {
+                preDraw();				
+				var drawRegion = "sysstatsregion";
+                var sysStatsQuery = "select st1 as Snaptime1,vl1-vl2 as value, rn from ("+
+						"select rowNumberInAllBlocks() as rn,snapTime as st1,value as vl1 from ("+
+							"select snapTime, value from sysstats_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"' "+
+							"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' order by snapTime asc"+
+						")"+
+					") all left join ("+
+						"select rowNumberInAllBlocks() as rn,snapTime as st2,value as vl2 from ("+
+							"select snapTime, value from sysstats_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"' "+
+							"and snapTime>=(select max(snapTime) from sysstats_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"' "+
+									"and snapTime < '"+timeSpan1+"') and snapTime<='"+timeSpan2+"' order by snapTime asc"+
+						")"+
+					") using rn";
+                alert(sysStatsQuery);
+                var data = new google.visualization.DataTable();
+                data.addColumn( 'string', 'Time' );
+                data.addColumn( 'number', 'Value' );
+                data.addRows(parseSysStatsData(getData(sysStatsQuery)));                
+                var options = {
+                    title: 'System Statistics ('+statName+')',
+                    width: 1800,
+                    height: 500,
+                    hAxis: {textPosition: 'none'},
+                    vAxis: {minValue: 0, format: '####'},
+                    animation: {startup: 'true', duration: 1000},
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '95%'},
+                    legend: {position: 'right', maxLines: 3},
+                    isStacked: true,
+                    backgroundColor: {fill: 'transparent'}
+                };
+                var sysStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
+                sysStatsChart.draw(data, options);
+                //--Register Events 
+                //--
+                /*
+                function waitsSelectHandler(e) {
+                    if (waitsChart.getSelection().length === 0) {
+                        if (typeof eventsChart !== 'undefined') {
+                            eventsChart.clearChart();
+                        }
+                    } else {
+                        var sel = waitsChart.getSelection();
+                        if (typeof arrWaitClass[(Number(sel[0].column) + 1) / 2] !== 'undefined') {
+                            drawEventsChart((Number(sel[0].column) + 1) / 2);
+                            document.getElementById('sesstatsregion').scrollIntoView();
+                        }
+                    }
+                }
+                
+                google.visualization.events.addListener(waitsChart, 'select', waitsSelectHandler);
+                */
+            }
+            //------WAITS
+            //--
+            function getData(query) {
+                var xmlHttp = new XMLHttpRequest();
+                var xmlHttpOutput;
+                xmlHttp.open("POST", 'http://10.64.139.57:18123/ckh/?database=oradb&query=', false); // false for synchronous request
+                xmlHttp.send(query);
+                return xmlHttp.responseText;
+            }
+            //--
+            function parseSysStatsData(inputData) {
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                var rowData = [];
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+						outData.push([rowData[0], Number(rowData[1])]);
+                }
+            }
+            return outData;
+		}
+            //--
+    </script>
+  </head>
+
+  <body onLoad=''>
+	<div id="sysstatsregion"></div>
+	<div id="sesstatsregion"></div>
+  </body>
+</html>
