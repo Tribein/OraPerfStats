@@ -148,6 +148,7 @@ public class OraPerf {
             cpds.setMinPoolSize(100);
             cpds.setAcquireIncrement(10);
             cpds.setMaxPoolSize(5000);
+            cpds.setMaxIdleTime(180);
             return cpds;
         } catch (Exception e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse server!");

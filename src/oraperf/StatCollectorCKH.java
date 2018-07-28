@@ -39,6 +39,7 @@ public class StatCollectorCKH {
     private PreparedStatement ckhStatNamesPreparedStatement;
     private Connection connClickHouse;
     private ComboPooledDataSource ckhDataSource;
+    private boolean isStatNameLoaded = false;
     
     private final String ckhInsertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?)";
@@ -85,7 +86,40 @@ public class StatCollectorCKH {
             e.printStackTrace();
         }
     }
-
+    private boolean handleSysStatsConnection (){
+        try{
+            if (connClickHouse == null || connClickHouse.isClosed()){
+                    connClickHouse = ckhDataSource.getConnection();
+                    ckhSysStatsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSysStatsQuery);
+                    ckhSQLTextsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLTextsQuery);
+            }
+            return true;
+        }catch(Exception e){
+            return false;
+        }
+    }
+    private boolean handleSQLTextsConnection (){
+        try{
+            if (connClickHouse == null || connClickHouse.isClosed()){
+                    connClickHouse = ckhDataSource.getConnection();
+                    ckhSQLTextsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLTextsQuery);
+            }
+            return true;
+        }catch(Exception e){
+            return false;
+        }
+    }  
+    private boolean handleSesStatsConnection (){
+        try{
+            if (connClickHouse == null || connClickHouse.isClosed()){
+                    connClickHouse = ckhDataSource.getConnection();
+                    ckhSesStatsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSesStatsQuery);
+            }
+            return true;
+        }catch(Exception e){
+            return false;
+        }
+    }    
     public boolean processSessions(ResultSet queryResult, long currentDateTime, String currentDate) throws SQLException {
         try {
             while (queryResult != null && queryResult.next() ) {
@@ -139,6 +173,9 @@ public class StatCollectorCKH {
     }
 
     public boolean processSysStats(ResultSet queryResult, long currentDateTime, String currentDate) {
+        if(!handleSysStatsConnection()){
+            return false;
+        }
         try {
             while (queryResult != null && queryResult.next()) {
                 ckhSysStatsPreparedStatement.setString(1, dbUniqueName);
@@ -156,6 +193,8 @@ public class StatCollectorCKH {
             ckhSysStatsPreparedStatement.executeBatch();
             ckhSysStatsPreparedStatement.clearBatch();
             ckhSysStatsPreparedStatement.clearWarnings();
+            ckhSysStatsPreparedStatement.close();
+            connClickHouse.close();
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName +"\t"+"Error processing system statistics!");
             e.printStackTrace();
@@ -165,6 +204,9 @@ public class StatCollectorCKH {
     }
 
     public boolean processSesStats(ResultSet queryResult, long currentDateTime, String currentDate) {
+        if (! handleSesStatsConnection()){
+            return false;
+        }
         try {
 
             while (queryResult != null && queryResult.next()) {
@@ -185,6 +227,8 @@ public class StatCollectorCKH {
             ckhSesStatsPreparedStatement.executeBatch();
             ckhSesStatsPreparedStatement.clearBatch();
             ckhSesStatsPreparedStatement.clearWarnings();
+            ckhSesStatsPreparedStatement.close();
+            connClickHouse.close();
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error processing session statistics!");
             e.printStackTrace();
@@ -194,6 +238,9 @@ public class StatCollectorCKH {
     }
     
     public boolean processSQLTexts (ResultSet queryResult, long currentDateTime, String currentDate) {
+        if(! handleSQLTextsConnection()){
+            return false;
+        }
         try{
             while (queryResult != null && queryResult.next()) {
                 ckhSQLTextsPreparedStatement.setString(1, currentDate);
@@ -207,7 +254,9 @@ public class StatCollectorCKH {
             }            
             ckhSQLTextsPreparedStatement.executeBatch();
             ckhSQLTextsPreparedStatement.clearBatch();
-            ckhSQLTextsPreparedStatement.clearWarnings();           
+            ckhSQLTextsPreparedStatement.clearWarnings();
+            ckhSQLTextsPreparedStatement.close();
+            connClickHouse.close();
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error processing sql texts!");
             e.printStackTrace();
@@ -231,7 +280,8 @@ public class StatCollectorCKH {
             }            
             ckhStatNamesPreparedStatement.executeBatch();
             ckhStatNamesPreparedStatement.clearBatch();
-            ckhStatNamesPreparedStatement.clearWarnings();           
+            ckhStatNamesPreparedStatement.clearWarnings();  
+            isStatNameLoaded = true;
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error processing statistics names!");
             e.printStackTrace();
