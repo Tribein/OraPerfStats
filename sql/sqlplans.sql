@@ -1,0 +1,2 @@
+CREATE TABLE oradb.sqlplans ( snapDate Date,  sqlid FixedString(13),  planhashvalue UInt64,  snapTime DateTime) ENGINE = ReplacingMergeTree(snapDate, (sqlid, planhashvalue), 8192, snapTime);
+CREATE TABLE oradb.sqlplans_buffer ( snapDate Date,  sqlid FixedString(13),  planhashvalue UInt64,  snapTime DateTime) ENGINE = Buffer('oradb', 'sqlplans', 16, 900, 14400, 1000000, 10000000, 10000000, 1000000000);

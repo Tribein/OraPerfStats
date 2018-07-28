@@ -52,6 +52,9 @@ public class OraPerf {
     private static String CKHUSERNAME = "";
     private static String CKHPASSWORD = "";
     private static String CKHCONNECTIONSTRING = "";
+    private static boolean GATHERSESSIONS = false;
+    private static boolean GATHERSESSTATS = false;
+    private static boolean GATHERSYSSTATS = false;
     private static ComboPooledDataSource CKHDataSource;
 
     static Map<String, Thread> dbSessionsList = new HashMap();
@@ -99,6 +102,15 @@ public class OraPerf {
             CKHUSERNAME = properties.getProperty("CKHUSERNAME");
             CKHPASSWORD = properties.getProperty("CKHPASSWORD");
             CKHCONNECTIONSTRING = properties.getProperty("CKHCONNECTIONSTRING");
+            if (properties.getProperty("SESSIONS").compareToIgnoreCase("TRUE")==0){
+                GATHERSESSIONS =true;
+            }
+            if (properties.getProperty("SESSTATS").compareToIgnoreCase("TRUE")==0){
+                GATHERSESSTATS =true;
+            }            
+            if (properties.getProperty("SYSSTATS").compareToIgnoreCase("TRUE")==0){
+                GATHERSYSSTATS =true;
+            }                        
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -203,12 +215,18 @@ public class OraPerf {
                 for (int i = 0; i < oraDBList.size(); i++) {
                     dbLine = oraDBList.get(i);
                     //lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
-                    //session waits
-                    processSessions(dbLine);
-                    //session stats
-                    processSessionStats(dbLine);
-                    //system stats & sql texts
-                    processSystemRoutines(dbLine);
+                    if (GATHERSESSIONS){
+                        //session waits
+                        processSessions(dbLine);
+                    }
+                    if(GATHERSESSTATS){
+                        //session stats
+                        processSessionStats(dbLine);
+                    }
+                    if(GATHERSYSSTATS){
+                        //system stats & sql texts
+                        processSystemRoutines(dbLine);
+                    }
                 }
             }
             TimeUnit.SECONDS.sleep(SECONDSTOSLEEP);

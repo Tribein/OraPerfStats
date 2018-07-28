@@ -404,15 +404,18 @@
                     return null;
                 }
 				var drawRegion = "statsregion";
-                var statsQuery = "select sn,endvalue-beginvalue as vl from (" +
-                        "select statName as sn,value as beginvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
-                        "select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and serial="+inputserial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
-                        ") and sid=" + inputsid + " and serial="+inputserial+
-                        ") any inner join (" +
-                        "select statName as sn,value as endvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
-                        "select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and serial="+inputserial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
-                        ") and sid=" + inputsid + " and serial="+inputserial+
-                        ") using sn where (endvalue-beginvalue)<>0 order by vl desc";
+                var statsQuery = "select statName,vl from ("+
+							"select dbuniquename,statId,endvalue-beginvalue as vl from (" +
+							"select dbuniquename,statId,value as beginvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
+							"select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and serial="+inputserial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+							") and sid=" + inputsid + " and serial="+inputserial+
+							") any inner join (" +
+							"select dbuniquename,statId,value as endvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
+							"select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and serial="+inputserial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+							") and sid=" + inputsid + " and serial="+inputserial+
+							") using statId,dbuniquename where (endvalue-beginvalue)<>0 ) "+
+							" any left join statnames_buffer using statId,dbuniquename " +
+							"order by vl desc";
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'Statistic for SID ' + inputsid);
                 data.addColumn('number', 'Value diff');
