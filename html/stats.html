@@ -1,10 +1,7 @@
 <html>
   <head>
 	<meta charset="utf-8">
-	<style>
-	.ns{ letter-spacing: -2px; }
-	.sc {  }	
-	</style>
+	<style></style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
             google.charts.load('current', {'packages': ['corechart']});
@@ -25,8 +22,8 @@
             var timeSpan1;
             var timeSpan2;
             //--changable
-            var spanMinutes = 10;
-            var dbUniqueName = 'dwh_m';
+            var spanMinutes = 2;
+            var dbUniqueName = 'sefarm_prd';
 			var $_GET = {};
             //--------------------------------------------------------------
             function preDraw() {
@@ -61,6 +58,7 @@
             }
             //----------------------------------------------------------------
             var statName;
+			var percentile=0.95;
             //------SYSSTATS
             function drawSysStatsChart() {
                 preDraw();				
@@ -81,26 +79,27 @@
 				*/
 				var sysStatsQuery = "select snapTime, vl from ("+
 					"select snapTime, runningDifference(value) as vl from ("+
-						"select snapTime,value from sysstats_buffer where statId=("+
-							"select statId from statnames_buffer where dbuniquename='"+dbUniqueName+"' and statName='"+statName+"'"+
-						") and dbuniquename='"+dbUniqueName+"' "+
-						"and snapTime>=(select max(snapTime) from sysstats_buffer where statId=("+
-							"select statId from statnames_buffer where dbuniquename='"+dbUniqueName+"' and statName='"+statName+"'"+
-						") and dbuniquename='"+dbUniqueName+"' and snapTime < '"+timeSpan1+"') "+
+						"select snapTime,value from sysstats_buffer where statId="+
+							"(select statId from statnames_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"') "+
+						" and dbuniquename='"+dbUniqueName+"' and snapTime>=("+
+							"select max(snapTime) from sysstats_buffer where statId="+
+							"(select statId from statnames_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"') "+
+							"and dbuniquename='"+dbUniqueName+"' and snapTime < '"+timeSpan1+"'"+
+						") "+
 						"and snapTime<='"+timeSpan2+"' order by snapTime asc"+
 					")"+
 				") where snapTime>='"+timeSpan1+"'";
                 var data = new google.visualization.DataTable();
                 data.addColumn( 'string', 'Time' );
                 data.addColumn( 'number', 'Value' );
-                data.addRows(parseSysStatsData(getData(sysStatsQuery)));                
+                data.addRows(parseSysStatsData(getData(sysStatsQuery))); 
                 var options = {
                     title: 'System Statistics ('+statName+')',
                     width: 1800,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
-                    animation: {startup: 'true', duration: 1000},
+                    animation: {startup: 'true', duration: 300},
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
@@ -110,39 +109,160 @@
                 };
                 var sysStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 sysStatsChart.draw(data, options);
+				drawSesStatsChart();
                 //--Register Events 
                 //--
                 /*
-                function waitsSelectHandler(e) {
-                    if (waitsChart.getSelection().length === 0) {
-                        if (typeof eventsChart !== 'undefined') {
-                            eventsChart.clearChart();
+                function sysStatsSelectHandler(e) {
+                    if (sysStatsChart.getSelection().length === 0) {
+                        if (typeof sesStatsChart !== 'undefined') {
+                            sesStatsChart.clearChart();
                         }
                     } else {
-                        var sel = waitsChart.getSelection();
-                        if (typeof arrWaitClass[(Number(sel[0].column) + 1) / 2] !== 'undefined') {
-                            drawEventsChart((Number(sel[0].column) + 1) / 2);
-                            document.getElementById('sesstatsregion').scrollIntoView();
-                        }
+                        var sel = sysStatsChart.getSelection();
+                        drawSesStatsChart(sel[0].column);
+                        document.getElementById('sesstatsregion').scrollIntoView();
                     }
                 }
                 
-                google.visualization.events.addListener(waitsChart, 'select', waitsSelectHandler);
+                google.visualization.events.addListener(sysStatsChart, 'select', sysStatsSelectHandler);
                 */
             }
             //------SYSSTATS
-            function parseSysStatsData(inputData) {
-                var dataLines = inputData.split(/[\n]+/);
-                var outData = [];
-                var rowData = [];
-                for (var i = 0; i < dataLines.length; i++) {
-                    if (dataLines[i].length > 0) {
-                        rowData = dataLines[i].split(/[\t]+/);
+			//------SESSTATS
+			function drawSesStatsChart(){
+				var drawRegion = "sesstatsregion";
+				var sesStatsQuery = "select snapTime,sid,serial,value from sesstats_buffer where " +
+				"dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' " +
+				"and statId=(select statId from statnames_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"') "+
+				"and value>("+
+					"select toInt64(quantile("+percentile+")(value)) from " +
+					"sesstats_buffer where dbuniquename='"+dbUniqueName+"' " +
+					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' " +
+					"and statId=(select statId from statnames_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"') " +
+				") order by snapTime";
+                var data = google.visualization.arrayToDataTable(
+					prepareSessData(
+						parseSesStatsData(
+							getData(sesStatsQuery)
+						)
+					)
+				);
+                var options = {
+                    title: 'Session Statistics ('+statName+', percentile '+percentile+')',
+                    width: 1800,
+                    height: 500,
+                    hAxis: {textPosition: 'none'},
+                    vAxis: {minValue: 0, format: '####'},
+                    animation: {startup: 'true', duration: 300},
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '95%'},
+                    legend: {position: 'none'},
+                    isStacked: true,
+                    backgroundColor: {fill: 'transparent'}
+                };
+                var sesStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
+                sesStatsChart.draw(data, options);			
+			}
+			//------SESSTATS
+			function parseSysStatsData(inputData) {
+				var dataLines = inputData.split(/[\n]+/);
+				var outData = [];
+				var rowData = [];
+				for (var i = 0; i < dataLines.length; i++) {
+					if (dataLines[i].length > 0) {
+						rowData = dataLines[i].split(/[\t]+/);
 						outData.push([rowData[0], Number(rowData[1])]);
-                }
-            }
-            return outData;
-		}
+					}
+				}
+				return outData;
+			}
+		
+			function parseSesStatsData(inputData) {
+				var dataLines = inputData.split(/[\n]+/);
+				var outData = [];
+				var rowData = [];
+				for (var i = 0; i < dataLines.length; i++) {
+					if (dataLines[i].length > 0) {
+						rowData = dataLines[i].split(/[\t]+/);
+						outData.push([rowData[0], rowData[1]+","+rowData[2],Number(rowData[3])]);
+					}
+				}
+				return outData;
+			}
+			
+			function prepareSessData(input){
+				var chartData = [];
+				var line = [];
+				var template = [];
+				var tmp = [];
+				var out = [];
+				var sess;
+				var cnt;
+				var dummyts = '0000-00-00 00:00:00';
+				var arrlength = 0;
+				for(var i=0;i<input.length; i++){
+					if(typeof tmp[input[i][1]] === 'undefined'){
+						tmp[input[i][1]] = null;
+					}
+				}
+				template.push('TimeStamp');
+				cnt = 1;
+				for (var key in tmp){
+					template.push(key);
+					tmp[key]=cnt++;
+				}
+				
+				var currlength = 1;
+				chartData.push(template);
+				
+				arrlength=template.length;
+				line = clearDataRow(arrlength,dummyts);
+				
+				for(var i=0;i<input.length;i++){
+					if( line[0] === dummyts){
+						line[0] = input[i][0];
+					}
+					if(line[0] === input[i][0]){
+						line[tmp[input[i][1]]] = input[i][2];
+						
+					}else{
+						chartData.push(line);
+						currlength++;
+						line = clearDataRow(arrlength,dummyts);
+						line[0] = input[i][0];
+						line[tmp[input[i][1]]] = input[i][2];
+						
+					}
+				}
+				var vvv;
+				for(var i=0;i<chartData.length; i++){
+					out.push(chartData[i]);
+					if( i > 1  ){
+						for(var j=1;j<arrlength;j++){
+							if (! out[i][j] === 0 ){
+								vvv = out[i][j];
+								out[i][j] = vvv;
+							}
+						}
+					}
+					alert(out[i]);
+				}
+				return out;
+			}
+			
+			function clearDataRow(inputlength,defaultts){
+				var out = [];
+				if( inputlength === 0){
+					return out;
+				}
+				out.push(defaultts);
+				for(var i=1; i<inputlength; i++){
+					out.push(0);
+				}
+				return out;
+			}
 		//--------------------------------------------------------------
     </script>
   </head>
