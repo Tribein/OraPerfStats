@@ -242,8 +242,7 @@
 						out[i][0]=chartData[i][0];
 						for(var j=1;j<arrlength;j++){
 							if ( Number(chartData[i][j]) === 0 ){
-								vvv = out[i-1][j];
-								out[i][j] = vvv;
+								out[i][j] = out[i-1][j];
 							}else{
 								out[i][j] = chartData[i][j] - out[i-1][j];
 							}
