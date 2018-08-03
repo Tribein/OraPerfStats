@@ -198,7 +198,6 @@
 				var line = [];
 				var template = [];
 				var tmp = [];
-				var out = [];
 				var sess;
 				var cnt;
 				var dummyts = '0000-00-00 00:00:00';
@@ -235,26 +234,59 @@
 					}
 				}
 				
-				var vvv;
-				for(var i=0;i<chartData.length; i++){
+				var vvv = [];
+				var out = [];
+				//var ddd = "<table nowrap border='2'>";
+				var ttt;
+				var sss;
+				/*
+					for(var i=0;i<arrlength;i++){
+						vvv[i] = chartData[1][i];
+					}
+					ddd += "<tr>";
+					for(var i=1; i<chartData[0].length; i++){
+						ddd += "<td>"+chartData[0][i]+"</td>";
+					}
+					ddd += "</tr>";
+					ddd += "<tr>";
+					for(var i=1; i<chartData[1].length; i++){
+						ddd += "<td>"+chartData[1][i]+"</td>";
+					}
+					ddd += "</tr>";				
+				*/
+				for(var i=0; i<chartData.length; i++){
+					out.push([]);
+					for(var j=0;j<arrlength; j++){
+						ttt = chartData[i][j];
+						out[i][j]= ttt;
+					}
+					//out.push(chartData[i]);	
 					if( i > 1  ){
-						out[i] = [];
-						out[i][0]=chartData[i][0];
+						//ddd +="<tr>";
 						for(var j=1;j<arrlength;j++){
 							if ( Number(chartData[i][j]) === 0 ){
-								out[i][j] = out[i-1][j];
+								//ttt = vvv[j];
+								out[i][j] = 0;
+								//ddd +="<td>"+out[i][j]+"/"+ttt+"/"+chartData[i][j]+"</td>";
+								//ddd +="<td>"+chartData[i][j]+"</td>";
 							}else{
-								out[i][j] = chartData[i][j] - out[i-1][j];
+								ttt = vvv[j];
+								sss = chartData[i][j];
+								out[i][j] = sss - ttt;
+								ttt = chartData[i][j];
+								vvv[j] = ttt;
+								//ddd +="<td>"+out[i][j]+"/"+ttt+"/"+chartData[i][j]+"</td>";								
 							}
 						}
-					}else{
-						out.push(chartData[i]);
+						//ddd += "</tr>";
 					}
-					
 				}
 				out.splice(1,1);
 				//return chartData;
+				//ddd += "</table>";
+				//document.getElementById("sysstatsregion").innerHTML = ddd;
 				return out;
+				
 			}
 			
 			function clearDataRow(inputlength,defaultts){
