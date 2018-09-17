@@ -22,4 +22,4 @@ cat << EOF | clickhouse-client  -h $DBHOST -u $USERNAME --password $PASSWORD -d 
 12	Queueing
 EOF
 
-echo -ne "CREATE VIEW default.waitclass ( classnum UInt8,  class String) AS SELECT classnum, class FROM oradb.waitclass;" | clickhouse-client  -h $DBHOST -u $USERNAME --password $PASSWORD -d $DATABASE
+echo -ne "CREATE VIEW default.waitclass ( classnum UInt8,  class String) AS SELECT classnum, class FROM ${DATABASE}.${TABLENAME};" | clickhouse-client  -h $DBHOST -u $USERNAME --password $PASSWORD -d $DATABASE
