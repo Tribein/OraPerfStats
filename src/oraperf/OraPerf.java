@@ -20,6 +20,11 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -51,6 +56,11 @@ public class OraPerf {
     private static String DBPASSWORD = "";
     private static String CKHUSERNAME = "";
     private static String CKHPASSWORD = "";
+    private static String DBLISTSOURCE = "";
+    private static String ORADBLISTCSTR = "";
+    private static String ORADBLISTUSERNAME = "";
+    private static String ORADBLISTPASSWORD = "";
+    private static String ORADBLISTQUERY = "";
     private static String CKHCONNECTIONSTRING = "";
     private static boolean GATHERSESSIONS = false;
     private static boolean GATHERSESSTATS = false;
@@ -78,18 +88,45 @@ public class OraPerf {
         }
     }
 
-    private ArrayList<String> getListFromOraDB() {
+    private static ArrayList<String> getListFromOraDB(String cstr,String usn,String pwd,String query) 
+            throws ClassNotFoundException, SQLException {
         ArrayList<String> retList = new ArrayList<>();
+        Connection dbListcon;
+        Statement dbListstmt;
+        ResultSet dbListrs;
+        Class.forName("oracle.jdbc.driver.OracleDriver");
+        dbListcon = DriverManager.getConnection(cstr, usn, pwd);
+        dbListcon.setAutoCommit(false);
+        dbListstmt = dbListcon.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        dbListrs = dbListstmt.executeQuery(query);
+        while (dbListrs.next()){ 
+            retList.add(dbListrs.getString(1));
+        }
+        dbListrs.close();
+        dbListstmt.close();
+        dbListcon.close();
         return retList;
     }
 
-    private ArrayList<String> getListFromHTTP() {
+    private static ArrayList<String> getListFromHTTP() {
         ArrayList<String> retList = new ArrayList<>();
         return retList;
     }
 
     private static ArrayList<String> getOraDBList() {
-        return getListFromFile(new File(DBLISTFILENAME));
+        try{
+            switch(DBLISTSOURCE.toUpperCase()){
+                case "FILE":
+                    return getListFromFile(new File(DBLISTFILENAME));
+                case "ORADB":
+                    return getListFromOraDB(ORADBLISTCSTR,ORADBLISTUSERNAME,ORADBLISTPASSWORD,ORADBLISTQUERY);
+                default:
+                    return null;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private static boolean processProperties(String fileName) {
@@ -98,10 +135,23 @@ public class OraPerf {
             properties.load(new FileInputStream(fileName));
             DBUSERNAME = properties.getProperty("DBUSERNAME");
             DBPASSWORD = properties.getProperty("DBPASSWORD");
-            DBLISTFILENAME = properties.getProperty("DBLISTFILENAME");
             CKHUSERNAME = properties.getProperty("CKHUSERNAME");
             CKHPASSWORD = properties.getProperty("CKHPASSWORD");
             CKHCONNECTIONSTRING = properties.getProperty("CKHCONNECTIONSTRING");
+            DBLISTSOURCE = properties.getProperty("DBLISTSOURCE");
+            switch(DBLISTSOURCE.toUpperCase()){
+                case "FILE":
+                    DBLISTFILENAME = properties.getProperty("DBLISTFILENAME");
+                    break;
+                case "ORADB":
+                    ORADBLISTCSTR = properties.getProperty("ORADBLISTCONNECTIONSTRING");
+                    ORADBLISTUSERNAME = properties.getProperty("ORADBLISTUSERNAME");
+                    ORADBLISTPASSWORD = properties.getProperty("ORADBLISTPASSWORD");
+                    ORADBLISTQUERY = properties.getProperty("ORADBLISTQUERY"); 
+                    break;
+                default:
+                  lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "No proper database list source was provided!");  
+            }
             if (properties.getProperty("SESSIONS").compareToIgnoreCase("TRUE")==0){
                 GATHERSESSIONS =true;
             }
@@ -211,9 +261,9 @@ public class OraPerf {
         lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting");
 
         while (true) /*for(int i=0; i<1; i++)*/ {
-            if (CKHDataSource != null) {
+            if (CKHDataSource != null){
                 oraDBList = getOraDBList();
-                for (int i = 0; i < oraDBList.size(); i++) {
+                for (int i = 0; i < oraDBList.size(); i++){
                     dbLine = oraDBList.get(i);
                     //lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
                     if (GATHERSESSIONS){
