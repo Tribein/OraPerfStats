@@ -44,11 +44,11 @@ import java.util.logging.Logger;
 public class OraPerf {
 
     private static SL4JLogger lg;
-    
+
     private static final String PROPERTIESFILENAME = "oraperf.properties";
     private static final int SECONDSTOSLEEP = 60;
     private static final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
-    
+
     private static Scanner fileScanner;
     private static ArrayList<String> oraDBList;
     private static String DBLISTFILENAME = "";
@@ -88,18 +88,18 @@ public class OraPerf {
         }
     }
 
-    private static ArrayList<String> getListFromOraDB(String cstr,String usn,String pwd,String query) 
+    private static ArrayList<String> getListFromOraDB(String cstr, String usn, String pwd, String query)
             throws ClassNotFoundException, SQLException {
         ArrayList<String> retList = new ArrayList<>();
         Connection dbListcon;
         Statement dbListstmt;
         ResultSet dbListrs;
-        Class.forName("oracle.jdbc.driver.OracleDriver");
+
         dbListcon = DriverManager.getConnection(cstr, usn, pwd);
         dbListcon.setAutoCommit(false);
         dbListstmt = dbListcon.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
         dbListrs = dbListstmt.executeQuery(query);
-        while (dbListrs.next()){ 
+        while (dbListrs.next()) {
             retList.add(dbListrs.getString(1));
         }
         dbListrs.close();
@@ -114,16 +114,16 @@ public class OraPerf {
     }
 
     private static ArrayList<String> getOraDBList() {
-        try{
-            switch(DBLISTSOURCE.toUpperCase()){
+        try {
+            switch (DBLISTSOURCE.toUpperCase()) {
                 case "FILE":
                     return getListFromFile(new File(DBLISTFILENAME));
                 case "ORADB":
-                    return getListFromOraDB(ORADBLISTCSTR,ORADBLISTUSERNAME,ORADBLISTPASSWORD,ORADBLISTQUERY);
+                    return getListFromOraDB(ORADBLISTCSTR, ORADBLISTUSERNAME, ORADBLISTPASSWORD, ORADBLISTQUERY);
                 default:
                     return null;
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
@@ -139,7 +139,7 @@ public class OraPerf {
             CKHPASSWORD = properties.getProperty("CKHPASSWORD");
             CKHCONNECTIONSTRING = properties.getProperty("CKHCONNECTIONSTRING");
             DBLISTSOURCE = properties.getProperty("DBLISTSOURCE");
-            switch(DBLISTSOURCE.toUpperCase()){
+            switch (DBLISTSOURCE.toUpperCase()) {
                 case "FILE":
                     DBLISTFILENAME = properties.getProperty("DBLISTFILENAME");
                     break;
@@ -147,20 +147,21 @@ public class OraPerf {
                     ORADBLISTCSTR = properties.getProperty("ORADBLISTCONNECTIONSTRING");
                     ORADBLISTUSERNAME = properties.getProperty("ORADBLISTUSERNAME");
                     ORADBLISTPASSWORD = properties.getProperty("ORADBLISTPASSWORD");
-                    ORADBLISTQUERY = properties.getProperty("ORADBLISTQUERY"); 
+                    ORADBLISTQUERY = properties.getProperty("ORADBLISTQUERY");
+                    Class.forName("oracle.jdbc.driver.OracleDriver");
                     break;
                 default:
-                  lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "No proper database list source was provided!");  
+                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "No proper database list source was provided!");
             }
-            if (properties.getProperty("SESSIONS").compareToIgnoreCase("TRUE")==0){
-                GATHERSESSIONS =true;
+            if (properties.getProperty("SESSIONS").compareToIgnoreCase("TRUE") == 0) {
+                GATHERSESSIONS = true;
             }
-            if (properties.getProperty("SESSTATS").compareToIgnoreCase("TRUE")==0){
-                GATHERSESSTATS =true;
-            }            
-            if (properties.getProperty("SYSSTATS").compareToIgnoreCase("TRUE")==0){
-                GATHERSYSSTATS =true;
-            }                        
+            if (properties.getProperty("SESSTATS").compareToIgnoreCase("TRUE") == 0) {
+                GATHERSESSTATS = true;
+            }
+            if (properties.getProperty("SYSSTATS").compareToIgnoreCase("TRUE") == 0) {
+                GATHERSYSSTATS = true;
+            }
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -255,29 +256,29 @@ public class OraPerf {
         lg = new SL4JLogger();
 
         CKHDataSource = initDataSource();
-
+        if (CKHDataSource == null) {
+            System.exit(2);
+        }
         String dbLine;
 
         lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting");
 
         while (true) /*for(int i=0; i<1; i++)*/ {
-            if (CKHDataSource != null){
-                oraDBList = getOraDBList();
-                for (int i = 0; i < oraDBList.size(); i++){
-                    dbLine = oraDBList.get(i);
-                    //lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
-                    if (GATHERSESSIONS){
-                        //session waits
-                        processSessions(dbLine);
-                    }
-                    if(GATHERSESSTATS){
-                        //session stats
-                        processSessionStats(dbLine);
-                    }
-                    if(GATHERSYSSTATS){
-                        //system stats & sql texts
-                        processSystemRoutines(dbLine);
-                    }
+            oraDBList = getOraDBList();
+            for (int i = 0; i < oraDBList.size(); i++) {
+                dbLine = oraDBList.get(i);
+                //lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Adding new database for monitoring: " + dbLine);
+                if (GATHERSESSIONS) {
+                    //session waits
+                    processSessions(dbLine);
+                }
+                if (GATHERSESSTATS) {
+                    //session stats
+                    processSessionStats(dbLine);
+                }
+                if (GATHERSYSSTATS) {
+                    //system stats & sql texts
+                    processSystemRoutines(dbLine);
                 }
             }
             TimeUnit.SECONDS.sleep(SECONDSTOSLEEP);
