@@ -158,14 +158,10 @@ public class StatCollector extends Thread {
         int snapcounter = 0;
         long begints, endts;
         /*gather stat names once */
-        setDateTimeVars();
+        //setDateTimeVars();
         try{
             oraStatNamesPreparedStatement.execute();
-            shutdown = !processor.processStatNames(
-                oraStatNamesPreparedStatement.getResultSet(),
-                currentDateTime,
-                currentDate
-            ); 
+            shutdown = !processor.processStatNames(oraStatNamesPreparedStatement.getResultSet()); 
             oraStatNamesPreparedStatement.close();
         }catch(Exception e){
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing statistics names!");
@@ -191,11 +187,7 @@ public class StatCollector extends Thread {
                 begints = System.currentTimeMillis();
                 try {
                     oraSQLTextsPreparedStatement.execute();
-                    shutdown = !processor.processSQLTexts(
-                            oraSQLTextsPreparedStatement.getResultSet(),
-                            currentDateTime,
-                            currentDate
-                    );
+                    shutdown = !processor.processSQLTexts( oraSQLTextsPreparedStatement.getResultSet() );
                     oraSQLTextsPreparedStatement.clearWarnings();
                 } catch (SQLException e) {
                     lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql texts!");

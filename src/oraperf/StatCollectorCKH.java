@@ -44,10 +44,10 @@ public class StatCollectorCKH {
     private final String ckhInsertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?)";
     private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?,?)";
-    private final String ckhInsertSQLTextsQuery = "insert into sqltexts_buffer values (?,?,?,?)";
+    private final String ckhInsertSQLTextsQuery = "insert into sqltexts_buffer values (?,?)";
     private final String ckhInsertSQLPlansQuery = "insert into sqlplans_buffer values (?,?,?,?)";
     private final String ckhInsertSQLStatsQuery = "insert into sqlstats_buffer values ()";
-    private final String ckhInsertStatNamesQuery = "insert into statnames_buffer values (?,?,?,?,?)";
+    private final String ckhInsertStatNamesQuery = "insert into statnames_buffer values (?,?,?)";
     
     
 
@@ -237,16 +237,14 @@ public class StatCollectorCKH {
         return true;
     }
     
-    public boolean processSQLTexts (ResultSet queryResult, long currentDateTime, String currentDate) {
+    public boolean processSQLTexts (ResultSet queryResult) {
         if(! handleSQLTextsConnection()){
             return false;
         }
         try{
             while (queryResult != null && queryResult.next()) {
-                ckhSQLTextsPreparedStatement.setString(1, currentDate);
-                ckhSQLTextsPreparedStatement.setString(2, queryResult.getString(1));
-                ckhSQLTextsPreparedStatement.setString(3, queryResult.getString(2));
-                ckhSQLTextsPreparedStatement.setLong(4, currentDateTime);
+                ckhSQLTextsPreparedStatement.setString(1, queryResult.getString(1));
+                ckhSQLTextsPreparedStatement.setString(2, queryResult.getString(2));
                 ckhSQLTextsPreparedStatement.addBatch();
             }
            if(queryResult != null){
@@ -265,14 +263,12 @@ public class StatCollectorCKH {
         return true;
     }
     
-    public boolean processStatNames(ResultSet queryResult, long currentDateTime, String currentDate){
+    public boolean processStatNames(ResultSet queryResult){
         try{
             while (queryResult != null && queryResult.next()) {
-                ckhStatNamesPreparedStatement.setString(1, currentDate);
-                ckhStatNamesPreparedStatement.setLong(2, currentDateTime);
-                ckhStatNamesPreparedStatement.setString(3, dbUniqueName);
-                ckhStatNamesPreparedStatement.setString(4, queryResult.getString(1));
-                ckhStatNamesPreparedStatement.setString(5, queryResult.getString(2));
+                ckhStatNamesPreparedStatement.setString(1, dbUniqueName);
+                ckhStatNamesPreparedStatement.setString(2, queryResult.getString(1));
+                ckhStatNamesPreparedStatement.setString(3, queryResult.getString(2));
                 ckhStatNamesPreparedStatement.addBatch();
             }
            if(queryResult != null){
