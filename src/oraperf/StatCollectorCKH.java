@@ -45,7 +45,7 @@ public class StatCollectorCKH {
     private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?)";
     private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?,?)";
     private final String ckhInsertSQLTextsQuery = "insert into sqltexts_buffer values (?,?)";
-    private final String ckhInsertSQLPlansQuery = "insert into sqlplans_buffer values (?,?,?,?)";
+    private final String ckhInsertSQLPlansQuery = "insert into sqlplans_buffer values (?,?)";
     private final String ckhInsertSQLStatsQuery = "insert into sqlstats_buffer values ()";
     private final String ckhInsertStatNamesQuery = "insert into statnames_buffer values (?,?,?)";
     
@@ -286,7 +286,7 @@ public class StatCollectorCKH {
         try{
             if( ckhStatNamesPreparedStatement != null && ! ckhStatNamesPreparedStatement.isClosed()){
                 ckhStatNamesPreparedStatement.close();
-            };
+            }
         }catch(Exception e){
             
         }
@@ -314,13 +314,11 @@ public class StatCollectorCKH {
         return true;
     } 
     
-    public boolean processSQLPlans (ResultSet queryResult, long currentDateTime, String currentDate) {
+    public boolean processSQLPlans (ResultSet queryResult) {
         try{
             while (queryResult != null && queryResult.next()) {
-                ckhSQLPlansPreparedStatement.setString(1, currentDate);
-                ckhSQLPlansPreparedStatement.setString(2, queryResult.getString(1));
-                ckhSQLPlansPreparedStatement.setString(3, queryResult.getString(2));
-                ckhSQLPlansPreparedStatement.setLong(4, currentDateTime);
+                ckhSQLPlansPreparedStatement.setString(1, queryResult.getString(1));
+                ckhSQLPlansPreparedStatement.setString(2, queryResult.getString(2));
                 ckhSQLPlansPreparedStatement.addBatch();
             }
            if(queryResult != null){
@@ -352,6 +350,12 @@ public class StatCollectorCKH {
             if (ckhSesStatsPreparedStatement != null && !ckhSesStatsPreparedStatement.isClosed()) {
                 ckhSesStatsPreparedStatement.close();
             }
+            if (ckhSQLTextsPreparedStatement != null && !ckhSQLTextsPreparedStatement.isClosed()) {
+                ckhSQLTextsPreparedStatement.close();
+            }      
+            if (ckhSQLPlansPreparedStatement != null && !ckhSQLPlansPreparedStatement.isClosed()) {
+                ckhSQLPlansPreparedStatement.close();
+            }                        
             if (connClickHouse != null && !connClickHouse.isClosed()) {
                 connClickHouse.close();
             }
