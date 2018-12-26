@@ -339,7 +339,9 @@ public class StatCollectorCKH {
             }            
             ckhSQLPlansPreparedStatement.executeBatch();
             ckhSQLPlansPreparedStatement.clearBatch();
-            ckhSQLPlansPreparedStatement.clearWarnings();           
+            ckhSQLPlansPreparedStatement.clearWarnings();
+            ckhSQLPlansPreparedStatement.close();
+            connClickHouse.close();
         } catch (SQLException e) {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + "Error processing sql plans!");
             e.printStackTrace();
