@@ -135,7 +135,7 @@ public class StatCollector extends Thread {
             "    small_read_reqs,small_write_reqs,\n" +
             "    large_read_reqs,large_write_reqs,\n" +
             "    small_sync_read_reqs,\n" +
-            "    small_read_Servicetime,\n" +
+            "    small_read_servicetime,\n" +
             "    small_write_servicetime,\n" +
             "    small_sync_read_latency,\n" +
             "    large_read_servicetime,\n" +
