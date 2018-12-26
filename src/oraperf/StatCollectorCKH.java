@@ -72,9 +72,9 @@ public class StatCollectorCKH {
                     ckhSysStatsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSysStatsQuery);
                     ckhSQLTextsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLTextsQuery);
                     ckhStatNamesPreparedStatement = connClickHouse.prepareStatement(ckhInsertStatNamesQuery);
+                    ckhSQLPlansPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLPlansQuery);
                 break;
                 case 3:
-                    ckhSQLPlansPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLPlansQuery);
                     ckhSQLStatsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLStatsQuery);                    
                 break;
                 default:
@@ -91,7 +91,6 @@ public class StatCollectorCKH {
             if (connClickHouse == null || connClickHouse.isClosed()){
                     connClickHouse = ckhDataSource.getConnection();
                     ckhSysStatsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSysStatsQuery);
-                    ckhSQLTextsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLTextsQuery);
             }
             return true;
         }catch(Exception e){
@@ -109,6 +108,17 @@ public class StatCollectorCKH {
             return false;
         }
     }  
+    private boolean handleSQLPlansConnection (){
+        try{
+            if (connClickHouse == null || connClickHouse.isClosed()){
+                    connClickHouse = ckhDataSource.getConnection();
+                    ckhSQLPlansPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLPlansQuery);
+            }
+            return true;
+        }catch(Exception e){
+            return false;
+        }
+    }      
     private boolean handleSesStatsConnection (){
         try{
             if (connClickHouse == null || connClickHouse.isClosed()){
@@ -315,6 +325,9 @@ public class StatCollectorCKH {
     } 
     
     public boolean processSQLPlans (ResultSet queryResult) {
+        if(! handleSQLPlansConnection()){
+            return false;
+        }        
         try{
             while (queryResult != null && queryResult.next()) {
                 ckhSQLPlansPreparedStatement.setString(1, queryResult.getString(1));
