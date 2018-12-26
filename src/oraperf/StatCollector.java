@@ -49,6 +49,7 @@ public class StatCollector extends Thread {
     private PreparedStatement oraSQLPlansPreparedStatement;
     private PreparedStatement oraSQLStatsPreparedStatement;
     private PreparedStatement oraStatNamesPreparedStatement;
+    private PreparedStatement oraIOStatFilePreparedStatement;
     private DateTimeFormatter dateFormatData;
     private long currentDateTime;
     private String currentDate;
@@ -90,13 +91,58 @@ public class StatCollector extends Thread {
             + " join v$sesstat using(sid)"
             + " join v$statname using(statistic#)"
             + " where name in ( "
-            + "'Requests to/from client','user commits','user rollbacks','user calls','recursive calls','recursive cpu usage','DB time','session pga memory','physical read total bytes','physical write total bytes','db block changes','redo size','redo size for direct writes','table fetch by rowid','table fetch continued row','lob reads','lob writes','index fetch by key','sql area evicted','session cursor cache hits','session cursor cache count','queries parallelized','Parallel operations not downgraded','Parallel operations downgraded to serial','parse time cpu','parse count (total)','parse count (hard)','parse count (failures)','sorts (memory)','sorts (disk)'"
+            +   "'Requests to/from client',"+
+                "'user commits',"+
+                "'user rollbacks',"+
+                "'user calls',"+
+                "'recursive calls',"+
+                "'recursive cpu usage',"+
+                "'DB time',"+
+                "'session pga memory',"+
+                "'physical read total bytes',"+
+                "'physical write total bytes',"+
+                "'db block changes',"+
+                "'redo size',"+
+                "'redo size for direct writes',"+
+                "'table fetch by rowid',"+
+                "'table fetch continued row',"+
+                "'lob reads',"+
+                "'lob writes',"+
+                "'index fetch by key',"+
+                "'sql area evicted',"+
+                "'session cursor cache hits',"+
+                "'session cursor cache count',"+
+                "'queries parallelized',"+
+                "'Parallel operations not downgraded',"+
+                "'Parallel operations downgraded to serial',"+
+                "'parse time cpu',"+
+                "'parse count (total)',"+
+                "'parse count (hard)',"+
+                "'parse count (failures)',"+
+                "'sorts (memory)',"+
+                "'sorts (disk)'"
             + " ) "
             + " and value<>0";
     private final String oraSQLTextsQuery = "select sql_id,sql_text from v$sqlarea";
     private final String oraSQLPlansQuery = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0";
     private final String oraSQLStatsQuery = "";
     private final String oraStatNamesQuery = "select statistic#,name from v$statname";
+    private final String oraIOStatFileQuery = "select \n" +
+            "    filetype_name,\n" +
+            "    coalesce(b.name,c.name,'-'),\n" +
+            "    small_read_megabytes,small_write_megabytes,\n" +
+            "    large_read_megabytes,large_write_megabytes, \n" +
+            "    small_read_reqs,small_write_reqs,\n" +
+            "    large_read_reqs,large_write_reqs,\n" +
+            "    small_sync_read_reqs,\n" +
+            "    small_read_Servicetime,\n" +
+            "    small_write_servicetime,\n" +
+            "    small_sync_read_latency,\n" +
+            "    large_read_servicetime,\n" +
+            "    large_write_servicetime\n" +
+        "from V$IOSTAT_FILE a\n" +
+        "left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2)\n" +
+        "left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6);";
 
     public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int runTType) {
         dbConnectionString = inputString;
@@ -119,7 +165,7 @@ public class StatCollector extends Thread {
             try {
                 setDateTimeVars();
                 oraWaitsPreparedStatement.execute();
-                shutdown = ! processor.processSessions(
+                shutdown = !processor.processSessions(
                         oraWaitsPreparedStatement.getResultSet(),
                         currentDateTime,
                         currentDate
@@ -139,7 +185,7 @@ public class StatCollector extends Thread {
             try {
                 setDateTimeVars();
                 oraSesStatsPreparedStatement.execute();
-                shutdown = ! processor.processSesStats(
+                shutdown = !processor.processSesStats(
                         oraSesStatsPreparedStatement.getResultSet(),
                         currentDateTime,
                         currentDate
@@ -171,7 +217,7 @@ public class StatCollector extends Thread {
             try {
                 setDateTimeVars();
                 oraSysStatsPreparedStatement.execute();
-                shutdown = ! processor.processSysStats(
+                shutdown = !processor.processSysStats(
                         oraSysStatsPreparedStatement.getResultSet(),
                         currentDateTime,
                         currentDate
@@ -185,19 +231,21 @@ public class StatCollector extends Thread {
             if (snapcounter == 30) {
                 snapcounter = 0;
                 begints = System.currentTimeMillis();
-                try {
-                    oraSQLPlansPreparedStatement.execute();
-                    shutdown = ! processor.processSQLPlans(oraSQLPlansPreparedStatement.getResultSet());
-                    oraSQLPlansPreparedStatement.clearWarnings();
-                } catch (SQLException e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql plan hash values!");
-                    shutdown = true;
-                    e.printStackTrace();
+                if (!shutdown) {
+                    try {
+                        oraSQLPlansPreparedStatement.execute();
+                        shutdown = !processor.processSQLPlans(oraSQLPlansPreparedStatement.getResultSet());
+                        oraSQLPlansPreparedStatement.clearWarnings();
+                    } catch (SQLException e) {
+                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql plan hash values!");
+                        shutdown = true;
+                        e.printStackTrace();
+                    }
                 }
                 if (!shutdown) {
                     try {
                         oraSQLTextsPreparedStatement.execute();
-                        shutdown = ! processor.processSQLTexts(oraSQLTextsPreparedStatement.getResultSet());
+                        shutdown = !processor.processSQLTexts(oraSQLTextsPreparedStatement.getResultSet());
                         oraSQLTextsPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
                         lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql texts!");
@@ -223,7 +271,7 @@ public class StatCollector extends Thread {
             try {
                 setDateTimeVars();
                 oraSQLStatsPreparedStatement.execute();
-                shutdown = ! processor.processSQLStats(
+                shutdown = !processor.processSQLStats(
                         oraSQLStatsPreparedStatement.getResultSet(),
                         currentDateTime,
                         currentDate
@@ -239,7 +287,7 @@ public class StatCollector extends Thread {
                 begints = System.currentTimeMillis();
                 try {
                     oraSQLPlansPreparedStatement.execute();
-                    shutdown = ! processor.processSQLPlans( oraSQLPlansPreparedStatement.getResultSet() );
+                    shutdown = !processor.processSQLPlans(oraSQLPlansPreparedStatement.getResultSet());
                     oraSQLPlansPreparedStatement.clearWarnings();
                 } catch (SQLException e) {
                     lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql plans!");
@@ -262,22 +310,22 @@ public class StatCollector extends Thread {
             if (processor != null && processor.isAlive()) {
                 processor.cleanup();
             }
-            if (oraWaitsPreparedStatement != null && ! oraWaitsPreparedStatement.isClosed()) {
+            if (oraWaitsPreparedStatement != null && !oraWaitsPreparedStatement.isClosed()) {
                 oraWaitsPreparedStatement.close();
             }
-            if (oraSysStatsPreparedStatement != null && ! oraSysStatsPreparedStatement.isClosed()) {
+            if (oraSysStatsPreparedStatement != null && !oraSysStatsPreparedStatement.isClosed()) {
                 oraSysStatsPreparedStatement.close();
             }
-            if (oraSesStatsPreparedStatement != null && ! oraSesStatsPreparedStatement.isClosed()) {
+            if (oraSesStatsPreparedStatement != null && !oraSesStatsPreparedStatement.isClosed()) {
                 oraSesStatsPreparedStatement.close();
             }
-            if (oraSQLTextsPreparedStatement != null && ! oraSQLTextsPreparedStatement.isClosed()) {
+            if (oraSQLTextsPreparedStatement != null && !oraSQLTextsPreparedStatement.isClosed()) {
                 oraSQLTextsPreparedStatement.close();
             }
-            if (oraSQLPlansPreparedStatement != null && ! oraSQLPlansPreparedStatement.isClosed()) {
+            if (oraSQLPlansPreparedStatement != null && !oraSQLPlansPreparedStatement.isClosed()) {
                 oraSQLPlansPreparedStatement.close();
             }
-            if (oraSQLStatsPreparedStatement != null && ! oraSQLStatsPreparedStatement.isClosed()) {
+            if (oraSQLStatsPreparedStatement != null && !oraSQLStatsPreparedStatement.isClosed()) {
                 oraSQLStatsPreparedStatement.close();
             }
             if (con != null && !con.isClosed()) {
