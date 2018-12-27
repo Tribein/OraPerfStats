@@ -1,0 +1,2 @@
+CREATE TABLE oradb.iofunctionstats ( dbuniquename String, snapDate Date, snapTime DateTime, functionName String, fileType String, srmb UInt64, swmb UInt64, lrmb UInt64, lwmb UInt64, srrq UInt64, swrq UInt64, lrrq UInt64, lwrq UInt64, sywtcnt UInt64, sywtmms UInt64 ) ENGINE = MergeTree() partition by toYYYYMM(snapDate) order by (dbuniquename,snapTime);
+CREATE TABLE oradb.iofunctionstats_buffer AS oradb.iofunctionstats ENGINE = Buffer('oradb', 'iofunctionstats', 16, 14400, 86400, 100000, 1000000, 10000000, 100000000);

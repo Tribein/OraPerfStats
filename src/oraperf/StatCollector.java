@@ -50,6 +50,7 @@ public class StatCollector extends Thread {
     private PreparedStatement oraSQLStatsPreparedStatement;
     private PreparedStatement oraStatNamesPreparedStatement;
     private PreparedStatement oraIOStatFilePreparedStatement;
+    private PreparedStatement oraIOStatFunctionPreparedStatement;
     private DateTimeFormatter dateFormatData;
     private long currentDateTime;
     private String currentDate;
@@ -127,22 +128,30 @@ public class StatCollector extends Thread {
     private final String oraSQLPlansQuery = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0";
     private final String oraSQLStatsQuery = "";
     private final String oraStatNamesQuery = "select statistic#,name from v$statname";
-    private final String oraIOStatFileQuery = "select \n" +
-            "    filetype_name,\n" +
-            "    coalesce(b.name,c.name,'-'),\n" +
-            "    small_read_megabytes,small_write_megabytes,\n" +
-            "    large_read_megabytes,large_write_megabytes, \n" +
-            "    small_read_reqs,small_write_reqs,\n" +
-            "    large_read_reqs,large_write_reqs,\n" +
-            "    small_sync_read_reqs,\n" +
-            "    small_read_servicetime,\n" +
-            "    small_write_servicetime,\n" +
-            "    small_sync_read_latency,\n" +
-            "    large_read_servicetime,\n" +
-            "    large_write_servicetime\n" +
-        "from V$IOSTAT_FILE a\n" +
-        "left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2)\n" +
-        "left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6);";
+    private final String oraIOStatFileQuery = "select " +
+            "filetype_name," +
+            "coalesce(b.name,c.name,'-')," +
+            "small_read_megabytes,small_write_megabytes," +
+            "large_read_megabytes,large_write_megabytes," +
+            "small_read_reqs,small_write_reqs," +
+            "large_read_reqs,large_write_reqs," +
+            "small_sync_read_reqs," +
+            "small_read_servicetime," +
+            "small_write_servicetime," +
+            "small_sync_read_latency," +
+            "large_read_servicetime," +
+            "large_write_servicetime " +
+        "from V$IOSTAT_FILE a " +
+        "left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) " +
+        "left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)";
+    private final String oraIOStatFunctionQuery = "select " +
+            "function_name,filetype_name," +
+            "small_read_megabytes,small_write_megabytes," +
+            "large_read_megabytes,large_write_megabytes," +
+            "small_read_reqs,small_write_reqs," +
+            "large_read_reqs,large_write_reqs," +
+            "number_of_waits,wait_time " +
+        "from V$IOSTAT_FUNCTION_DETAIL";
 
     public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int runTType) {
         dbConnectionString = inputString;
