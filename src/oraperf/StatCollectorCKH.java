@@ -37,6 +37,8 @@ public class StatCollectorCKH {
     private PreparedStatement ckhSQLPlansPreparedStatement;
     private PreparedStatement ckhSQLStatsPreparedStatement;
     private PreparedStatement ckhStatNamesPreparedStatement;
+    private PreparedStatement ckhIOFileStatsPreparedStatement;
+    private PreparedStatement ckhIOFunctionStatsPreparedStatement;
     private Connection connClickHouse;
     private ComboPooledDataSource ckhDataSource;
     private boolean isStatNameLoaded = false;
@@ -48,6 +50,8 @@ public class StatCollectorCKH {
     private final String ckhInsertSQLPlansQuery = "insert into sqlplans_buffer values (?,?)";
     private final String ckhInsertSQLStatsQuery = "insert into sqlstats_buffer values ()";
     private final String ckhInsertStatNamesQuery = "insert into statnames_buffer values (?,?,?)";
+    private final String ckhInsertIOFileStatsQuery = "insert into iofilestats_buffer values (?,?,?)";
+    private final String ckhInsertIOFunctionStatsQuery = "insert into iofunctionstats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     
     
 
