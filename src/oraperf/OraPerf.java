@@ -151,7 +151,9 @@ public class OraPerf {
                     Class.forName("oracle.jdbc.driver.OracleDriver");
                     break;
                 default:
-                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "No proper database list source was provided!");
+                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                            "No proper database list source was provided!"
+                    );
             }
             if (properties.getProperty("SESSIONS").compareToIgnoreCase("TRUE") == 0) {
                 GATHERSESSIONS = true;
@@ -202,7 +204,9 @@ public class OraPerf {
             cpds.setMaxIdleTime(180);
             return cpds;
         } catch (Exception e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Cannot connect to ClickHouse server!");
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                    "Cannot connect to ClickHouse server!"
+            );
             return null;
         }
     }
@@ -211,10 +215,14 @@ public class OraPerf {
         if (!dbSessionsList.containsKey(dbLine) || dbSessionsList.get(dbLine) == null || !dbSessionsList.get(dbLine).isAlive()) {
             try {
                 dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 0));
-                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting sessions thread for " + dbLine);
+                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        "Starting sessions thread for " + dbLine
+                );
                 dbSessionsList.get(dbLine).start();
             } catch (Exception e) {
-                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Error running sessions thread for " + dbLine);
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        "Error running sessions thread for " + dbLine
+                );
                 e.printStackTrace();
             }
         }
@@ -224,10 +232,14 @@ public class OraPerf {
         if (!dbSessStatsList.containsKey(dbLine) || dbSessStatsList.get(dbLine) == null || !dbSessStatsList.get(dbLine).isAlive()) {
             try {
                 dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 1));
-                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting sessions stats thread for " + dbLine);
+                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        "Starting sessions stats thread for " + dbLine
+                );
                 dbSessStatsList.get(dbLine).start();
             } catch (Exception e) {
-                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Error running sessions stats thread for " + dbLine);
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        "Error running sessions stats thread for " + dbLine
+                );
                 e.printStackTrace();
             }
         }
@@ -237,10 +249,14 @@ public class OraPerf {
         if (!dbSyssStatsList.containsKey(dbLine) || dbSyssStatsList.get(dbLine) == null || !dbSyssStatsList.get(dbLine).isAlive()) {
             try {
                 dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 2));
-                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting system stats thread for " + dbLine);
+                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        "Starting system stats thread for " + dbLine
+                );
                 dbSyssStatsList.get(dbLine).start();
             } catch (Exception e) {
-                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Error running system stats thread for " + dbLine);
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        "Error running system stats thread for " + dbLine
+                );
                 e.printStackTrace();
             }
         }
@@ -277,7 +293,7 @@ public class OraPerf {
                     processSessionStats(dbLine);
                 }
                 if (GATHERSYSSTATS) {
-                    //system stats & sql texts
+                    //system stats & sql texts/plan hash values
                     processSystemRoutines(dbLine);
                 }
             }
