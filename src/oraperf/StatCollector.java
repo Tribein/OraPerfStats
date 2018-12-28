@@ -49,8 +49,8 @@ public class StatCollector extends Thread {
     private PreparedStatement oraSQLPlansPreparedStatement;
     private PreparedStatement oraSQLStatsPreparedStatement;
     private PreparedStatement oraStatNamesPreparedStatement;
-    private PreparedStatement oraIOStatFilePreparedStatement;
-    private PreparedStatement oraIOStatFunctionPreparedStatement;
+    private PreparedStatement oraIOFileStatsPreparedStatement;
+    private PreparedStatement oraIOFunctionStatsPreparedStatement;
     private DateTimeFormatter dateFormatData;
     private long currentDateTime;
     private String currentDate;
@@ -92,66 +92,66 @@ public class StatCollector extends Thread {
             + " join v$sesstat using(sid)"
             + " join v$statname using(statistic#)"
             + " where name in ( "
-            +   "'Requests to/from client',"+
-                "'user commits',"+
-                "'user rollbacks',"+
-                "'user calls',"+
-                "'recursive calls',"+
-                "'recursive cpu usage',"+
-                "'DB time',"+
-                "'session pga memory',"+
-                "'physical read total bytes',"+
-                "'physical write total bytes',"+
-                "'db block changes',"+
-                "'redo size',"+
-                "'redo size for direct writes',"+
-                "'table fetch by rowid',"+
-                "'table fetch continued row',"+
-                "'lob reads',"+
-                "'lob writes',"+
-                "'index fetch by key',"+
-                "'sql area evicted',"+
-                "'session cursor cache hits',"+
-                "'session cursor cache count',"+
-                "'queries parallelized',"+
-                "'Parallel operations not downgraded',"+
-                "'Parallel operations downgraded to serial',"+
-                "'parse time cpu',"+
-                "'parse count (total)',"+
-                "'parse count (hard)',"+
-                "'parse count (failures)',"+
-                "'sorts (memory)',"+
-                "'sorts (disk)'"
+            + "'Requests to/from client',"
+            + "'user commits',"
+            + "'user rollbacks',"
+            + "'user calls',"
+            + "'recursive calls',"
+            + "'recursive cpu usage',"
+            + "'DB time',"
+            + "'session pga memory',"
+            + "'physical read total bytes',"
+            + "'physical write total bytes',"
+            + "'db block changes',"
+            + "'redo size',"
+            + "'redo size for direct writes',"
+            + "'table fetch by rowid',"
+            + "'table fetch continued row',"
+            + "'lob reads',"
+            + "'lob writes',"
+            + "'index fetch by key',"
+            + "'sql area evicted',"
+            + "'session cursor cache hits',"
+            + "'session cursor cache count',"
+            + "'queries parallelized',"
+            + "'Parallel operations not downgraded',"
+            + "'Parallel operations downgraded to serial',"
+            + "'parse time cpu',"
+            + "'parse count (total)',"
+            + "'parse count (hard)',"
+            + "'parse count (failures)',"
+            + "'sorts (memory)',"
+            + "'sorts (disk)'"
             + " ) "
             + " and value<>0";
     private final String oraSQLTextsQuery = "select sql_id,sql_text from v$sqlarea";
     private final String oraSQLPlansQuery = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0";
     private final String oraSQLStatsQuery = "";
     private final String oraStatNamesQuery = "select statistic#,name from v$statname";
-    private final String oraIOStatFileQuery = "select " +
-            "filetype_name," +
-            "coalesce(b.name,c.name,'-')," +
-            "small_read_megabytes,small_write_megabytes," +
-            "large_read_megabytes,large_write_megabytes," +
-            "small_read_reqs,small_write_reqs," +
-            "large_read_reqs,large_write_reqs," +
-            "small_sync_read_reqs," +
-            "small_read_servicetime," +
-            "small_write_servicetime," +
-            "small_sync_read_latency," +
-            "large_read_servicetime," +
-            "large_write_servicetime " +
-        "from V$IOSTAT_FILE a " +
-        "left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) " +
-        "left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)";
-    private final String oraIOStatFunctionQuery = "select " +
-            "function_name,filetype_name," +
-            "small_read_megabytes,small_write_megabytes," +
-            "large_read_megabytes,large_write_megabytes," +
-            "small_read_reqs,small_write_reqs," +
-            "large_read_reqs,large_write_reqs," +
-            "number_of_waits,wait_time " +
-        "from V$IOSTAT_FUNCTION_DETAIL";
+    private final String oraIOFileStatsQuery = "select "
+            + "filetype_name,"
+            + "coalesce(b.name,c.name,'-'),"
+            + "small_read_megabytes,small_write_megabytes,"
+            + "large_read_megabytes,large_write_megabytes,"
+            + "small_read_reqs,small_write_reqs,"
+            + "large_read_reqs,large_write_reqs,"
+            + "small_sync_read_reqs,"
+            + "small_read_servicetime,"
+            + "small_write_servicetime,"
+            + "small_sync_read_latency,"
+            + "large_read_servicetime,"
+            + "large_write_servicetime "
+            + "from V$IOSTAT_FILE a "
+            + "left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) "
+            + "left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)";
+    private final String oraIOFunctionStatsQuery = "select "
+            + "function_name,filetype_name,"
+            + "small_read_megabytes,small_write_megabytes,"
+            + "large_read_megabytes,large_write_megabytes,"
+            + "small_read_reqs,small_write_reqs,"
+            + "large_read_reqs,large_write_reqs,"
+            + "number_of_waits,wait_time "
+            + "from V$IOSTAT_FUNCTION_DETAIL";
 
     public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int runTType) {
         dbConnectionString = inputString;
@@ -169,21 +169,50 @@ public class StatCollector extends Thread {
         currentDate = LocalDate.now().format(ckhDateTimeFormatter);
     }
 
-    private void runSessionsRoutines() throws InterruptedException {
+    private void runSessAndIOStatsRoutines() throws InterruptedException {
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
+            setDateTimeVars();
             try {
-                setDateTimeVars();
-                oraWaitsPreparedStatement.execute();
-                shutdown = !processor.processSessions(
-                        oraWaitsPreparedStatement.getResultSet(),
-                        currentDateTime,
-                        currentDate
-                );
-                oraWaitsPreparedStatement.clearWarnings();
+                oraIOFileStatsPreparedStatement.execute();
+                shutdown = ! processor.processIOFileStats(oraIOFileStatsPreparedStatement.getResultSet(), currentDateTime);
+                oraIOFileStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Error getting result from database " + dbConnectionString);
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+                        + "Error getting io file stats from database " + dbConnectionString
+                );
                 shutdown = true;
                 e.printStackTrace();
+            }
+            if (!shutdown) {
+                try {
+                    oraIOFunctionStatsPreparedStatement.execute();
+                    shutdown = ! processor.processIOFunctionStats(oraIOFunctionStatsPreparedStatement.getResultSet(), currentDateTime);
+                    oraIOFunctionStatsPreparedStatement.clearWarnings();
+                } catch (SQLException e) {
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+                            + "Error getting io function stats from database " + dbConnectionString
+                    );
+                    shutdown = true;
+                    e.printStackTrace();
+                }
+            }
+            if (!shutdown) {
+                try {
+
+                    oraWaitsPreparedStatement.execute();
+                    shutdown = !processor.processSessions(
+                            oraWaitsPreparedStatement.getResultSet(),
+                            currentDateTime,
+                            currentDate
+                    );
+                    oraWaitsPreparedStatement.clearWarnings();
+                } catch (SQLException e) {
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+                            + "Error getting sessions from database " + dbConnectionString
+                    );
+                    shutdown = true;
+                    e.printStackTrace();
+                }
             }
             TimeUnit.SECONDS.sleep(secondsBetweenSessSnaps);
         }
@@ -201,7 +230,9 @@ public class StatCollector extends Thread {
                 );
                 oraSesStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing session statistics!");
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                        + "Error processing session statistics!"
+                );
                 shutdown = true;
                 e.printStackTrace();
             }
@@ -219,7 +250,9 @@ public class StatCollector extends Thread {
             shutdown = !processor.processStatNames(oraStatNamesPreparedStatement.getResultSet());
             oraStatNamesPreparedStatement.close();
         } catch (Exception e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing statistics names!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                    + "Error processing statistics names!"
+            );
             shutdown = true;
         }
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
@@ -233,7 +266,9 @@ public class StatCollector extends Thread {
                 );
                 oraSysStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing system statistics!");
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                        + "Error processing system statistics!"
+                );
                 shutdown = true;
                 e.printStackTrace();
             }
@@ -246,7 +281,9 @@ public class StatCollector extends Thread {
                         shutdown = !processor.processSQLPlans(oraSQLPlansPreparedStatement.getResultSet());
                         oraSQLPlansPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
-                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql plan hash values!");
+                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                                + "Error processing sql plan hash values!"
+                        );
                         shutdown = true;
                         e.printStackTrace();
                     }
@@ -257,7 +294,9 @@ public class StatCollector extends Thread {
                         shutdown = !processor.processSQLTexts(oraSQLTextsPreparedStatement.getResultSet());
                         oraSQLTextsPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
-                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql texts!");
+                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                                + "Error processing sql texts!"
+                        );
                         shutdown = true;
                         e.printStackTrace();
                     }
@@ -287,7 +326,9 @@ public class StatCollector extends Thread {
                 );
                 oraSQLStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing SQL statistics!");
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                        + "Error processing SQL statistics!"
+                );
                 shutdown = true;
                 e.printStackTrace();
             }
@@ -299,7 +340,9 @@ public class StatCollector extends Thread {
                     shutdown = !processor.processSQLPlans(oraSQLPlansPreparedStatement.getResultSet());
                     oraSQLPlansPreparedStatement.clearWarnings();
                 } catch (SQLException e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error processing sql plans!");
+                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                            + "Error processing sql plans!"
+                    );
                     shutdown = true;
                     e.printStackTrace();
                 }
@@ -322,6 +365,12 @@ public class StatCollector extends Thread {
             if (oraWaitsPreparedStatement != null && !oraWaitsPreparedStatement.isClosed()) {
                 oraWaitsPreparedStatement.close();
             }
+            if (oraIOFileStatsPreparedStatement != null && !oraIOFileStatsPreparedStatement.isClosed()) {
+                oraIOFileStatsPreparedStatement.close();
+            }
+            if (oraIOFunctionStatsPreparedStatement != null && !oraIOFunctionStatsPreparedStatement.isClosed()) {
+                oraIOFunctionStatsPreparedStatement.close();
+            }
             if (oraSysStatsPreparedStatement != null && !oraSysStatsPreparedStatement.isClosed()) {
                 oraSysStatsPreparedStatement.close();
             }
@@ -341,7 +390,9 @@ public class StatCollector extends Thread {
                 con.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!");
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                    + "Error durring ORADB resource cleanups!"
+            );
             e.printStackTrace();
         }
     }
@@ -356,7 +407,9 @@ public class StatCollector extends Thread {
             lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
             shutdown = true;
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot initiate connection to target Oracle database: " + dbConnectionString);
+            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+                    + "Cannot initiate connection to target Oracle database: " + dbConnectionString
+            );
             shutdown = true;
         }
     }
@@ -374,7 +427,11 @@ public class StatCollector extends Thread {
                     case 0:
                         oraWaitsPreparedStatement = con.prepareStatement(oraWaitsQuery);
                         oraWaitsPreparedStatement.setFetchSize(1000);
-                        runSessionsRoutines();
+                        oraIOFileStatsPreparedStatement = con.prepareStatement(oraIOFileStatsQuery);
+                        oraIOFileStatsPreparedStatement.setFetchSize(100);
+                        oraIOFunctionStatsPreparedStatement = con.prepareStatement(oraIOFunctionStatsQuery);
+                        oraIOFunctionStatsPreparedStatement.setFetchSize(100);
+                        runSessAndIOStatsRoutines();
                         break;
                     case 1:
                         oraSesStatsPreparedStatement = con.prepareStatement(oraSesStatQuery);
@@ -398,12 +455,16 @@ public class StatCollector extends Thread {
                         runSQLRoutines();
                         break;
                     default:
-                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t" + "Unknown thread type provided!");
+                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                                + "Unknown thread type provided!"
+                        );
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot prepare statements for  Oracle database: " + dbConnectionString);
+                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+                        + "Cannot prepare statements for  Oracle database: " + dbConnectionString
+                );
             }
             cleanup();
         }
