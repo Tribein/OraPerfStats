@@ -7,7 +7,7 @@
             google.charts.load('current', {'packages': ['corechart']});
             //google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
-            google.charts.setOnLoadCallback(drawBasicCharts);
+            google.charts.setOnLoadCallback(drawIOCharts);
             //--
             function getData(query) {
                 var xmlHttp = new XMLHttpRequest();
@@ -40,6 +40,14 @@
                         ;
             }
             //----------------------------------------------------------------
+			var countBufferCache = 'N';
+            //----------------------------------------------------------------
+			function drawIOCharts(){
+				preDraw();	
+				drawIOFunctionStatsChart();
+				drawIOFileStatsChart();
+			}
+			//----------------------------------------------------------------            
             function parseIOFunctionStatsData(inputData) {
                 var dataLines = inputData.split(/[\n]+/);
                 var outData1 = [];
@@ -111,12 +119,7 @@
                 return outData;
             }						
             //----------------------------------------------------------------
-			function drawBasicCharts(){
-				preDraw();	
-				drawIOFunctionStatsChart();
-				drawIOFileStatsChart();
-			}
-			//----------------------------------------------------------------
+
             //------io function stats
             function drawIOFunctionStatsChart() {
                 			
@@ -126,6 +129,7 @@
 					"select snapTime, functionName,(srmb+swmb+lrmb+lwmb) mb,  (srrq+swrq+lrrq+lwrq) rq "+
 					"from iofunctionstats_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+					((countBufferCache == 'Y')? "" : " and functionName<>'Buffer Cache Reads' ")+
 					") group by snapTime,functionName order by snapTime,functionName";
 				//alert(ioFunctionStatsQuery);
 				var allData = parseIOFunctionStatsData(getData(ioFunctionStatsQuery));
@@ -155,7 +159,7 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'none'},
+                    legend: {position: 'right'},
                     isStacked: true,
                     backgroundColor: {fill: 'transparent'}
                 };				
@@ -171,7 +175,7 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'none'},
+                    legend: {position: 'right'},
                     isStacked: true,
                     backgroundColor: {fill: 'transparent'}
                 };				

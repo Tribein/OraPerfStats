@@ -7,7 +7,7 @@
             google.charts.load('current', {'packages': ['corechart']});
             google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
-            google.charts.setOnLoadCallback(drawSysStatsChart);
+            google.charts.setOnLoadCallback(drawBasicCharts);
             //--
             function getData(query) {
                 var xmlHttp = new XMLHttpRequest();
@@ -57,26 +57,17 @@
 				}                        
             }
             //----------------------------------------------------------------
+            function drawBasicCharts() {
+				drawSysStatsChart();
+				drawSesStatsChart();
+			}
+            //----------------------------------------------------------------
             var statName;
 			var percentile=0.95;
             //------SYSSTATS
             function drawSysStatsChart() {
                 preDraw();				
 				var drawRegion = "sysstatsregion";
-				/*
-                var sysStatsQuery = "select st1 as Snaptime1,vl1-vl2 as value, rn from ("+
-						"select rowNumberInAllBlocks() as rn,snapTime as st1,value as vl1 from ("+
-							"select snapTime, value from sysstats_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"' "+
-							"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' order by snapTime asc"+
-						")"+
-					") all left join ("+
-						"select rowNumberInAllBlocks() as rn,snapTime as st2,value as vl2 from ("+
-							"select snapTime, value from sysstats_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"' "+
-							"and snapTime>=(select max(snapTime) from sysstats_buffer where statName='"+statName+"' and dbuniquename='"+dbUniqueName+"' "+
-									"and snapTime < '"+timeSpan1+"') and snapTime<='"+timeSpan2+"' order by snapTime asc"+
-						")"+
-					") using rn";
-				*/
 				var sysStatsQuery = "select snapTime, vl from ("+
 					"select snapTime, runningDifference(value) as vl from ("+
 						"select snapTime,value from sysstats_buffer where statId="+
@@ -98,7 +89,7 @@
                     title: 'System Statistics ('+statName+')',
                     width: 1800,
                     height: 500,
-                    hAxis: {textPosition: 'none'},
+                    hAxis: {textPosition: 'bottom'},
                     vAxis: {minValue: 0, format: '####'},
                     animation: {startup: 'true', duration: 300},
                     bars: 'vertical',
@@ -110,7 +101,6 @@
                 };
                 var sysStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 sysStatsChart.draw(data, options);
-				drawSesStatsChart();
                 //--Register Events 
                 //--
                 /*
@@ -154,7 +144,7 @@
                     title: 'Session Statistics ('+statName+', percentile '+percentile+')',
                     width: 1800,
                     height: 500,
-                    hAxis: {textPosition: 'none'},
+                    hAxis: {textPosition: 'bottom'},
                     vAxis: {minValue: 0, format: '####'},
                     animation: {startup: 'true', duration: 300},
                     bars: 'vertical',
