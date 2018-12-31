@@ -41,16 +41,20 @@
             }
             //----------------------------------------------------------------
 			var countBufferCache = 'N';
-			//var IOFunctionStatsDetailMbChart;
-			//var IOFunctionStatsDetailRqChart;
+			var ioType = 'I'; // F - function, I - File
             //----------------------------------------------------------------
 			function drawIOCharts(){
 				preDraw();	
-				drawIOFunctionStatsChart();
-				drawIOFileStatsChart();
+				if ( ioType == 'F'){
+					drawIOFunctionStatsChart();
+				}else if(ioType == 'I'){
+					drawIOFileStatsChart();
+				}else{
+					alert('Nothing to do!');
+				}
 			}
 			//----------------------------------------------------------------            
-            function parseIOFunctionStatsData(inputData) {
+            function parseIOStatsData(inputData) {
                 var dataLines = inputData.split(/[\n]+/);
                 var outData1 = [];
 				var outData2 = [];
@@ -154,7 +158,7 @@
 					((countBufferCache == 'Y')? "" : " and functionName<>'Buffer Cache Reads' ")+
 					") group by snapTime,functionName order by snapTime,functionName";
 				//alert(ioFunctionStatsQuery);
-				var allData = parseIOFunctionStatsData(getData(ioFunctionStatsQuery));
+				var allData = parseIOStatsData(getData(ioFunctionStatsQuery));
 				var tblHeader = allData[0];
 				var dataMb = allData[1];
 				var dataRq = allData[2];
@@ -170,7 +174,7 @@
                 dtMb.addRows(dataMb); 
 				dtRq.addRows(dataRq); 
 
-                var IOFunctionStatsMbChart = new google.visualization.ColumnChart(document.getElementById(drawRegionMb));
+                var IOFunctionStatsMbChart = new google.visualization.AreaChart(document.getElementById(drawRegionMb));
                 var options = {
                     title: 'IO Stats by function (Mb)',
                     width: 1800,
@@ -181,11 +185,11 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'right'},
+                    legend: {position: 'right', maxLines: 2},
                     isStacked: true,
                     backgroundColor: {fill: 'transparent'}
                 };				
-				var IOFunctionStatsRqChart = new google.visualization.ColumnChart(document.getElementById(drawRegionRq));
+				var IOFunctionStatsRqChart = new google.visualization.AreaChart(document.getElementById(drawRegionRq));
                 IOFunctionStatsMbChart.draw(dtMb, options);
                 var options = {
                     title: 'IO Stats by function (requests)',
@@ -197,7 +201,7 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'right'},
+                    legend: {position: 'right', maxLines: 2},
                     isStacked: true,
                     backgroundColor: {fill: 'transparent'}
                 };				
@@ -259,11 +263,11 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'right'},
+                    legend: {position: 'right', maxLines: 2},
                     isStacked: true,
                     backgroundColor: {fill: 'transparent'}
                 };
-                var IOFunctionStatsDetailMbChart = new google.visualization.ColumnChart(document.getElementById(drawRegionDetailsMb));
+                var IOFunctionStatsDetailMbChart = new google.visualization.AreaChart(document.getElementById(drawRegionDetailsMb));
                 IOFunctionStatsDetailMbChart.draw(dataMb, options);								
                 var options = {
                     title: 'IO Function Details (requests): '+functionName+'',
@@ -275,18 +279,161 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'right'},
+                    legend: {position: 'right', maxLines: 2},
                     isStacked: true,
                     backgroundColor: {fill: 'transparent'}
                 };                
-                var IOFunctionStatsDetailRqChart = new google.visualization.ColumnChart(document.getElementById(drawRegionDetailsRq));
+                var IOFunctionStatsDetailRqChart = new google.visualization.AreaChart(document.getElementById(drawRegionDetailsRq));
                 IOFunctionStatsDetailRqChart.draw(dataRq, options);	                
 			}
 			//------io function stats details
 		//--------------------------------------------------------------
-		function drawIOFileStatsChart(){
-				return;
+		function drawIOFileStatsChart(){	
+				var drawRegionMb = "iofilestatsmbregion";
+				var drawRegionRq = "iofilestatsrqregion";
+				var ioFileStatsQuery = "select snapTime,fileType, sum(mb) as tmb, sum(rq) as trq from ( "+
+					"select snapTime, fileType,(srmb+swmb+lrmb+lwmb) mb,  (srrq+swrq+lrrq+lwrq) rq "+
+					"from iofilestats_buffer "+
+					"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+					") group by snapTime,fileType order by snapTime,fileType";
+				//alert(ioFileStatsQuery);
+				var allData = parseIOStatsData(getData(ioFileStatsQuery));
+				var tblHeader = allData[0];
+				var dataMb = allData[1];
+				var dataRq = allData[2];
+                var dtMb = new google.visualization.DataTable();
+				var dtRq = new google.visualization.DataTable();
+				dtMb.addColumn('string', 'Time');
+				dtRq.addColumn('string', 'Time');
+				for (var i = 1; i < tblHeader.length; i++){
+						dtMb.addColumn('number',tblHeader[i]);
+						dtRq.addColumn('number',tblHeader[i]);
+				}
+				
+                dtMb.addRows(dataMb); 
+				dtRq.addRows(dataRq); 
+
+                var IOFileStatsMbChart = new google.visualization.AreaChart(document.getElementById(drawRegionMb));
+                var options = {
+                    title: 'IO Stats by file type (Mb)',
+                    width: 1800,
+                    height: 500,
+                    hAxis: {textPosition: 'none'},
+                    vAxis: {minValue: 0, format: '####'},
+                    animation: {startup: 'true', duration: 300},
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '95%'},
+                    legend: {position: 'bottom', maxLines: 4},
+                    isStacked: true,
+                    backgroundColor: {fill: 'transparent'}
+                };				
+                IOFileStatsMbChart.draw(dtMb, options);
+				var IOFileStatsRqChart = new google.visualization.AreaChart(document.getElementById(drawRegionRq));
+                var options = {
+                    title: 'IO Stats by file type (requests)',
+                    width: 1800,
+                    height: 500,
+                    hAxis: {textPosition: 'none'},
+                    vAxis: {minValue: 0, format: '####'},
+                    animation: {startup: 'true', duration: 300},
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '95%'},
+                    legend: {position: 'bottom', maxLines: 4},
+                    isStacked: true,
+                    backgroundColor: {fill: 'transparent'}
+                };				
+				IOFileStatsRqChart.draw(dtRq, options);
+                //--Register Events 
+                
+                function IOFileStatsMbHandler(e) {
+                    var sel = IOFileStatsMbChart.getSelection();
+                    drawIOFileStatsDetailsChart(tblHeader[sel[0].column]);
+                }                
+                google.visualization.events.addListener(IOFileStatsMbChart, 'select', IOFileStatsMbHandler);
+                function IOFileStatsRqHandler(e) {
+                    var sel = IOFileStatsRqChart.getSelection();
+                    drawIOFileStatsDetailsChart(tblHeader[sel[0].column]);
+                }                
+                google.visualization.events.addListener(IOFileStatsRqChart, 'select', IOFileStatsRqHandler);                
         }		
+		//--------------------------------------------------------------
+		function drawIOFileStatsDetailsChart(fileType) {
+				var drawRegionMb = "iofilestatsmbdetailsregion";
+				var drawRegionRq = "iofilestatsrqdetailsregion";
+				var ioFileStatsDetailsQuery = "select snapTime,fileName, sum(mb) as tmb, sum(rq) as trq from ( "+
+					"select snapTime, fileName,(srmb+swmb+lrmb+lwmb) mb,  (srrq+swrq+lrrq+lwrq) rq "+
+					"from iofilestats_buffer "+
+					"where dbuniquename='"+dbUniqueName+"' and fileType='"+fileType+"' "+
+					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+					") group by snapTime,fileName order by snapTime,fileName";
+				//alert(ioFileStatsDetailsQuery);
+				var allData = parseIOStatsData(getData(ioFileStatsDetailsQuery));
+				var tblHeader = allData[0];
+				var dataMb = allData[1];
+				var dataRq = allData[2];
+                var dtMb = new google.visualization.DataTable();
+				var dtRq = new google.visualization.DataTable();
+				dtMb.addColumn('string', 'Time');
+				dtRq.addColumn('string', 'Time');
+				for (var i = 1; i < tblHeader.length; i++){
+						dtMb.addColumn('number',tblHeader[i]);
+						dtRq.addColumn('number',tblHeader[i]);
+				}
+				
+                dtMb.addRows(dataMb); 
+				dtRq.addRows(dataRq); 
+
+                var IOFileStatsDetailsMbChart = new google.visualization.AreaChart(document.getElementById(drawRegionMb));
+                var options = {
+                    title: 'IO Stats by '+fileType+' (Mb)',
+                    width: 1800,
+                    height: 500,
+                    hAxis: {textPosition: 'none'},
+                    vAxis: {minValue: 0, format: '####'},
+                    animation: {startup: 'true', duration: 300},
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '95%'},
+                    legend: {position: 'bottom', maxLines: 4},
+                    isStacked: true,
+                    backgroundColor: {fill: 'transparent'}
+                };				
+                IOFileStatsDetailsMbChart.draw(dtMb, options);
+				var IOFileStatsDetailsRqChart = new google.visualization.AreaChart(document.getElementById(drawRegionRq));
+                var options = {
+                    title: 'IO Stats by '+fileType+' (requests)',
+                    width: 1800,
+                    height: 500,
+                    hAxis: {textPosition: 'none'},
+                    vAxis: {minValue: 0, format: '####'},
+                    animation: {startup: 'true', duration: 300},
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '95%'},
+                    legend: {position: 'bottom', maxLines: 4},
+                    isStacked: true,
+                    backgroundColor: {fill: 'transparent'}
+                };				
+				IOFileStatsDetailsRqChart.draw(dtRq, options);
+                //--Register Events 
+                /*
+                function IOFunctionStatsMbHandler(e) {
+                    var sel = IOFunctionStatsMbChart.getSelection();
+                    drawIOFunctionStatsDetailsChart(tblHeader[sel[0].column]);
+                }                
+                google.visualization.events.addListener(IOFunctionStatsMbChart, 'select', IOFunctionStatsMbHandler);
+                function IOFunctionStatsRqHandler(e) {
+                    var sel = IOFunctionStatsRqChart.getSelection();
+                    drawIOFunctionStatsDetailsChart(tblHeader[sel[0].column]);
+                }                
+                google.visualization.events.addListener(IOFunctionStatsRqChart, 'select', IOFunctionStatsRqHandler);                
+                
+            }
+            */			
+		}
+		//--------------------------------------------------------------
 		//--------------------------------------------------------------
     </script>
   </head>
@@ -297,6 +444,8 @@
 	<div id="iofunctionstatsrqregion"></div>
 	<div id="iofunctionstatsrqdetailsregion"></div>
 	<div id="iofilestatsmbregion"></div>
+	<div id="iofilestatsmbdetailsregion"></div>
 	<div id="iofilestatsrqregion"></div>
+	<div id="iofilestatsrqdetailsregion"></div>
   </body>
 </html>
