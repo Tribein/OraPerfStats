@@ -174,10 +174,10 @@
                 dtMb.addRows(dataMb); 
 				dtRq.addRows(dataRq); 
 
-                var IOFunctionStatsMbChart = new google.visualization.AreaChart(document.getElementById(drawRegionMb));
+                var IOFunctionStatsMbChart = new google.visualization.ColumnChart(document.getElementById(drawRegionMb));
                 var options = {
                     title: 'IO Stats by function (Mb)',
-                    width: 1800,
+                    width: 890,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
@@ -185,15 +185,16 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'right', maxLines: 2},
+                    legend: {position: 'bottom', maxLines: 2},
                     isStacked: true,
+                    chartArea: {'width': '88%', 'height': '95%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
-				var IOFunctionStatsRqChart = new google.visualization.AreaChart(document.getElementById(drawRegionRq));
+				var IOFunctionStatsRqChart = new google.visualization.ColumnChart(document.getElementById(drawRegionRq));
                 IOFunctionStatsMbChart.draw(dtMb, options);
                 var options = {
                     title: 'IO Stats by function (requests)',
-                    width: 1800,
+                    width: 890,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
@@ -203,6 +204,7 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'right', maxLines: 2},
                     isStacked: true,
+                    chartArea: {'width': '88%', 'height': '95%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFunctionStatsRqChart.draw(dtRq, options);
@@ -255,7 +257,7 @@
                 dataRq.addRows(allData[1]); 
                 var options = {
                     title: 'IO Function Details (Mb): '+functionName+'',
-                    width: 1800,
+                    width: 890,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
@@ -263,15 +265,16 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'right', maxLines: 2},
+                    legend: {position: 'bottom', maxLines: 2},
                     isStacked: true,
+                    chartArea: {'width': '88%', 'height': '95%'},
                     backgroundColor: {fill: 'transparent'}
                 };
-                var IOFunctionStatsDetailMbChart = new google.visualization.AreaChart(document.getElementById(drawRegionDetailsMb));
+                var IOFunctionStatsDetailMbChart = new google.visualization.ColumnChart(document.getElementById(drawRegionDetailsMb));
                 IOFunctionStatsDetailMbChart.draw(dataMb, options);								
                 var options = {
                     title: 'IO Function Details (requests): '+functionName+'',
-                    width: 1800,
+                    width: 890,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
@@ -281,13 +284,15 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'right', maxLines: 2},
                     isStacked: true,
+                    chartArea: {'width': '88%', 'height': '95%'},
                     backgroundColor: {fill: 'transparent'}
                 };                
-                var IOFunctionStatsDetailRqChart = new google.visualization.AreaChart(document.getElementById(drawRegionDetailsRq));
+                var IOFunctionStatsDetailRqChart = new google.visualization.ColumnChart(document.getElementById(drawRegionDetailsRq));
                 IOFunctionStatsDetailRqChart.draw(dataRq, options);	                
 			}
-			//------io function stats details
+		//------io function stats details
 		//--------------------------------------------------------------
+		//------io file stats 
 		function drawIOFileStatsChart(){	
 				var drawRegionMb = "iofilestatsmbregion";
 				var drawRegionRq = "iofilestatsrqregion";
@@ -313,10 +318,10 @@
                 dtMb.addRows(dataMb); 
 				dtRq.addRows(dataRq); 
 
-                var IOFileStatsMbChart = new google.visualization.AreaChart(document.getElementById(drawRegionMb));
+                var IOFileStatsMbChart = new google.visualization.ColumnChart(document.getElementById(drawRegionMb));
                 var options = {
                     title: 'IO Stats by file type (Mb)',
-                    width: 1800,
+                    width: 890,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
@@ -326,13 +331,14 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 4},
                     isStacked: true,
+                    chartArea: {'width': '88%', 'height': '95%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
                 IOFileStatsMbChart.draw(dtMb, options);
-				var IOFileStatsRqChart = new google.visualization.AreaChart(document.getElementById(drawRegionRq));
+				var IOFileStatsRqChart = new google.visualization.ColumnChart(document.getElementById(drawRegionRq));
                 var options = {
                     title: 'IO Stats by file type (requests)',
-                    width: 1800,
+                    width: 890,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
@@ -342,6 +348,7 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 4},
                     isStacked: true,
+                    chartArea: {'width': '88%', 'height': '95%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFileStatsRqChart.draw(dtRq, options);
@@ -357,8 +364,10 @@
                     drawIOFileStatsDetailsChart(tblHeader[sel[0].column]);
                 }                
                 google.visualization.events.addListener(IOFileStatsRqChart, 'select', IOFileStatsRqHandler);                
-        }		
+        }
+        //------io file stats 		
 		//--------------------------------------------------------------
+		//------io file stats details
 		function drawIOFileStatsDetailsChart(fileType) {
 				var drawRegionMb = "iofilestatsmbdetailsregion";
 				var drawRegionRq = "iofilestatsrqdetailsregion";
@@ -385,10 +394,10 @@
                 dtMb.addRows(dataMb); 
 				dtRq.addRows(dataRq); 
 
-                var IOFileStatsDetailsMbChart = new google.visualization.AreaChart(document.getElementById(drawRegionMb));
+                var IOFileStatsDetailsMbChart = new google.visualization.ColumnChart(document.getElementById(drawRegionMb));
                 var options = {
                     title: 'IO Stats by '+fileType+' (Mb)',
-                    width: 1800,
+                    width: 890,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
@@ -398,13 +407,14 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 4},
                     isStacked: true,
+                    chartArea: {'width': '88%', 'height': '95%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
                 IOFileStatsDetailsMbChart.draw(dtMb, options);
-				var IOFileStatsDetailsRqChart = new google.visualization.AreaChart(document.getElementById(drawRegionRq));
+				var IOFileStatsDetailsRqChart = new google.visualization.ColumnChart(document.getElementById(drawRegionRq));
                 var options = {
                     title: 'IO Stats by '+fileType+' (requests)',
-                    width: 1800,
+                    width: 890,
                     height: 500,
                     hAxis: {textPosition: 'none'},
                     vAxis: {minValue: 0, format: '####'},
@@ -414,6 +424,7 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 4},
                     isStacked: true,
+                    chartArea: {'width': '88%', 'height': '95%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFileStatsDetailsRqChart.draw(dtRq, options);
@@ -433,6 +444,7 @@
             }
             */			
 		}
+		//------io file stats details
 		//--------------------------------------------------------------
 		//--------------------------------------------------------------
     </script>
