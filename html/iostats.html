@@ -41,7 +41,7 @@
             }
             //----------------------------------------------------------------
 			var countBufferCache = 'N';
-			var ioType = 'I'; // F - function, I - File
+			var ioType = 'F'; // F - function, I - File
             //----------------------------------------------------------------
 			function drawIOCharts(){
 				preDraw();	
@@ -52,6 +52,13 @@
 				}else{
 					alert('Nothing to do!');
 				}
+			}
+			//----------------------------------------------------------------            
+			function getDataPerSecond( ts1, ts2, val){
+				var t1 = new Date(ts1.substring(0,4), Number(ts1.substring(5,7))-1, ts1.substring(8,10), ts1.substring(11,13), ts1.substring(14,16), ts1.substring(17,20), 0);
+				var t2 = new Date(ts2.substring(0,4), Number(ts2.substring(5,7))-1, ts2.substring(8,10), ts2.substring(11,13), ts2.substring(14,16), ts2.substring(17,20), 0);
+				var s = Math.abs( (t2.getTime()-t1.getTime())/1000);
+				return Math.round(Number(val/s));
 			}
 			//----------------------------------------------------------------            
             function parseIOStatsData(inputData) {
@@ -104,8 +111,10 @@
 					difData2[k-1] = [];
 					difData2[k-1].push(outData2[k-1][0]);
 					for(var j = 1; j < hdrData.length; j++){
-						difData1[k-1].push(outData1[k][j] - outData1[k-1][j]);
-						difData2[k-1].push(outData2[k][j] - outData2[k-1][j]);
+						difData1[k-1].push(getDataPerSecond(outData1[k][0],outData1[k-1][0],Number(outData1[k][j] - outData1[k-1][j])));
+						difData2[k-1].push(getDataPerSecond(outData2[k][0],outData2[k-1][0],Number(outData2[k][j] - outData2[k-1][j])));
+						//difData1[k-1].push(Number(outData1[k][j] - outData1[k-1][j]));
+						//difData2[k-1].push(Number(outData2[k][j] - outData2[k-1][j]));						
 					}
 				}				
 				outData.push(hdrData);
@@ -127,6 +136,16 @@
                         outData2.push([rowData[0], Number(rowData[5]), Number(rowData[6]),Number(rowData[7]),Number(rowData[8])]);
                     }
                 }
+                for(var i=1; i<outData1.length; i++){
+					for (var j=1;j<outData1[i].length;j++){
+						outData1[i][j]=getDataPerSecond(outData1[i-1][0],outData1[i][0],outData1[i][j]);
+					}	
+				}
+                for(var i=1; i<outData2.length; i++){
+					for (var j=1;j<outData2[i].length;j++){
+						outData2[i][j]=getDataPerSecond(outData2[i-1][0],outData2[i][0],outData2[i][j]);
+					}	
+				}				
                 outData.push(outData1);
                 outData.push(outData2);
                 return outData;				
@@ -187,7 +206,7 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 2},
                     isStacked: true,
-                    chartArea: {'width': '88%', 'height': '95%'},
+                    chartArea: {'width': '88%', 'height': '85%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
 				var IOFunctionStatsRqChart = new google.visualization.ColumnChart(document.getElementById(drawRegionRq));
@@ -202,9 +221,9 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'right', maxLines: 2},
+                    legend: {position: 'bottom', maxLines: 2},
                     isStacked: true,
-                    chartArea: {'width': '88%', 'height': '95%'},
+                    chartArea: {'width': '88%', 'height': '85%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFunctionStatsRqChart.draw(dtRq, options);
@@ -238,7 +257,7 @@
 							"dbuniquename='"+dbUniqueName+"' and snapTime < '"+timeSpan1+"') "+
 							"and snapTime<='"+timeSpan2+"' and functionName='"+functionName+"' group by snapTime order by snapTime"+
 						") "+
-					") where snapTime>='"+timeSpan1+"' order by snapTime";
+					") order by snapTime";
 				//alert(ioFunctionStatsDetailsQuery);
 				var dataMb = new google.visualization.DataTable();
 				var dataRq = new google.visualization.DataTable();
@@ -267,7 +286,7 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 2},
                     isStacked: true,
-                    chartArea: {'width': '88%', 'height': '95%'},
+                    chartArea: {'width': '88%', 'height': '85%'},
                     backgroundColor: {fill: 'transparent'}
                 };
                 var IOFunctionStatsDetailMbChart = new google.visualization.ColumnChart(document.getElementById(drawRegionDetailsMb));
@@ -282,9 +301,9 @@
                     bars: 'vertical',
                     //orientation : 'vertical',
                     bar: {groupWidth: '95%'},
-                    legend: {position: 'right', maxLines: 2},
+                    legend: {position: 'bottom', maxLines: 2},
                     isStacked: true,
-                    chartArea: {'width': '88%', 'height': '95%'},
+                    chartArea: {'width': '88%', 'height': '85%'},
                     backgroundColor: {fill: 'transparent'}
                 };                
                 var IOFunctionStatsDetailRqChart = new google.visualization.ColumnChart(document.getElementById(drawRegionDetailsRq));
@@ -331,7 +350,7 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 4},
                     isStacked: true,
-                    chartArea: {'width': '88%', 'height': '95%'},
+                    chartArea: {'width': '88%', 'height': '85%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
                 IOFileStatsMbChart.draw(dtMb, options);
@@ -348,7 +367,7 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 4},
                     isStacked: true,
-                    chartArea: {'width': '88%', 'height': '95%'},
+                    chartArea: {'width': '88%', 'height': '85%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFileStatsRqChart.draw(dtRq, options);
@@ -407,7 +426,7 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 4},
                     isStacked: true,
-                    chartArea: {'width': '88%', 'height': '95%'},
+                    chartArea: {'width': '88%', 'height': '85%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
                 IOFileStatsDetailsMbChart.draw(dtMb, options);
@@ -424,7 +443,7 @@
                     bar: {groupWidth: '95%'},
                     legend: {position: 'bottom', maxLines: 4},
                     isStacked: true,
-                    chartArea: {'width': '88%', 'height': '95%'},
+                    chartArea: {'width': '88%', 'height': '85%'},
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFileStatsDetailsRqChart.draw(dtRq, options);
