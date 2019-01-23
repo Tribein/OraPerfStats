@@ -12,12 +12,17 @@ import java.util.concurrent.BlockingQueue;
  *
  * @author lesha
  */
-public class CkhQueueConsumer {
+public class CkhQueueConsumer extends Thread {
     private BlockingQueue<OraCkhMsg> ckhQueue;
-    ComboPooledDataSource ckhDataSource;
+    private ComboPooledDataSource ckhDataSource;
+    private int timeToSleep;
     
-    public CkhQueueConsumer(BlockingQueue<OraCkhMsg> queue, ComboPooledDataSource ds){
+    public CkhQueueConsumer(BlockingQueue<OraCkhMsg> queue, ComboPooledDataSource ds, int sleep){
         ckhQueue = queue;
         ckhDataSource = ds;
+        timeToSleep = sleep;
+    }
+    public void run(){
+        
     }
 }

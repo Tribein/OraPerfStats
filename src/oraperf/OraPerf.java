@@ -50,7 +50,7 @@ public class OraPerf {
     private static final String PROPERTIESFILENAME = "oraperf.properties";
     private static final int SECONDSTOSLEEP = 60;
     private static final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
-    private static final int CKHQUEUECONSUMERSLEEP = 5;
+    private static final int CKHQUEUECONSUMERSLEEPTIME = 5;
 
     private static Scanner fileScanner;
     private static ArrayList<String> oraDBList;
@@ -75,6 +75,8 @@ public class OraPerf {
     static Map<String, Thread> dbSessionsList = new HashMap();
     static Map<String, Thread> dbSessStatsList = new HashMap();
     static Map<String, Thread> dbSyssStatsList = new HashMap();
+    static Thread [] ckhQueueThreads;
+    
 
     private static ArrayList<String> getListFromFile(File dbListFile) {
         ArrayList<String> retList = new ArrayList<String>();
@@ -268,6 +270,18 @@ public class OraPerf {
         }
     }
 
+    private static void processCKHQueueConsumers(){
+        for(int i=0;i<CKHQUEUECONSUMERS;i++){
+            if( ckhQueueThreads[i] == null || ! ckhQueueThreads[i].isAlive()) {
+                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        "Starting clickhouse queue consumer #" + i
+                );                
+                ckhQueueThreads[i] = new CkhQueueConsumer(CKHQueue,CKHDataSource,CKHQUEUECONSUMERSLEEPTIME);
+                ckhQueueThreads[i].run();
+            }
+        }
+    }
+    
     public static void main(String[] args) throws InterruptedException {
         if (!processProperties(PROPERTIESFILENAME)) {
             System.exit(1);
@@ -276,16 +290,21 @@ public class OraPerf {
         configureLogger();
 
         lg = new SL4JLogger();
-
+        
+        ckhQueueThreads = new Thread[CKHQUEUECONSUMERS];
+        
         CKHDataSource = initDataSource();
         if (CKHDataSource == null) {
             System.exit(2);
         }
+        
         String dbLine;
 
         lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting");
 
         while (true) /*for(int i=0; i<1; i++)*/ {
+            processCKHQueueConsumers();
+            System.exit(0);
             oraDBList = getOraDBList();
             for (int i = 0; i < oraDBList.size(); i++) {
                 dbLine = oraDBList.get(i);
