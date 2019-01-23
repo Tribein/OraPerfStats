@@ -34,7 +34,7 @@ public class StatCollector extends Thread {
     private final int secondsBetweenSQLSnaps = 600;
     private final DateTimeFormatter ckhDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private int threadType; //0 - waits, 1 - sess stats, 2 - sys stats & sql texts, 3 - sql plans and sql stats
+    private int threadType; //0 - waits, 1 - sess stats, 2 - sys stats / sql texts & plan  hash  values, 3 - sql plans and sql stats, not used
     private String dbUserName;
     private String dbPassword;
     private String dbConnectionString;

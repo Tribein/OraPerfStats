@@ -54,7 +54,7 @@
             var statsTable;
             //--changable
             var spanMinutes = 10;
-            var dbUniqueName = 'dwh_m';
+            var dbUniqueName = 'lmprod_prd';
             var sessionsBlocked = 0;
             var loadimg = "circle.gif";
             //--
@@ -447,7 +447,7 @@
             function getData(query) {
                 var xmlHttp = new XMLHttpRequest();
                 var xmlHttpOutput;
-                xmlHttp.open("POST", 'http://10.64.139.57:18123/ckh/?database=oradb&query=', false); // false for synchronous request
+                xmlHttp.open("POST", 'http://ogw.moscow.sportmaster.ru:18123/ckh/?database=oradb&user=oracle&password=elcaro&query=', false); // false for synchronous request
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
             }
