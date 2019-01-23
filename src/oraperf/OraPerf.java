@@ -32,6 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
@@ -48,6 +50,7 @@ public class OraPerf {
     private static final String PROPERTIESFILENAME = "oraperf.properties";
     private static final int SECONDSTOSLEEP = 60;
     private static final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
+    private static final int CKHQUEUECONSUMERSLEEP = 5;
 
     private static Scanner fileScanner;
     private static ArrayList<String> oraDBList;
@@ -62,10 +65,12 @@ public class OraPerf {
     private static String ORADBLISTPASSWORD = "";
     private static String ORADBLISTQUERY = "";
     private static String CKHCONNECTIONSTRING = "";
+    private static int CKHQUEUECONSUMERS  = 1;
     private static boolean GATHERSESSIONS = false;
     private static boolean GATHERSESSTATS = false;
     private static boolean GATHERSYSSTATS = false;
     private static ComboPooledDataSource CKHDataSource;
+    private static BlockingQueue<OraCkhMsg> CKHQueue = new LinkedBlockingQueue<>();
 
     static Map<String, Thread> dbSessionsList = new HashMap();
     static Map<String, Thread> dbSessStatsList = new HashMap();
@@ -139,6 +144,7 @@ public class OraPerf {
             CKHPASSWORD = properties.getProperty("CKHPASSWORD");
             CKHCONNECTIONSTRING = properties.getProperty("CKHCONNECTIONSTRING");
             DBLISTSOURCE = properties.getProperty("DBLISTSOURCE");
+            CKHQUEUECONSUMERS = Integer.parseInt(properties.getProperty("QUEUECONSUMERS"));
             switch (DBLISTSOURCE.toUpperCase()) {
                 case "FILE":
                     DBLISTFILENAME = properties.getProperty("DBLISTFILENAME");
