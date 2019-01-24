@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class StatCollector extends Thread {
@@ -56,7 +57,7 @@ public class StatCollector extends Thread {
     private String currentDate;
     private StatCollectorCKH processor;
     private boolean shutdown = false;
-
+    private BlockingQueue<OraCkhMsg> ckhQueue;
     private final String oraSysStatQuery = "select statistic#,value from v$sysstat where value<>0";
     private final String oraWaitsQuery
             = "select "
@@ -153,7 +154,7 @@ public class StatCollector extends Thread {
             + "number_of_waits,wait_time "
             + "from V$IOSTAT_FUNCTION_DETAIL";
 
-    public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int runTType) {
+    public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int runTType, BlockingQueue<OraCkhMsg> queue) {
         dbConnectionString = inputString;
         dbUniqueName = inputString.split("/")[1];
         dbHostName = inputString.split(":")[0];
@@ -162,6 +163,7 @@ public class StatCollector extends Thread {
         ckhDataSource = ckhDS;
         dateFormatData = dtFMT;
         threadType = runTType;
+        ckhQueue = queue;
     }
 
     private void setDateTimeVars() {

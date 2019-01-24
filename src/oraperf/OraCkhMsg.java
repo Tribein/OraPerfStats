@@ -17,17 +17,25 @@
 package oraperf;
 
 import java.sql.ResultSet;
+import java.time.format.DateTimeFormatter;
 
 public class OraCkhMsg {
+    
     public long currentDateTime;
     public String currentDate;
+    public String dbUniqueName;
+    public String dbHostaName;
     public ResultSet oracleResultSet;
     public int dataType;
-    
-    public OraCkhMsg( int data, long curDT, String curD, ResultSet oraRS){
+    public DateTimeFormatter ckhDateTimeFormatter;   
+   
+    public OraCkhMsg( int data, long curDT, String curD, String db, String host, ResultSet oraRS, DateTimeFormatter df){
         currentDateTime = curDT;
         currentDate = curD;
         oracleResultSet = oraRS;
+        dbUniqueName = db;
+        dbHostaName = host;
         dataType = data;
+        ckhDateTimeFormatter = df;
     }
 }

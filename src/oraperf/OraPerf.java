@@ -70,7 +70,7 @@ public class OraPerf {
     private static boolean GATHERSESSTATS = false;
     private static boolean GATHERSYSSTATS = false;
     private static ComboPooledDataSource CKHDataSource;
-    private static BlockingQueue<OraCkhMsg> CKHQueue = new LinkedBlockingQueue<>();
+    private static BlockingQueue<OraCkhMsg> ckhQueue = new LinkedBlockingQueue<>();
 
     static Map<String, Thread> dbSessionsList = new HashMap();
     static Map<String, Thread> dbSessStatsList = new HashMap();
@@ -222,7 +222,7 @@ public class OraPerf {
     private static void processSessions(String dbLine) {
         if (!dbSessionsList.containsKey(dbLine) || dbSessionsList.get(dbLine) == null || !dbSessionsList.get(dbLine).isAlive()) {
             try {
-                dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 0));
+                dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 0,ckhQueue));
                 lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         "Starting sessions thread for " + dbLine
                 );
@@ -239,7 +239,7 @@ public class OraPerf {
     private static void processSessionStats(String dbLine) {
         if (!dbSessStatsList.containsKey(dbLine) || dbSessStatsList.get(dbLine) == null || !dbSessStatsList.get(dbLine).isAlive()) {
             try {
-                dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 1));
+                dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 1,ckhQueue));
                 lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         "Starting sessions stats thread for " + dbLine
                 );
@@ -256,7 +256,7 @@ public class OraPerf {
     private static void processSystemRoutines(String dbLine) {
         if (!dbSyssStatsList.containsKey(dbLine) || dbSyssStatsList.get(dbLine) == null || !dbSyssStatsList.get(dbLine).isAlive()) {
             try {
-                dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 2));
+                dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 2,ckhQueue));
                 lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         "Starting system stats thread for " + dbLine
                 );
@@ -276,7 +276,7 @@ public class OraPerf {
                 lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         "Starting clickhouse queue consumer #" + i
                 );                
-                ckhQueueThreads[i] = new CkhQueueConsumer(CKHQueue,CKHDataSource,CKHQUEUECONSUMERSLEEPTIME);
+                ckhQueueThreads[i] = new CkhQueueConsumer(ckhQueue,CKHDataSource,CKHQUEUECONSUMERSLEEPTIME);
                 ckhQueueThreads[i].run();
             }
         }
