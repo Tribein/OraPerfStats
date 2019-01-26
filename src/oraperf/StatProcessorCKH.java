@@ -23,13 +23,12 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class StatCollectorCKH {
+public class StatProcessorCKH {
 
     SL4JLogger lg;
     
     private String dbUniqueName;
     private String dbHostName;
-    private DateTimeFormatter dateFormatData;
     private PreparedStatement ckhSessionsPreparedStatement;
     private PreparedStatement ckhSysStatsPreparedStatement;
     private PreparedStatement ckhSesStatsPreparedStatement;
@@ -42,9 +41,11 @@ public class StatCollectorCKH {
     private Connection connClickHouse;
     private ComboPooledDataSource ckhDataSource;
     
-    private final String ckhInsertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-    private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?,?)";
-    private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?,?)";
+    private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
+    
+    private final String ckhInsertSessionsQuery = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    private final String ckhInsertSysStatsQuery = "insert into sysstats_buffer values (?,?,?,?)";
+    private final String ckhInsertSesStatsQuery = "insert into sesstats_buffer values (?,?,?,?,?,?)";
     private final String ckhInsertSQLTextsQuery = "insert into sqltexts_buffer values (?,?)";
     private final String ckhInsertSQLPlansQuery = "insert into sqlplans_buffer values (?,?)";
     private final String ckhInsertSQLStatsQuery = "insert into sqlstats_buffer values ()";
@@ -54,8 +55,7 @@ public class StatCollectorCKH {
     
     
 
-    public StatCollectorCKH(String inpDBUniqename, String inpDBHostName, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int threadType) {
-        dateFormatData              = dtFMT;
+    public StatProcessorCKH(String inpDBUniqename, String inpDBHostName, ComboPooledDataSource ckhDS, int threadType) {
         dbUniqueName                = inpDBUniqename;
         dbHostName                  = inpDBHostName;
         ckhDataSource               = ckhDS;
@@ -83,13 +83,13 @@ public class StatCollectorCKH {
                     ckhSQLStatsPreparedStatement = connClickHouse.prepareStatement(ckhInsertSQLStatsQuery);                    
                 break;
                 default:
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + 
+                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                             "Unsupported run type!"
                     );
                     
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                     "Cannot connect to ClickHouse server!"
             );
             e.printStackTrace();
@@ -167,7 +167,7 @@ public class StatCollectorCKH {
                 queryResult.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error processing io file stats resultset from database!"
             );
             e.printStackTrace();
@@ -178,7 +178,7 @@ public class StatCollectorCKH {
             ckhIOFileStatsPreparedStatement.clearBatch();
             ckhIOFileStatsPreparedStatement.clearWarnings();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error submitting io file stats data to ClickHouse!"
             );
             e.printStackTrace();
@@ -210,7 +210,7 @@ public class StatCollectorCKH {
                 queryResult.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error processing io function stats resultset from database!"
             );
             e.printStackTrace();
@@ -221,7 +221,7 @@ public class StatCollectorCKH {
             ckhIOFunctionStatsPreparedStatement.clearBatch();
             ckhIOFunctionStatsPreparedStatement.clearWarnings();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error submitting io function stats data to ClickHouse!"
             );
             e.printStackTrace();
@@ -229,7 +229,7 @@ public class StatCollectorCKH {
         }           
         return true;        
     }    
-    public boolean processSessions(ResultSet queryResult, long currentDateTime, String currentDate) throws SQLException {
+    public boolean processSessions(ResultSet queryResult, long currentDateTime) throws SQLException {
         try {
             while (queryResult != null && queryResult.next() ) {
                 ckhSessionsPreparedStatement.setString(1, dbUniqueName);
@@ -254,18 +254,17 @@ public class StatCollectorCKH {
                 ckhSessionsPreparedStatement.setInt(20, queryResult.getInt(17));
                 ckhSessionsPreparedStatement.setLong(21, ((java.util.Date) queryResult.getTimestamp(18)).getTime() / 1000);
                 ckhSessionsPreparedStatement.setInt(22, queryResult.getInt(19));
-                ckhSessionsPreparedStatement.setString(23, currentDate);
-                ckhSessionsPreparedStatement.setLong(24, 
+                ckhSessionsPreparedStatement.setLong(23, 
                         (long) new BigDecimal(queryResult.getDouble(20)).setScale(0, RoundingMode.HALF_UP).doubleValue()
                 );
-                ckhSessionsPreparedStatement.setLong(25, queryResult.getLong(21));
+                ckhSessionsPreparedStatement.setLong(24, queryResult.getLong(21));
                 ckhSessionsPreparedStatement.addBatch();
             }
             if(queryResult != null){
                 queryResult.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error processing resultset from Database!"
             );
             e.printStackTrace();
@@ -276,7 +275,7 @@ public class StatCollectorCKH {
             ckhSessionsPreparedStatement.clearBatch();
             ckhSessionsPreparedStatement.clearWarnings();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error submitting sessions data to ClickHouse!"
             );
             e.printStackTrace();
@@ -285,17 +284,16 @@ public class StatCollectorCKH {
         return true;
     }
 
-    public boolean processSysStats(ResultSet queryResult, long currentDateTime, String currentDate) {
+    public boolean processSysStats(ResultSet queryResult, long currentDateTime) {
         if(!handleSysStatsConnection()){
             return false;
         }
         try {
             while (queryResult != null && queryResult.next()) {
                 ckhSysStatsPreparedStatement.setString(1, dbUniqueName);
-                ckhSysStatsPreparedStatement.setString(2, currentDate);
-                ckhSysStatsPreparedStatement.setLong(3, currentDateTime);
-                ckhSysStatsPreparedStatement.setInt(4, queryResult.getInt(1));
-                ckhSysStatsPreparedStatement.setLong(5,
+                ckhSysStatsPreparedStatement.setLong(2, currentDateTime);
+                ckhSysStatsPreparedStatement.setInt(3, queryResult.getInt(1));
+                ckhSysStatsPreparedStatement.setLong(4,
                         (long) new BigDecimal(queryResult.getDouble(2)).setScale(0, RoundingMode.HALF_UP).doubleValue()
                 );
                 ckhSysStatsPreparedStatement.addBatch();
@@ -309,7 +307,7 @@ public class StatCollectorCKH {
             ckhSysStatsPreparedStatement.close();
             connClickHouse.close();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName +"\t"+
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName +"\t"+
                     "Error processing system statistics!"
             );
             e.printStackTrace();
@@ -318,7 +316,7 @@ public class StatCollectorCKH {
         return true;
     }
 
-    public boolean processSesStats(ResultSet queryResult, long currentDateTime, String currentDate) {
+    public boolean processSesStats(ResultSet queryResult, long currentDateTime) {
         if (! handleSesStatsConnection()){
             return false;
         }
@@ -326,12 +324,11 @@ public class StatCollectorCKH {
 
             while (queryResult != null && queryResult.next()) {
                 ckhSesStatsPreparedStatement.setString(1, dbUniqueName);
-                ckhSesStatsPreparedStatement.setString(2, currentDate);
-                ckhSesStatsPreparedStatement.setLong(3, currentDateTime);
-                ckhSesStatsPreparedStatement.setInt(4, queryResult.getInt(1));
-                ckhSesStatsPreparedStatement.setInt(5, queryResult.getInt(2));
-                ckhSesStatsPreparedStatement.setInt(6, queryResult.getInt(3));
-                ckhSesStatsPreparedStatement.setLong(7,
+                ckhSesStatsPreparedStatement.setLong(2, currentDateTime);
+                ckhSesStatsPreparedStatement.setInt(3, queryResult.getInt(1));
+                ckhSesStatsPreparedStatement.setInt(4, queryResult.getInt(2));
+                ckhSesStatsPreparedStatement.setInt(5, queryResult.getInt(3));
+                ckhSesStatsPreparedStatement.setLong(6,
                         (long) new BigDecimal(queryResult.getDouble(4)).setScale(0, RoundingMode.HALF_UP).doubleValue()
                 );
                 ckhSesStatsPreparedStatement.addBatch();
@@ -345,7 +342,7 @@ public class StatCollectorCKH {
             ckhSesStatsPreparedStatement.close();
             connClickHouse.close();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error processing session statistics!"
             );
             e.printStackTrace();
@@ -373,7 +370,7 @@ public class StatCollectorCKH {
             ckhSQLTextsPreparedStatement.close();
             connClickHouse.close();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error processing sql texts!"
             );
             e.printStackTrace();
@@ -397,7 +394,7 @@ public class StatCollectorCKH {
             ckhStatNamesPreparedStatement.clearBatch();
             ckhStatNamesPreparedStatement.clearWarnings();  
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error processing statistics names!"
             );
             e.printStackTrace();
@@ -413,7 +410,7 @@ public class StatCollectorCKH {
         return true;
     }
     
-    public boolean processSQLStats (ResultSet queryResult, long currentDateTime, String currentDate) {
+    public boolean processSQLStats (ResultSet queryResult, long currentDateTime) {
         try{
             while (queryResult != null && queryResult.next()) {
 
@@ -427,7 +424,7 @@ public class StatCollectorCKH {
             ckhSQLStatsPreparedStatement.clearBatch();
             ckhSQLStatsPreparedStatement.clearWarnings();           
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error processing sql stats!"
             );
             e.printStackTrace();
@@ -455,7 +452,7 @@ public class StatCollectorCKH {
             ckhSQLPlansPreparedStatement.close();
             connClickHouse.close();
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error processing sql plans!"
             );
             e.printStackTrace();
@@ -495,7 +492,7 @@ public class StatCollectorCKH {
                 connClickHouse.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbUniqueName + "\t" + dbHostName + "\t" + 
                     "Error durring Clickhouse resource cleanups!"
             );
             //e.printStackTrace();

@@ -32,8 +32,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
@@ -49,8 +47,7 @@ public class OraPerf {
 
     private static final String PROPERTIESFILENAME = "oraperf.properties";
     private static final int SECONDSTOSLEEP = 60;
-    private static final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("dd.MM.YYYY HH:mm:ss");
-    private static final int CKHQUEUECONSUMERSLEEPTIME = 5;
+    private static final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
 
     private static Scanner fileScanner;
     private static ArrayList<String> oraDBList;
@@ -65,17 +62,15 @@ public class OraPerf {
     private static String ORADBLISTPASSWORD = "";
     private static String ORADBLISTQUERY = "";
     private static String CKHCONNECTIONSTRING = "";
-    private static int CKHQUEUECONSUMERS  = 1;
     private static boolean GATHERSESSIONS = false;
     private static boolean GATHERSESSTATS = false;
     private static boolean GATHERSYSSTATS = false;
+    
     private static ComboPooledDataSource CKHDataSource;
-    private static BlockingQueue<OraCkhMsg> ckhQueue = new LinkedBlockingQueue<>();
 
     static Map<String, Thread> dbSessionsList = new HashMap();
     static Map<String, Thread> dbSessStatsList = new HashMap();
     static Map<String, Thread> dbSyssStatsList = new HashMap();
-    static Thread [] ckhQueueThreads;
     
 
     private static ArrayList<String> getListFromFile(File dbListFile) {
@@ -146,7 +141,6 @@ public class OraPerf {
             CKHPASSWORD = properties.getProperty("CKHPASSWORD");
             CKHCONNECTIONSTRING = properties.getProperty("CKHCONNECTIONSTRING");
             DBLISTSOURCE = properties.getProperty("DBLISTSOURCE");
-            CKHQUEUECONSUMERS = Integer.parseInt(properties.getProperty("QUEUECONSUMERS"));
             switch (DBLISTSOURCE.toUpperCase()) {
                 case "FILE":
                     DBLISTFILENAME = properties.getProperty("DBLISTFILENAME");
@@ -209,7 +203,7 @@ public class OraPerf {
             cpds.setMinPoolSize(100);
             cpds.setAcquireIncrement(10);
             cpds.setMaxPoolSize(5000);
-            cpds.setMaxIdleTime(180);
+            cpds.setMaxIdleTime(60);
             return cpds;
         } catch (Exception e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
@@ -222,7 +216,7 @@ public class OraPerf {
     private static void processSessions(String dbLine) {
         if (!dbSessionsList.containsKey(dbLine) || dbSessionsList.get(dbLine) == null || !dbSessionsList.get(dbLine).isAlive()) {
             try {
-                dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 0,ckhQueue));
+                dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource,  0));
                 lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         "Starting sessions thread for " + dbLine
                 );
@@ -239,7 +233,7 @@ public class OraPerf {
     private static void processSessionStats(String dbLine) {
         if (!dbSessStatsList.containsKey(dbLine) || dbSessStatsList.get(dbLine) == null || !dbSessStatsList.get(dbLine).isAlive()) {
             try {
-                dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 1,ckhQueue));
+                dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 1));
                 lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         "Starting sessions stats thread for " + dbLine
                 );
@@ -256,7 +250,7 @@ public class OraPerf {
     private static void processSystemRoutines(String dbLine) {
         if (!dbSyssStatsList.containsKey(dbLine) || dbSyssStatsList.get(dbLine) == null || !dbSyssStatsList.get(dbLine).isAlive()) {
             try {
-                dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, DATEFORMAT, 2,ckhQueue));
+                dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource,  2));
                 lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         "Starting system stats thread for " + dbLine
                 );
@@ -270,17 +264,6 @@ public class OraPerf {
         }
     }
 
-    private static void processCKHQueueConsumers(){
-        for(int i=0;i<CKHQUEUECONSUMERS;i++){
-            if( ckhQueueThreads[i] == null || ! ckhQueueThreads[i].isAlive()) {
-                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                        "Starting clickhouse queue consumer #" + i
-                );                
-                ckhQueueThreads[i] = new CkhQueueConsumer(ckhQueue,CKHDataSource,CKHQUEUECONSUMERSLEEPTIME);
-                ckhQueueThreads[i].run();
-            }
-        }
-    }
     
     public static void main(String[] args) throws InterruptedException {
         if (!processProperties(PROPERTIESFILENAME)) {
@@ -290,8 +273,6 @@ public class OraPerf {
         configureLogger();
 
         lg = new SL4JLogger();
-        
-        ckhQueueThreads = new Thread[CKHQUEUECONSUMERS];
         
         CKHDataSource = initDataSource();
         if (CKHDataSource == null) {
@@ -303,8 +284,6 @@ public class OraPerf {
         lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Starting");
 
         while (true) /*for(int i=0; i<1; i++)*/ {
-            processCKHQueueConsumers();
-            System.exit(0);
             oraDBList = getOraDBList();
             for (int i = 0; i < oraDBList.size(); i++) {
                 dbLine = oraDBList.get(i);

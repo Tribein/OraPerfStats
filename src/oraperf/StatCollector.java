@@ -19,10 +19,8 @@ package oraperf;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import java.sql.*;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class StatCollector extends Thread {
@@ -33,7 +31,6 @@ public class StatCollector extends Thread {
     private final int secondsBetweenSessStatsSnaps = 30;
     private final int secondsBetweenSysSnaps = 120;
     private final int secondsBetweenSQLSnaps = 600;
-    private final DateTimeFormatter ckhDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private int threadType; //0 - waits, 1 - sess stats, 2 - sys stats / sql texts & plan  hash  values, 3 - sql plans and sql stats, not used
     private String dbUserName;
@@ -52,12 +49,10 @@ public class StatCollector extends Thread {
     private PreparedStatement oraStatNamesPreparedStatement;
     private PreparedStatement oraIOFileStatsPreparedStatement;
     private PreparedStatement oraIOFunctionStatsPreparedStatement;
-    private DateTimeFormatter dateFormatData;
     private long currentDateTime;
-    private String currentDate;
-    private StatCollectorCKH processor;
+    private StatProcessorCKH processor;
     private boolean shutdown = false;
-    private BlockingQueue<OraCkhMsg> ckhQueue;
+    private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
     private final String oraSysStatQuery = "select statistic#,value from v$sysstat where value<>0";
     private final String oraWaitsQuery
             = "select "
@@ -154,21 +149,18 @@ public class StatCollector extends Thread {
             + "number_of_waits,wait_time "
             + "from V$IOSTAT_FUNCTION_DETAIL";
 
-    public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, DateTimeFormatter dtFMT, int runTType, BlockingQueue<OraCkhMsg> queue) {
+    public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, int runTType) {
         dbConnectionString = inputString;
         dbUniqueName = inputString.split("/")[1];
         dbHostName = inputString.split(":")[0];
         dbUserName = dbUSN;
         dbPassword = dbPWD;
         ckhDataSource = ckhDS;
-        dateFormatData = dtFMT;
         threadType = runTType;
-        ckhQueue = queue;
     }
 
     private void setDateTimeVars() {
         currentDateTime = Instant.now().getEpochSecond();
-        currentDate = LocalDate.now().format(ckhDateTimeFormatter);
     }
 
     private void runSessAndIOStatsRoutines() throws InterruptedException {
@@ -179,7 +171,7 @@ public class StatCollector extends Thread {
                 shutdown = ! processor.processIOFileStats(oraIOFileStatsPreparedStatement.getResultSet(), currentDateTime);
                 oraIOFileStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                         + "Error getting io file stats from database " + dbConnectionString
                 );
                 shutdown = true;
@@ -191,7 +183,7 @@ public class StatCollector extends Thread {
                     shutdown = ! processor.processIOFunctionStats(oraIOFunctionStatsPreparedStatement.getResultSet(), currentDateTime);
                     oraIOFunctionStatsPreparedStatement.clearWarnings();
                 } catch (SQLException e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                             + "Error getting io function stats from database " + dbConnectionString
                     );
                     shutdown = true;
@@ -204,12 +196,11 @@ public class StatCollector extends Thread {
                     oraWaitsPreparedStatement.execute();
                     shutdown = !processor.processSessions(
                             oraWaitsPreparedStatement.getResultSet(),
-                            currentDateTime,
-                            currentDate
+                            currentDateTime
                     );
                     oraWaitsPreparedStatement.clearWarnings();
                 } catch (SQLException e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                             + "Error getting sessions from database " + dbConnectionString
                     );
                     shutdown = true;
@@ -227,12 +218,11 @@ public class StatCollector extends Thread {
                 oraSesStatsPreparedStatement.execute();
                 shutdown = !processor.processSesStats(
                         oraSesStatsPreparedStatement.getResultSet(),
-                        currentDateTime,
-                        currentDate
+                        currentDateTime
                 );
                 oraSesStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
                         + "Error processing session statistics!"
                 );
                 shutdown = true;
@@ -252,7 +242,7 @@ public class StatCollector extends Thread {
             shutdown = !processor.processStatNames(oraStatNamesPreparedStatement.getResultSet());
             oraStatNamesPreparedStatement.close();
         } catch (Exception e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
                     + "Error processing statistics names!"
             );
             shutdown = true;
@@ -263,12 +253,11 @@ public class StatCollector extends Thread {
                 oraSysStatsPreparedStatement.execute();
                 shutdown = !processor.processSysStats(
                         oraSysStatsPreparedStatement.getResultSet(),
-                        currentDateTime,
-                        currentDate
+                        currentDateTime
                 );
                 oraSysStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
                         + "Error processing system statistics!"
                 );
                 shutdown = true;
@@ -283,7 +272,7 @@ public class StatCollector extends Thread {
                         shutdown = !processor.processSQLPlans(oraSQLPlansPreparedStatement.getResultSet());
                         oraSQLPlansPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
-                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
                                 + "Error processing sql plan hash values!"
                         );
                         shutdown = true;
@@ -296,7 +285,7 @@ public class StatCollector extends Thread {
                         shutdown = !processor.processSQLTexts(oraSQLTextsPreparedStatement.getResultSet());
                         oraSQLTextsPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
-                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
                                 + "Error processing sql texts!"
                         );
                         shutdown = true;
@@ -315,47 +304,23 @@ public class StatCollector extends Thread {
     }
 
     private void runSQLRoutines() throws InterruptedException {
-        int snapcounter = 0;
-        long begints, endts;
         while (!shutdown) /*for (int i = 0; i < 1; i++)*/ {
             try {
                 setDateTimeVars();
                 oraSQLStatsPreparedStatement.execute();
                 shutdown = !processor.processSQLStats(
                         oraSQLStatsPreparedStatement.getResultSet(),
-                        currentDateTime,
-                        currentDate
+                        currentDateTime
                 );
                 oraSQLStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
                         + "Error processing SQL statistics!"
                 );
                 shutdown = true;
                 e.printStackTrace();
             }
-            if (snapcounter == 6) {
-                snapcounter = 0;
-                begints = System.currentTimeMillis();
-                try {
-                    oraSQLPlansPreparedStatement.execute();
-                    shutdown = !processor.processSQLPlans(oraSQLPlansPreparedStatement.getResultSet());
-                    oraSQLPlansPreparedStatement.clearWarnings();
-                } catch (SQLException e) {
-                    lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
-                            + "Error processing sql plans!"
-                    );
-                    shutdown = true;
-                    e.printStackTrace();
-                }
-                endts = System.currentTimeMillis();
-                if (endts - begints < secondsBetweenSQLSnaps * 1000) {
-                    TimeUnit.SECONDS.sleep(secondsBetweenSQLSnaps - (int) ((endts - begints) / 1000));
-                }
-            } else {
-                TimeUnit.SECONDS.sleep(secondsBetweenSQLSnaps);
-                snapcounter++;
-            }
+            TimeUnit.SECONDS.sleep(secondsBetweenSQLSnaps);
         }
     }
 
@@ -392,7 +357,7 @@ public class StatCollector extends Thread {
                 con.close();
             }
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
                     + "Error durring ORADB resource cleanups!"
             );
             e.printStackTrace();
@@ -404,12 +369,12 @@ public class StatCollector extends Thread {
             Class.forName("oracle.jdbc.driver.OracleDriver");
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, dbUserName, dbPassword);
             con.setAutoCommit(false);
-            processor = new StatCollectorCKH(dbUniqueName, dbHostName, ckhDataSource, dateFormatData, threadType);
+            processor = new StatProcessorCKH(dbUniqueName, dbHostName, ckhDataSource, threadType);
         } catch (ClassNotFoundException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + "Cannot load Oracle driver!");
             shutdown = true;
         } catch (SQLException e) {
-            lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + "Cannot initiate connection to target Oracle database: " + dbConnectionString
             );
             shutdown = true;
@@ -457,14 +422,14 @@ public class StatCollector extends Thread {
                         runSQLRoutines();
                         break;
                     default:
-                        lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString + "\t"
                                 + "Unknown thread type provided!"
                         );
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (SQLException e) {
-                lg.LogError(dateFormatData.format(LocalDateTime.now()) + "\t"
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                         + "Cannot prepare statements for  Oracle database: " + dbConnectionString
                 );
             }
