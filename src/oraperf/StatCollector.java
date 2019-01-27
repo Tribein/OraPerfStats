@@ -1,3 +1,19 @@
+/* 
+ * Copyright (C) 2017 Tribein
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package oraperf;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
@@ -12,7 +28,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -62,23 +77,23 @@ public class StatCollector
     private static final String ORASQLPLANSQUERY = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0";
     private static final String ORASQLSTATSQUERY = "";
     private static final String ORASTATNAMESQUERY = "select statistic#,name from v$statname";
-    private static final String ORAIOFILESTATSQUERY = "select filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from V$IOSTAT_FILE a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)";
-    private static final String ORAIOFUNCTIONSTATSQUERY = "select function_name,filetype_name,small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,number_of_waits,wait_time from V$IOSTAT_FUNCTION_DETAIL";
+    private static final String ORAIOFILESTATSQUERY = "select filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from v$iostat_file a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)";
+    private static final String ORAIOFUNCTIONSTATSQUERY = "select function_name,filetype_name,small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,number_of_waits,wait_time from v$iostat_function_detail";
 
     public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, int runTType, BlockingQueue<OraCkhMsg> queue) {
-        this.dbConnectionString = inputString;
-        this.dbUniqueName = inputString.split("/")[1];
-        this.dbHostName = inputString.split(":")[0];
-        this.dbUserName = dbUSN;
-        this.dbPassword = dbPWD;
-        this.threadType = runTType;
-        this.ckhQueue = queue;
+        dbConnectionString = inputString;
+        dbUniqueName = inputString.split("/")[1];
+        dbHostName = inputString.split(":")[0];
+        dbUserName = dbUSN;
+        dbPassword = dbPWD;
+        threadType = runTType;
+        ckhQueue = queue;
     }
 
     private List getSessionWaitsListFromRS(ResultSet rs) {
         List<List> outList = new ArrayList();
         try {
-            while ((rs != null) && (rs.next())) {
+            while (rs != null && rs.next()) {
                 List rowList = new ArrayList();
                 rowList.add(rs.getInt(1));
                 rowList.add(rs.getInt(2));
@@ -97,15 +112,17 @@ public class StatCollector
                 rowList.add(rs.getString(15));
                 rowList.add(rs.getTimestamp(16).getTime() / 1000L);
                 rowList.add(rs.getInt(17));
-                rowList.add(Long.valueOf(rs.getTimestamp(18).getTime() / 1000L));
+                rowList.add(rs.getTimestamp(18).getTime() / 1000L);
                 rowList.add(rs.getInt(19));
                 rowList.add((long) new BigDecimal(rs.getDouble(20)).setScale(0, RoundingMode.HALF_UP).doubleValue() );
-        rowList.add(rs.getLong(21));
+                rowList.add(rs.getLong(21));
                 outList.add(rowList);
             }
             rs.close();
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting data from resultset " + this.dbConnectionString);
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Error getting data from resultset " + dbConnectionString
+            );
         }
         return outList;
     }
@@ -113,15 +130,17 @@ public class StatCollector
     private List getStatNamesListFromRS(ResultSet rs) {
         List<List> outList = new ArrayList();
         try {
-            while ((rs != null) && (rs.next())) {
+            while (rs != null && rs.next()) {
                 List rowList = new ArrayList();
-                rowList.add(Integer.valueOf(rs.getInt(1)));
+                rowList.add(rs.getInt(1));
                 rowList.add(rs.getString(2));
                 outList.add(rowList);
             }
             rs.close();
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting data from resultset " + this.dbConnectionString);
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Error getting data from resultset " + dbConnectionString
+            );
         }
         return outList;
     }
@@ -129,7 +148,7 @@ public class StatCollector
     private List getSQlTextsListFromRS(ResultSet rs) {
         List<List> outList = new ArrayList();
         try {
-            while ((rs != null) && (rs.next())) {
+            while (rs != null && rs.next()) {
                 List rowList = new ArrayList();
                 rowList.add(rs.getString(1));
                 rowList.add(rs.getString(2));
@@ -137,7 +156,9 @@ public class StatCollector
             }
             rs.close();
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting data from resultset " + this.dbConnectionString);
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Error getting data from resultset " + dbConnectionString
+            );
         }
         return outList;
     }
@@ -145,15 +166,17 @@ public class StatCollector
     private List getSQlPlansListFromRS(ResultSet rs) {
         List<List> outList = new ArrayList();
         try {
-            while ((rs != null) && (rs.next())) {
+            while (rs != null && rs.next()) {
                 List rowList = new ArrayList();
                 rowList.add(rs.getString(1));
-                rowList.add(Long.valueOf(rs.getLong(2)));
+                rowList.add(rs.getLong(2));
                 outList.add(rowList);
             }
             rs.close();
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting data from resultset " + this.dbConnectionString);
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Error getting data from resultset " + dbConnectionString
+            );
         }
         return outList;
     }
@@ -161,7 +184,7 @@ public class StatCollector
     private List getSysStatsListFromRS(ResultSet rs) {
         List<List> outList = new ArrayList();
         try {
-            while ((rs != null) && (rs.next())) {
+            while (rs != null && rs.next()) {
                 List rowList = new ArrayList();
                 rowList.add(Integer.valueOf(rs.getInt(1)));
                 rowList.add((long) new BigDecimal(rs.getDouble(2)).setScale(0, RoundingMode.HALF_UP).doubleValue());
@@ -169,7 +192,9 @@ public class StatCollector
             }
             rs.close();
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting data from resultset " + this.dbConnectionString);
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Error getting data from resultset " + dbConnectionString
+            );
         }
         return outList;
     }
@@ -177,7 +202,7 @@ public class StatCollector
     private List getSesStatsListFromRS(ResultSet rs) {
         List<List> outList = new ArrayList();
         try {
-            while ((rs != null) && (rs.next())) {
+            while (rs != null && rs.next()) {
                 List rowList = new ArrayList();
                 rowList.add(rs.getInt(1));
                 rowList.add(rs.getInt(2));
@@ -187,7 +212,9 @@ public class StatCollector
             }
             rs.close();
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting data from resultset " + this.dbConnectionString);
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Error getting data from resultset " + dbConnectionString
+            );
         }
         return outList;
     }
@@ -195,7 +222,7 @@ public class StatCollector
     private List getIOFileStatsListFromRS(ResultSet rs) {
         List<List> outList = new ArrayList();
         try {
-            while ((rs != null) && (rs.next())) {
+            while (rs != null && rs.next()) {
                 List rowList = new ArrayList();
                 rowList.add(rs.getString(1));
                 rowList.add(rs.getString(2));
@@ -212,12 +239,14 @@ public class StatCollector
                 rowList.add(new BigDecimal(rs.getDouble(13)).longValue());
                 rowList.add(new BigDecimal(rs.getDouble(14)).longValue());
                 rowList.add(new BigDecimal(rs.getDouble(15)).longValue());
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(16)).longValue()));
+                rowList.add(new BigDecimal(rs.getDouble(16)).longValue());
                 outList.add(rowList);
             }
             rs.close();
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting data from resultset " + this.dbConnectionString);
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Error getting data from resultset " + dbConnectionString
+            );
         }
         return outList;
     }
@@ -225,7 +254,7 @@ public class StatCollector
     private List getIOFunctionStatsListFromRS(ResultSet rs) {
         List<List> outList = new ArrayList();
         try {
-            while ((rs != null) && (rs.next())) {
+            while (rs != null && rs.next()) {
                 List rowList = new ArrayList();
                 rowList.add(rs.getString(1));
                 rowList.add(rs.getString(2));
@@ -238,85 +267,95 @@ public class StatCollector
                 rowList.add(new BigDecimal(rs.getDouble(9)).longValue());
                 rowList.add(new BigDecimal(rs.getDouble(10)).longValue());
                 rowList.add(new BigDecimal(rs.getDouble(11)).longValue());
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(12)).longValue()));
+                rowList.add(new BigDecimal(rs.getDouble(12)).longValue());
                 outList.add(rowList);
             }
             rs.close();
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting data from resultset " + this.dbConnectionString);
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Error getting data from resultset " + dbConnectionString
+            );
         }
         return outList;
     }
 
     private void setDateTimeVars() {
-        this.currentDateTime = Instant.now().getEpochSecond();
+        currentDateTime = Instant.now().getEpochSecond();
     }
 
     private void runSessAndIOStatsRoutines()
             throws InterruptedException {
-        while (!this.shutdown) {
+        while (!shutdown) {
             setDateTimeVars();
             try {
-                this.oraIOFileStatsPreparedStatement.execute();
-                this.ckhQueue.put(new OraCkhMsg(8, this.currentDateTime, this.dbUniqueName, this.dbHostName,
-                        getIOFileStatsListFromRS(this.oraIOFileStatsPreparedStatement.getResultSet())));
+                oraIOFileStatsPreparedStatement.execute();
+                ckhQueue.put(new OraCkhMsg(RSIOFILESTAT, currentDateTime, dbUniqueName, dbHostName,
+                        getIOFileStatsListFromRS(oraIOFileStatsPreparedStatement.getResultSet())));
 
-                this.oraIOFileStatsPreparedStatement.clearWarnings();
+                oraIOFileStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting io file stats from database " + this.dbConnectionString);
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                        "Error getting io file stats from database " + dbConnectionString
+                );
 
-                this.shutdown = true;
+                shutdown = true;
                 e.printStackTrace();
             }
-            if (!this.shutdown) {
+            if (!shutdown) {
                 try {
-                    this.oraIOFunctionStatsPreparedStatement.execute();
-                    this.ckhQueue.put(new OraCkhMsg(9, this.currentDateTime, this.dbUniqueName, this.dbHostName,
-                            getIOFunctionStatsListFromRS(this.oraIOFunctionStatsPreparedStatement.getResultSet())));
+                    oraIOFunctionStatsPreparedStatement.execute();
+                    ckhQueue.put(new OraCkhMsg(RSIOFUNCTIONSTAT, currentDateTime, dbUniqueName, dbHostName,
+                            getIOFunctionStatsListFromRS(oraIOFunctionStatsPreparedStatement.getResultSet())));
 
-                    this.oraIOFunctionStatsPreparedStatement.clearWarnings();
+                    oraIOFunctionStatsPreparedStatement.clearWarnings();
                 } catch (SQLException e) {
-                    this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting io function stats from database " + this.dbConnectionString);
+                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                            "Error getting io function stats from database " + dbConnectionString
+                    );
 
-                    this.shutdown = true;
+                    shutdown = true;
                     e.printStackTrace();
                 }
             }
-            if (!this.shutdown) {
+            if (!shutdown) {
                 try {
-                    this.oraWaitsPreparedStatement.execute();
-                    this.ckhQueue.put(new OraCkhMsg(0, this.currentDateTime, this.dbUniqueName, this.dbHostName,
-                            getSessionWaitsListFromRS(this.oraWaitsPreparedStatement.getResultSet())));
+                    oraWaitsPreparedStatement.execute();
+                    ckhQueue.put(new OraCkhMsg(RSSESSIONWAIT, currentDateTime, dbUniqueName, dbHostName,
+                            getSessionWaitsListFromRS(oraWaitsPreparedStatement.getResultSet())));
 
-                    this.oraWaitsPreparedStatement.clearWarnings();
+                    oraWaitsPreparedStatement.clearWarnings();
                 } catch (SQLException e) {
-                    this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tError getting sessions from database " + this.dbConnectionString);
+                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                            "Error getting sessions from database " + dbConnectionString
+                    );
 
-                    this.shutdown = true;
+                    shutdown = true;
                     e.printStackTrace();
                 }
             }
-            TimeUnit.SECONDS.sleep(10L);
+            TimeUnit.SECONDS.sleep(SECONDSBETWEENSESSWAITSSNAPS);
         }
     }
 
     private void runSessStatsRoutines()
             throws InterruptedException {
-        while (!this.shutdown) {
+        while (!shutdown) {
             try {
                 setDateTimeVars();
-                this.oraSesStatsPreparedStatement.execute();
-                this.ckhQueue.put(new OraCkhMsg(1, this.currentDateTime, this.dbUniqueName, this.dbHostName,
-                        getSesStatsListFromRS(this.oraSesStatsPreparedStatement.getResultSet())));
+                oraSesStatsPreparedStatement.execute();
+                ckhQueue.put(new OraCkhMsg(RSSESSIONSTAT, currentDateTime, dbUniqueName, dbHostName,
+                        getSesStatsListFromRS(oraSesStatsPreparedStatement.getResultSet())));
 
-                this.oraSesStatsPreparedStatement.clearWarnings();
+                oraSesStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbConnectionString + "\tError processing session statistics!");
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        dbConnectionString + "\t"+"Error processing session statistics!"
+                );
 
-                this.shutdown = true;
+                shutdown = true;
                 e.printStackTrace();
             }
-            TimeUnit.SECONDS.sleep(30L);
+            TimeUnit.SECONDS.sleep(SECONDSBETWEENSESSSTATSSNAPS);
         }
     }
 
@@ -324,67 +363,75 @@ public class StatCollector
             throws InterruptedException {
         int snapcounter = 0;
         try {
-            this.oraStatNamesPreparedStatement.execute();
-            this.ckhQueue.put(new OraCkhMsg(7, 0L, null, null,
-                    getStatNamesListFromRS(this.oraStatNamesPreparedStatement.getResultSet())));
+            oraStatNamesPreparedStatement.execute();
+            ckhQueue.put(new OraCkhMsg(RSSTATNAME, 0, null, null,
+                    getStatNamesListFromRS(oraStatNamesPreparedStatement.getResultSet())));
 
-            this.oraStatNamesPreparedStatement.close();
+            oraStatNamesPreparedStatement.close();
         } catch (Exception e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbConnectionString + "\tError processing statistics names!");
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                    dbConnectionString + "\t"+"Error processing statistics names!"
+            );
 
-            this.shutdown = true;
+            shutdown = true;
         }
-        while (!this.shutdown) {
+        while (!shutdown) {
             try {
                 setDateTimeVars();
-                this.oraSysStatsPreparedStatement.execute();
-                this.ckhQueue.put(new OraCkhMsg(2, this.currentDateTime, this.dbUniqueName, this.dbHostName,
-                        getSysStatsListFromRS(this.oraSysStatsPreparedStatement.getResultSet())));
+                oraSysStatsPreparedStatement.execute();
+                ckhQueue.put(new OraCkhMsg(RSSYSTEMSTAT, currentDateTime, dbUniqueName, dbHostName,
+                        getSysStatsListFromRS(oraSysStatsPreparedStatement.getResultSet())));
 
-                this.oraSysStatsPreparedStatement.clearWarnings();
+                oraSysStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbConnectionString + "\tError processing system statistics!");
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        dbConnectionString + "\t"+"Error processing system statistics!"
+                );
 
-                this.shutdown = true;
+                shutdown = true;
                 e.printStackTrace();
             }
             if (snapcounter == 30) {
                 snapcounter = 0;
                 long begints = System.currentTimeMillis();
-                if (!this.shutdown) {
+                if (!shutdown) {
                     try {
-                        this.oraSQLPlansPreparedStatement.execute();
-                        this.ckhQueue.put(new OraCkhMsg(5, 0L, null, null,
-                                getSQlPlansListFromRS(this.oraSQLPlansPreparedStatement.getResultSet())));
+                        oraSQLPlansPreparedStatement.execute();
+                        ckhQueue.put(new OraCkhMsg(RSSQLPHV, 0, null, null,
+                                getSQlPlansListFromRS(oraSQLPlansPreparedStatement.getResultSet())));
 
-                        this.oraSQLPlansPreparedStatement.clearWarnings();
+                        oraSQLPlansPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
-                        this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbConnectionString + "\tError processing sql plan hash values!");
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                                dbConnectionString + "\t"+"Error processing sql plan hash values!"
+                        );
 
-                        this.shutdown = true;
+                        shutdown = true;
                         e.printStackTrace();
                     }
                 }
-                if (!this.shutdown) {
+                if (!shutdown) {
                     try {
-                        this.oraSQLTextsPreparedStatement.execute();
-                        this.ckhQueue.put(new OraCkhMsg(6, 0L, null, null,
-                                getSQlTextsListFromRS(this.oraSQLTextsPreparedStatement.getResultSet())));
+                        oraSQLTextsPreparedStatement.execute();
+                        ckhQueue.put(new OraCkhMsg(RSSQLTEXT, 0, null, null,
+                                getSQlTextsListFromRS(oraSQLTextsPreparedStatement.getResultSet())));
 
-                        this.oraSQLTextsPreparedStatement.clearWarnings();
+                        oraSQLTextsPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
-                        this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbConnectionString + "\tError processing sql texts!");
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                                dbConnectionString + "\t"+"Error processing sql texts!"
+                        );
 
-                        this.shutdown = true;
+                        shutdown = true;
                         e.printStackTrace();
                     }
                 }
                 long endts = System.currentTimeMillis();
-                if (endts - begints < 120000L) {
-                    TimeUnit.SECONDS.sleep(120 - (int) ((endts - begints) / 1000L));
+                if (endts - begints < SECONDSBETWEENSYSSTATSSNAPS*1000L) {
+                    TimeUnit.SECONDS.sleep(SECONDSBETWEENSYSSTATSSNAPS - (int) ((endts - begints) / 1000L));
                 }
             } else {
-                TimeUnit.SECONDS.sleep(120L);
+                TimeUnit.SECONDS.sleep(SECONDSBETWEENSYSSTATSSNAPS);
                 snapcounter++;
             }
         }
@@ -392,54 +439,58 @@ public class StatCollector
 
     private void runSQLRoutines()
             throws InterruptedException {
-        while (!this.shutdown) {
+        while (!shutdown) {
             try {
                 setDateTimeVars();
-                this.oraSQLStatsPreparedStatement.execute();
-                this.ckhQueue.put(new OraCkhMsg(3, this.currentDateTime, this.dbUniqueName, this.dbHostName, null));
+                oraSQLStatsPreparedStatement.execute();
+                ckhQueue.put(new OraCkhMsg(RSSQLSTAT, currentDateTime, dbUniqueName, dbHostName, null));
 
-                this.oraSQLStatsPreparedStatement.clearWarnings();
+                oraSQLStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbConnectionString + "\tError processing SQL statistics!");
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                        dbConnectionString + "\t"+"Error processing SQL statistics!"
+                );
 
-                this.shutdown = true;
+                shutdown = true;
                 e.printStackTrace();
             }
-            TimeUnit.SECONDS.sleep(600L);
+            TimeUnit.SECONDS.sleep(SECONDSBETWEENSQLSNAPS);
         }
     }
 
     private void cleanup() {
         try {
-            if ((this.oraWaitsPreparedStatement != null) && (!this.oraWaitsPreparedStatement.isClosed())) {
-                this.oraWaitsPreparedStatement.close();
+            if ((oraWaitsPreparedStatement != null) && (!oraWaitsPreparedStatement.isClosed())) {
+                oraWaitsPreparedStatement.close();
             }
-            if ((this.oraIOFileStatsPreparedStatement != null) && (!this.oraIOFileStatsPreparedStatement.isClosed())) {
-                this.oraIOFileStatsPreparedStatement.close();
+            if ((oraIOFileStatsPreparedStatement != null) && (!oraIOFileStatsPreparedStatement.isClosed())) {
+                oraIOFileStatsPreparedStatement.close();
             }
-            if ((this.oraIOFunctionStatsPreparedStatement != null) && (!this.oraIOFunctionStatsPreparedStatement.isClosed())) {
-                this.oraIOFunctionStatsPreparedStatement.close();
+            if ((oraIOFunctionStatsPreparedStatement != null) && (!oraIOFunctionStatsPreparedStatement.isClosed())) {
+                oraIOFunctionStatsPreparedStatement.close();
             }
-            if ((this.oraSysStatsPreparedStatement != null) && (!this.oraSysStatsPreparedStatement.isClosed())) {
-                this.oraSysStatsPreparedStatement.close();
+            if ((oraSysStatsPreparedStatement != null) && (!oraSysStatsPreparedStatement.isClosed())) {
+                oraSysStatsPreparedStatement.close();
             }
-            if ((this.oraSesStatsPreparedStatement != null) && (!this.oraSesStatsPreparedStatement.isClosed())) {
-                this.oraSesStatsPreparedStatement.close();
+            if ((oraSesStatsPreparedStatement != null) && (!oraSesStatsPreparedStatement.isClosed())) {
+                oraSesStatsPreparedStatement.close();
             }
-            if ((this.oraSQLTextsPreparedStatement != null) && (!this.oraSQLTextsPreparedStatement.isClosed())) {
-                this.oraSQLTextsPreparedStatement.close();
+            if ((oraSQLTextsPreparedStatement != null) && (!oraSQLTextsPreparedStatement.isClosed())) {
+                oraSQLTextsPreparedStatement.close();
             }
-            if ((this.oraSQLPlansPreparedStatement != null) && (!this.oraSQLPlansPreparedStatement.isClosed())) {
-                this.oraSQLPlansPreparedStatement.close();
+            if ((oraSQLPlansPreparedStatement != null) && (!oraSQLPlansPreparedStatement.isClosed())) {
+                oraSQLPlansPreparedStatement.close();
             }
-            if ((this.oraSQLStatsPreparedStatement != null) && (!this.oraSQLStatsPreparedStatement.isClosed())) {
-                this.oraSQLStatsPreparedStatement.close();
+            if ((oraSQLStatsPreparedStatement != null) && (!oraSQLStatsPreparedStatement.isClosed())) {
+                oraSQLStatsPreparedStatement.close();
             }
-            if ((this.con != null) && (!this.con.isClosed())) {
-                this.con.close();
+            if ((con != null) && (!con.isClosed())) {
+                con.close();
             }
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbConnectionString + "\tError durring ORADB resource cleanups!");
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                    dbConnectionString + "\t"+"Error durring ORADB resource cleanups!"
+            );
 
             e.printStackTrace();
         }
@@ -448,62 +499,70 @@ public class StatCollector
     private void openConnection() {
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
-            this.con = DriverManager.getConnection("jdbc:oracle:thin:@" + this.dbConnectionString, this.dbUserName, this.dbPassword);
-            this.con.setAutoCommit(false);
+            con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, dbUserName, dbPassword);
+            con.setAutoCommit(false);
         } catch (ClassNotFoundException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tCannot load Oracle driver!");
-            this.shutdown = true;
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Cannot load Oracle driver!"
+            );
+            shutdown = true;
         } catch (SQLException e) {
-            this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tCannot initiate connection to target Oracle database: " + this.dbConnectionString);
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                    "Cannot initiate connection to target Oracle database: " + dbConnectionString
+            );
 
-            this.shutdown = true;
+            shutdown = true;
         }
     }
 
     public void run() {
-        this.lg = new SL4JLogger();
+        lg = new SL4JLogger();
 
         openConnection();
-        if (!this.shutdown) {
+        if (!shutdown) {
             try {
-                switch (this.threadType) {
+                switch (threadType) {
                     case 0:
-                        this.oraWaitsPreparedStatement = this.con.prepareStatement("select   sid,  serial#,  decode(taddr,null,'N','Y'),  status,  nvl(username,schemaname),  nvl(osuser,'-'),  nvl(machine,'-'),  nvl(program,'-'),  type,  nvl(module,'-'),  nvl(blocking_session,0),  decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event),   decode(state,'WAITED KNOWN TIME',127,'WAITED SHORT TIME',127,wait_class#),  round(wait_time_micro/1000000,3),  nvl(sql_id,'-'),  nvl(sql_exec_start,to_date('19700101','YYYYMMDD')),  sql_exec_id,  logon_time,  seq#,  nvl(p1,0),  nvl(p2,0)  from gv$session a  where sid<>sys_context('USERENV','SID') and (  wait_class#<>6 or exists  ( select 1 from gv$session b where a.inst_id=b.inst_id and (a.sid = b.blocking_session or a.sid = b.final_blocking_session) )  )");
-                        this.oraWaitsPreparedStatement.setFetchSize(1000);
-                        this.oraIOFileStatsPreparedStatement = this.con.prepareStatement("select filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from V$IOSTAT_FILE a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)");
-                        this.oraIOFileStatsPreparedStatement.setFetchSize(100);
-                        this.oraIOFunctionStatsPreparedStatement = this.con.prepareStatement("select function_name,filetype_name,small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,number_of_waits,wait_time from V$IOSTAT_FUNCTION_DETAIL");
-                        this.oraIOFunctionStatsPreparedStatement.setFetchSize(100);
+                        oraWaitsPreparedStatement = con.prepareStatement(ORASESSWAITSQUERY);
+                        oraWaitsPreparedStatement.setFetchSize(1000);
+                        oraIOFileStatsPreparedStatement = con.prepareStatement(ORAIOFILESTATSQUERY);
+                        oraIOFileStatsPreparedStatement.setFetchSize(100);
+                        oraIOFunctionStatsPreparedStatement = con.prepareStatement(ORAIOFUNCTIONSTATSQUERY);
+                        oraIOFunctionStatsPreparedStatement.setFetchSize(100);
                         runSessAndIOStatsRoutines();
                         break;
                     case 1:
-                        this.oraSesStatsPreparedStatement = this.con.prepareStatement("select sid,sserial,statistic#,value from (select sid,serial# sserial from v$session where type='USER' and sid<>sys_context('USERENV','SID') and ( wait_class#<>6 or (wait_class#=6 and seconds_in_wait < 10) )) join v$sesstat using(sid) join v$statname using(statistic#) where name in ( 'Requests to/from client','user commits','user rollbacks','user calls','recursive calls','recursive cpu usage','DB time','session pga memory','physical read total bytes','physical write total bytes','db block changes','redo size','redo size for direct writes','table fetch by rowid','table fetch continued row','lob reads','lob writes','index fetch by key','sql area evicted','session cursor cache hits','session cursor cache count','queries parallelized','Parallel operations not downgraded','Parallel operations downgraded to serial','parse time cpu','parse count (total)','parse count (hard)','parse count (failures)','sorts (memory)','sorts (disk)' )  and value<>0");
-                        this.oraSesStatsPreparedStatement.setFetchSize(1000);
+                        oraSesStatsPreparedStatement = con.prepareStatement(ORASESSTATSQUERY);
+                        oraSesStatsPreparedStatement.setFetchSize(1000);
                         runSessStatsRoutines();
                         break;
                     case 2:
-                        this.oraSysStatsPreparedStatement = this.con.prepareStatement("select statistic#,value from v$sysstat where value<>0");
-                        this.oraSysStatsPreparedStatement.setFetchSize(500);
-                        this.oraSQLTextsPreparedStatement = this.con.prepareStatement("select sql_id,sql_text from v$sqlarea");
-                        this.oraSQLTextsPreparedStatement.setFetchSize(1000);
-                        this.oraStatNamesPreparedStatement = this.con.prepareStatement("select statistic#,name from v$statname");
-                        this.oraStatNamesPreparedStatement.setFetchSize(1000);
-                        this.oraSQLPlansPreparedStatement = this.con.prepareStatement("select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0");
-                        this.oraSQLPlansPreparedStatement.setFetchSize(1000);
+                        oraSysStatsPreparedStatement = con.prepareStatement(ORASYSSTATSQUERY);
+                        oraSysStatsPreparedStatement.setFetchSize(500);
+                        oraSQLTextsPreparedStatement = con.prepareStatement(ORASQLTEXTSQUERY);
+                        oraSQLTextsPreparedStatement.setFetchSize(1000);
+                        oraStatNamesPreparedStatement = con.prepareStatement(ORASTATNAMESQUERY);
+                        oraStatNamesPreparedStatement.setFetchSize(1000);
+                        oraSQLPlansPreparedStatement = con.prepareStatement(ORASQLPLANSQUERY);
+                        oraSQLPlansPreparedStatement.setFetchSize(1000);
                         runSysRoutines();
                         break;
                     case 3:
-                        this.oraSQLStatsPreparedStatement = this.con.prepareStatement("");
-                        this.oraSQLStatsPreparedStatement.setFetchSize(500);
+                        oraSQLStatsPreparedStatement = con.prepareStatement("");
+                        oraSQLStatsPreparedStatement.setFetchSize(500);
                         runSQLRoutines();
                         break;
                     default:
-                        this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbConnectionString + "\tUnknown thread type provided!");
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+                                dbConnectionString + "\t"+"Unknown thread type provided!"
+                        );
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (SQLException e) {
-                this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tCannot prepare statements for  Oracle database: " + this.dbConnectionString);
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                        "Cannot prepare statements for  Oracle database: " + dbConnectionString
+                );
             }
             cleanup();
         }

@@ -1,3 +1,19 @@
+/* 
+ * Copyright (C) 2017 Tribein
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package oraperf;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
@@ -42,13 +58,13 @@ public class StatProcessorCKH
   
   public StatProcessorCKH(int inpType, long inpTS, String inpDBName, String inpDBHost, ComboPooledDataSource ckhDS, List inpList)
   {
-    this.dbUniqueName = inpDBName;
-    this.dbHostName = inpDBHost;
-    this.dataList = inpList;
+    dbUniqueName = inpDBName;
+    dbHostName = inpDBHost;
+    dataList = inpList;
     
-    this.dataType = inpType;
-    this.ckhDataSource = ckhDS;
-    this.dataTS = inpTS;
+    dataType = inpType;
+    ckhDataSource = ckhDS;
+    dataTS = inpTS;
   }
   
   public void processIOFileStats(PreparedStatement prep, List lst, long currentDateTime)
@@ -59,32 +75,34 @@ public class StatProcessorCKH
       for (int i = 0; i < lst.size(); i++)
       {
         row = (List)lst.get(i);
-        prep.setString(1, this.dbUniqueName);
-        prep.setString(2, this.dbHostName);
+        prep.setString(1, dbUniqueName);
+        prep.setString(2, dbHostName);
         prep.setLong(3, currentDateTime);
         prep.setString(4, (String)row.get(0));
         prep.setString(5, (String)row.get(1));
-        prep.setLong(6, ((Long)row.get(2)).longValue());
-        prep.setLong(7, ((Long)row.get(3)).longValue());
-        prep.setLong(8, ((Long)row.get(4)).longValue());
-        prep.setLong(9, ((Long)row.get(5)).longValue());
-        prep.setLong(10, ((Long)row.get(6)).longValue());
-        prep.setLong(11, ((Long)row.get(7)).longValue());
-        prep.setLong(12, ((Long)row.get(8)).longValue());
-        prep.setLong(13, ((Long)row.get(9)).longValue());
-        prep.setLong(14, ((Long)row.get(10)).longValue());
-        prep.setLong(15, ((Long)row.get(11)).longValue());
-        prep.setLong(16, ((Long)row.get(12)).longValue());
-        prep.setLong(17, ((Long)row.get(13)).longValue());
-        prep.setLong(18, ((Long)row.get(14)).longValue());
-        prep.setLong(19, ((Long)row.get(15)).longValue());
+        prep.setLong(6, ((long)row.get(2)));
+        prep.setLong(7, ((long)row.get(3)));
+        prep.setLong(8, ((long)row.get(4)));
+        prep.setLong(9, ((long)row.get(5)));
+        prep.setLong(10, ((long)row.get(6)));
+        prep.setLong(11, ((long)row.get(7)));
+        prep.setLong(12, ((long)row.get(8)));
+        prep.setLong(13, ((long)row.get(9)));
+        prep.setLong(14, ((long)row.get(10)));
+        prep.setLong(15, ((long)row.get(11)));
+        prep.setLong(16, ((long)row.get(12)));
+        prep.setLong(17, ((long)row.get(13)));
+        prep.setLong(18, ((long)row.get(14)));
+        prep.setLong(19, ((long)row.get(15)));
         prep.addBatch();
       }
       prep.executeBatch();
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbUniqueName + "\t" + this.dbHostName + "\tError submitting io file stats data to ClickHouse!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error submitting io file stats data to ClickHouse!"
+      );
       
       e.printStackTrace();
     }
@@ -98,28 +116,30 @@ public class StatProcessorCKH
       for (int i = 0; i < lst.size(); i++)
       {
         row = (List)lst.get(i);
-        prep.setString(1, this.dbUniqueName);
-        prep.setString(2, this.dbHostName);
+        prep.setString(1, dbUniqueName);
+        prep.setString(2, dbHostName);
         prep.setLong(3, currentDateTime);
         prep.setString(4, (String)row.get(0));
         prep.setString(5, (String)row.get(1));
-        prep.setLong(6, ((Long)row.get(2)).longValue());
-        prep.setLong(7, ((Long)row.get(3)).longValue());
-        prep.setLong(8, ((Long)row.get(4)).longValue());
-        prep.setLong(9, ((Long)row.get(5)).longValue());
-        prep.setLong(10, ((Long)row.get(6)).longValue());
-        prep.setLong(11, ((Long)row.get(7)).longValue());
-        prep.setLong(12, ((Long)row.get(8)).longValue());
-        prep.setLong(13, ((Long)row.get(9)).longValue());
-        prep.setLong(14, ((Long)row.get(10)).longValue());
-        prep.setLong(15, ((Long)row.get(11)).longValue());
+        prep.setLong(6, ((long)row.get(2)));
+        prep.setLong(7, ((long)row.get(3)));
+        prep.setLong(8, ((long)row.get(4)));
+        prep.setLong(9, ((long)row.get(5)));
+        prep.setLong(10, ((long)row.get(6)));
+        prep.setLong(11, ((long)row.get(7)));
+        prep.setLong(12, ((long)row.get(8)));
+        prep.setLong(13, ((long)row.get(9)));
+        prep.setLong(14, ((long)row.get(10)));
+        prep.setLong(15, ((long)row.get(11)));
         prep.addBatch();
       }
       prep.executeBatch();
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbUniqueName + "\t" + this.dbHostName + "\tError submitting io function stats data to ClickHouse!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error submitting io function stats data to ClickHouse!"
+      );
       
       e.printStackTrace();
     }
@@ -133,11 +153,11 @@ public class StatProcessorCKH
       for (int i = 0; i < lst.size(); i++)
       {
         row = (List)lst.get(i);
-        prep.setString(1, this.dbUniqueName);
-        prep.setString(2, this.dbHostName);
+        prep.setString(1, dbUniqueName);
+        prep.setString(2, dbHostName);
         prep.setLong(3, currentDateTime);
-        prep.setInt(4, ((Integer)row.get(0)).intValue());
-        prep.setInt(5, ((Integer)row.get(1)).intValue());
+        prep.setInt(4, ((int)row.get(0)));
+        prep.setInt(5, ((int)row.get(1)));
         prep.setString(6, (String)row.get(2));
         prep.setString(7, (String)row.get(3));
         prep.setString(8, (String)row.get(4));
@@ -146,24 +166,26 @@ public class StatProcessorCKH
         prep.setString(11, (String)row.get(7));
         prep.setString(12, (String)row.get(8));
         prep.setString(13, (String)row.get(9));
-        prep.setInt(14, ((Integer)row.get(10)).intValue());
+        prep.setInt(14, ((int)row.get(10)));
         prep.setString(15, (String)row.get(11));
-        prep.setLong(16, ((Long)row.get(12)).longValue());
-        prep.setFloat(17, ((Float)row.get(13)).floatValue());
+        prep.setLong(16, ((long)row.get(12)));
+        prep.setFloat(17, ((Float)row.get(13)));
         prep.setString(18, (String)row.get(14));
-        prep.setLong(19, ((Long)row.get(15)).longValue());
-        prep.setInt(20, ((Integer)row.get(16)).intValue());
-        prep.setLong(21, ((Long)row.get(17)).longValue());
-        prep.setInt(22, ((Integer)row.get(18)).intValue());
-        prep.setLong(23, ((Long)row.get(19)).longValue());
-        prep.setLong(24, ((Long)row.get(20)).longValue());
+        prep.setLong(19, ((long)row.get(15)));
+        prep.setInt(20, ((int)row.get(16)));
+        prep.setLong(21, ((long)row.get(17)));
+        prep.setInt(22, ((int)row.get(18)));
+        prep.setLong(23, ((long)row.get(19)));
+        prep.setLong(24, ((long)row.get(20)));
         prep.addBatch();
       }
       prep.executeBatch();
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbUniqueName + "\t" + this.dbHostName + "\tError submitting sessions data to ClickHouse!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + 
+              "\t" + dbUniqueName + "\t" + dbHostName + "\tError submitting sessions data to ClickHouse!"
+      );
       
       e.printStackTrace();
     }
@@ -177,17 +199,19 @@ public class StatProcessorCKH
       for (int i = 0; i < lst.size(); i++)
       {
         row = (List)lst.get(i);
-        prep.setString(1, this.dbUniqueName);
+        prep.setString(1, dbUniqueName);
         prep.setLong(2, currentDateTime);
-        prep.setInt(3, ((Integer)row.get(0)).intValue());
-        prep.setLong(4, ((Long)row.get(1)).longValue());
+        prep.setInt(3, ((int)row.get(0)));
+        prep.setLong(4, ((long)row.get(1)));
         prep.addBatch();
       }
       prep.executeBatch();
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbUniqueName + "\t" + this.dbHostName + "\tError processing system statistics!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error processing system statistics!"
+      );
       
       e.printStackTrace();
     }
@@ -201,19 +225,21 @@ public class StatProcessorCKH
       for (int i = 0; i < lst.size(); i++)
       {
         row = (List)lst.get(i);
-        prep.setString(1, this.dbUniqueName);
+        prep.setString(1, dbUniqueName);
         prep.setLong(2, currentDateTime);
-        prep.setInt(3, ((Integer)row.get(0)).intValue());
-        prep.setInt(4, ((Integer)row.get(1)).intValue());
-        prep.setInt(5, ((Integer)row.get(2)).intValue());
-        prep.setLong(6, ((Long)row.get(3)).longValue());
+        prep.setInt(3, ((int)row.get(0)));
+        prep.setInt(4, ((int)row.get(1)));
+        prep.setInt(5, ((int)row.get(2)));
+        prep.setLong(6, ((long)row.get(3)));
         prep.addBatch();
       }
       prep.executeBatch();
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbUniqueName + "\t" + this.dbHostName + "\tError processing session statistics!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error processing session statistics!"
+      );
       
       e.printStackTrace();
     }
@@ -235,7 +261,9 @@ public class StatProcessorCKH
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbUniqueName + "\t" + this.dbHostName + "\tError processing sql texts!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error processing sql texts!"
+      );
       
       e.printStackTrace();
     }
@@ -249,8 +277,8 @@ public class StatProcessorCKH
       for (int i = 0; i < lst.size(); i++)
       {
         row = (List)lst.get(i);
-        prep.setString(1, this.dbUniqueName);
-        prep.setInt(2, ((Integer)row.get(0)).intValue());
+        prep.setString(1, dbUniqueName);
+        prep.setInt(2, ((int)row.get(0)));
         prep.setString(3, (String)row.get(1));
         prep.addBatch();
       }
@@ -258,7 +286,9 @@ public class StatProcessorCKH
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbUniqueName + "\t" + this.dbHostName + "\tError processing statistics names!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error processing statistics names!"
+      );
       
       e.printStackTrace();
     }
@@ -278,7 +308,9 @@ public class StatProcessorCKH
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbUniqueName + "\t" + this.dbHostName + "\tError processing sql stats!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error processing sql stats!"
+      );
       
       e.printStackTrace();
     }
@@ -293,14 +325,16 @@ public class StatProcessorCKH
       {
         row = (List)lst.get(i);
         prep.setString(1, (String)row.get(0));
-        prep.setLong(2, ((Long)row.get(1)).longValue());
+        prep.setLong(2, ((long)row.get(1)));
         prep.addBatch();
       }
       prep.executeBatch();
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\t" + this.dbUniqueName + "\t" + this.dbHostName + "\tError processing sql plans!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error processing sql plans!"
+      );
       
       e.printStackTrace();
     }
@@ -308,52 +342,54 @@ public class StatProcessorCKH
   
   public void run()
   {
-    this.lg = new SL4JLogger();
+    lg = new SL4JLogger();
     try
     {
-      Connection ckhConnection = this.ckhDataSource.getConnection();
+      Connection ckhConnection = ckhDataSource.getConnection();
       PreparedStatement ckhPreparedStatement = null;
-      switch (this.dataType)
+      switch (dataType)
       {
-      case 0: 
-        ckhPreparedStatement = ckhConnection.prepareStatement("insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        processSessions(ckhPreparedStatement, this.dataList, this.dataTS);
+      case RSSESSIONWAIT: 
+        ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSESSIONSQUERY);
+        processSessions(ckhPreparedStatement, dataList, dataTS);
         break;
-      case 8: 
-        ckhPreparedStatement = ckhConnection.prepareStatement("insert into iofilestats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        processIOFileStats(ckhPreparedStatement, this.dataList, this.dataTS);
+      case RSIOFILESTAT: 
+        ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTIOFILESTATSQUERY);
+        processIOFileStats(ckhPreparedStatement, dataList, dataTS);
         break;
-      case 9: 
-        ckhPreparedStatement = ckhConnection.prepareStatement("insert into iofunctionstats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        processIOFunctionStats(ckhPreparedStatement, this.dataList, this.dataTS);
+      case RSIOFUNCTIONSTAT: 
+        ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTIOFUNCTIONSTATSQUERY);
+        processIOFunctionStats(ckhPreparedStatement, dataList, dataTS);
         break;
-      case 1: 
-        ckhPreparedStatement = ckhConnection.prepareStatement("insert into sesstats_buffer values (?,?,?,?,?,?)");
-        processSesStats(ckhPreparedStatement, this.dataList, this.dataTS);
+      case RSSESSIONSTAT: 
+        ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSESSTATSQUERY);
+        processSesStats(ckhPreparedStatement, dataList, dataTS);
         break;
-      case 2: 
-        ckhPreparedStatement = ckhConnection.prepareStatement("insert into sysstats_buffer values (?,?,?,?)");
-        processSysStats(ckhPreparedStatement, this.dataList, this.dataTS);
+      case RSSYSTEMSTAT: 
+        ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSYSSTATSQUERY);
+        processSysStats(ckhPreparedStatement, dataList, dataTS);
         break;
-      case 6: 
-        ckhPreparedStatement = ckhConnection.prepareStatement("insert into sqltexts_buffer values (?,?)");
-        processSQLTexts(ckhPreparedStatement, this.dataList);
+      case RSSQLTEXT: 
+        ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSQLTEXTSQUERY);
+        processSQLTexts(ckhPreparedStatement, dataList);
         break;
-      case 7: 
-        ckhPreparedStatement = ckhConnection.prepareStatement("insert into statnames_buffer values (?,?,?)");
-        processStatNames(ckhPreparedStatement, this.dataList);
+      case RSSTATNAME: 
+        ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSTATNAMESQUERY);
+        processStatNames(ckhPreparedStatement, dataList);
         break;
-      case 5: 
-        ckhPreparedStatement = ckhConnection.prepareStatement("insert into sqlplans_buffer values (?,?)");
-        processSQLPlans(ckhPreparedStatement, this.dataList);
+      case RSSQLPHV: 
+        ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSQLPLANSQUERY);
+        processSQLPlans(ckhPreparedStatement, dataList);
         break;
-      case 3: 
-        ckhPreparedStatement = ckhConnection.prepareStatement("insert into sqlstats_buffer values ()");
+      case RSSQLSTAT: 
+        ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSQLSTATSQUERY);
         
         break;
       case 4: 
       default: 
-        this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tUnsupported run type: " + this.dataType);
+        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                "Unsupported run type: " + dataType
+        );
       }
       if ((ckhPreparedStatement != null) && (!ckhPreparedStatement.isClosed())) {
         ckhPreparedStatement.close();
@@ -361,11 +397,13 @@ public class StatProcessorCKH
       if ((ckhConnection != null) && (!ckhConnection.isClosed())) {
         ckhConnection.close();
       }
-      this.ckhDataSource = null;
+      ckhDataSource = null;
     }
     catch (SQLException e)
     {
-      this.lg.LogError(this.DATEFORMAT.format(LocalDateTime.now()) + "\tCannot connect to ClickHouse server!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+            "Cannot connect to ClickHouse server!"
+      );
       
       e.printStackTrace();
     }
