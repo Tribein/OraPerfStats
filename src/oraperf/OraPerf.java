@@ -147,7 +147,9 @@ public class OraPerf
         Class.forName("oracle.jdbc.driver.OracleDriver");
         break;
       default: 
-        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\tNo proper database list source was provided!");
+        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                "No proper database list source was provided!"
+        );
       }
       if (properties.getProperty("SESSIONS").compareToIgnoreCase("TRUE") == 0) {
         GATHERSESSIONS = true;
@@ -206,7 +208,9 @@ public class OraPerf
     }
     catch (Exception e)
     {
-      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\tCannot connect to ClickHouse server!");
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+              "Cannot connect to ClickHouse server!"
+      );
     }
     return null;
   }
@@ -217,13 +221,17 @@ public class OraPerf
       try
       {
         dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 0, ckhQueue));
-        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\tStarting sessions waits thread for " + dbLine);
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                "Starting sessions waits thread for " + dbLine
+        );
         
         ((Thread)dbSessionsList.get(dbLine)).start();
       }
       catch (Exception e)
       {
-        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\tError running sessions thread for " + dbLine);
+        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                "Error running sessions thread for " + dbLine
+        );
         
         e.printStackTrace();
       }
@@ -236,13 +244,17 @@ public class OraPerf
       try
       {
         dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 1, ckhQueue));
-        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\tStarting sessions stats thread for " + dbLine);
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                "Starting sessions stats thread for " + dbLine
+        );
         
         ((Thread)dbSessStatsList.get(dbLine)).start();
       }
       catch (Exception e)
       {
-        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\tError running sessions stats thread for " + dbLine);
+        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                "Error running sessions stats thread for " + dbLine
+        );
         
         e.printStackTrace();
       }
@@ -251,17 +263,25 @@ public class OraPerf
   
   private static void processSystemRoutines(String dbLine)
   {
-    if ((!dbSyssStatsList.containsKey(dbLine)) || (dbSyssStatsList.get(dbLine) == null) || (!((Thread)dbSyssStatsList.get(dbLine)).isAlive())) {
+    if (
+            dbSyssStatsList.get(dbLine) == null || 
+            !dbSyssStatsList.containsKey(dbLine) ||  
+            !((Thread)dbSyssStatsList.get(dbLine)).isAlive()
+    ) {
       try
       {
         dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 2, ckhQueue));
-        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\tStarting system stats thread for " + dbLine);
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                "Starting system stats thread for " + dbLine
+        );
         
         ((Thread)dbSyssStatsList.get(dbLine)).start();
       }
       catch (Exception e)
       {
-        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\tError running system stats thread for " + dbLine);
+        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                "Error running system stats thread for " + dbLine
+        );
         
         e.printStackTrace();
       }
@@ -273,7 +293,9 @@ public class OraPerf
     for (int i = 0; i < CKHQUEUECONSUMERS; i++) {
       if ((ckhQueueThreads[i] == null) || (!ckhQueueThreads[i].isAlive()))
       {
-        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\tStarting clickhouse queue consumer #" + i);
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+                "Starting clickhouse queue consumer #" + i
+        );
         
         ckhQueueThreads[i] = new CkhQueueConsumer(ckhQueue, CKHDataSource);
         ckhQueueThreads[i].start();
@@ -284,7 +306,7 @@ public class OraPerf
   public static void main(String[] args)
     throws InterruptedException
   {
-    if (!processProperties("oraperf.properties")) {
+    if (!processProperties(PROPERTIESFILENAME)) {
       System.exit(1);
     }
     configureLogger();
@@ -297,8 +319,8 @@ public class OraPerf
     if (CKHDataSource == null) {
       System.exit(2);
     }
-    lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\tStarting");
-    for (;;)
+    lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+"Starting");
+    while(true)
     {
       processCKHQueueConsumers();
       
@@ -316,7 +338,7 @@ public class OraPerf
           processSystemRoutines(dbLine);
         }
       }
-      TimeUnit.SECONDS.sleep(60L);
+      TimeUnit.SECONDS.sleep(SECONDSTOSLEEP);
     }
   }
 }

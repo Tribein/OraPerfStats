@@ -80,8 +80,8 @@ public class StatCollector
         try {
             while ((rs != null) && (rs.next())) {
                 List rowList = new ArrayList();
-                rowList.add(Integer.valueOf(rs.getInt(1)));
-                rowList.add(Integer.valueOf(rs.getInt(2)));
+                rowList.add(rs.getInt(1));
+                rowList.add(rs.getInt(2));
                 rowList.add(rs.getString(3));
                 rowList.add(rs.getString(4).substring(0, 1));
                 rowList.add(rs.getString(5));
@@ -90,17 +90,17 @@ public class StatCollector
                 rowList.add(rs.getString(8));
                 rowList.add(rs.getString(9).substring(0, 1));
                 rowList.add(rs.getString(10));
-                rowList.add(Integer.valueOf(rs.getInt(11)));
+                rowList.add(rs.getInt(11));
                 rowList.add(rs.getString(12));
-                rowList.add(Long.valueOf(rs.getLong(13)));
-                rowList.add(Float.valueOf(rs.getFloat(14)));
+                rowList.add(rs.getLong(13));
+                rowList.add(rs.getFloat(14));
                 rowList.add(rs.getString(15));
-                rowList.add(Long.valueOf(rs.getTimestamp(16).getTime() / 1000L));
-                rowList.add(Integer.valueOf(rs.getInt(17)));
+                rowList.add(rs.getTimestamp(16).getTime() / 1000L);
+                rowList.add(rs.getInt(17));
                 rowList.add(Long.valueOf(rs.getTimestamp(18).getTime() / 1000L));
-                rowList.add(Integer.valueOf(rs.getInt(19)));
+                rowList.add(rs.getInt(19));
                 rowList.add((long) new BigDecimal(rs.getDouble(20)).setScale(0, RoundingMode.HALF_UP).doubleValue() );
-        rowList.add(Long.valueOf(rs.getLong(21)));
+        rowList.add(rs.getLong(21));
                 outList.add(rowList);
             }
             rs.close();
@@ -179,9 +179,9 @@ public class StatCollector
         try {
             while ((rs != null) && (rs.next())) {
                 List rowList = new ArrayList();
-                rowList.add(Integer.valueOf(rs.getInt(1)));
-                rowList.add(Integer.valueOf(rs.getInt(2)));
-                rowList.add(Integer.valueOf(rs.getInt(3)));
+                rowList.add(rs.getInt(1));
+                rowList.add(rs.getInt(2));
+                rowList.add(rs.getInt(3));
                 rowList.add((long) new BigDecimal(rs.getDouble(4)).setScale(0, RoundingMode.HALF_UP).doubleValue());
                 outList.add(rowList);
             }
@@ -229,15 +229,15 @@ public class StatCollector
                 List rowList = new ArrayList();
                 rowList.add(rs.getString(1));
                 rowList.add(rs.getString(2));
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(3)).longValue()));
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(4)).longValue()));
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(5)).longValue()));
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(6)).longValue()));
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(7)).longValue()));
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(8)).longValue()));
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(9)).longValue()));
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(10)).longValue()));
-                rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(11)).longValue()));
+                rowList.add(new BigDecimal(rs.getDouble(3)).longValue());
+                rowList.add(new BigDecimal(rs.getDouble(4)).longValue());
+                rowList.add(new BigDecimal(rs.getDouble(5)).longValue());
+                rowList.add(new BigDecimal(rs.getDouble(6)).longValue());
+                rowList.add(new BigDecimal(rs.getDouble(7)).longValue());
+                rowList.add(new BigDecimal(rs.getDouble(8)).longValue());
+                rowList.add(new BigDecimal(rs.getDouble(9)).longValue());
+                rowList.add(new BigDecimal(rs.getDouble(10)).longValue());
+                rowList.add(new BigDecimal(rs.getDouble(11)).longValue());
                 rowList.add(Long.valueOf(new BigDecimal(rs.getDouble(12)).longValue()));
                 outList.add(rowList);
             }
