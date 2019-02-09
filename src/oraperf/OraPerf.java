@@ -217,7 +217,7 @@ public class OraPerf
       cpds.setAcquireIncrement(100);
       cpds.setMaxPoolSize(4096);
       cpds.setMaxIdleTime(180);
-      
+      cpds.setNumHelperThreads(8);
       cpds.setForceSynchronousCheckins(true);
       return cpds;
     }

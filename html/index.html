@@ -9,7 +9,9 @@
     <script type="text/javascript">
             google.charts.load('current', {'packages': ['corechart']});
             google.charts.load('current', {'packages': ['table']});
+            //google.charts.load("current", {packages:["timeline"]});
             //google.charts.load('current', {'packages':['bar']});
+            
             google.charts.setOnLoadCallback(drawWaitsChart);
             var arrLocksTreeColumns = ['SID', 'Serial', 'Machine', 'Module', 'Program', 'Logon Time', 'SQLID', 'SQL Exec Start Time', 'Event', 'SEQUENCE', 'P1', 'P2', 'Blocking Session'];
             var arrWaitClass = [
@@ -101,6 +103,19 @@
                 }
                 return tree;
             }
+            //--------------------------------------------------------------
+            function getDatefromSnapTime( ts ){
+				return 
+					new Date(
+						ts.substring(0,4), 
+						Number(ts.substring(5,7))-1, 
+						ts.substring(8,10), 
+						ts.substring(11,13), 
+						ts.substring(14,16), 
+						ts.substring(17,20), 
+						0
+					);
+			}
             //--------------------------------------------------------------
             function preDraw() {
                 te = new Date();
@@ -309,7 +324,7 @@
                         "select sid,serial,module,machine,schemaname,count(1) as ni " +
                         "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' and classnum<>6 " +
                         "group by sid,serial,module,machine,schemaname having count(1)>0 order by ni desc" +
-                        ") limit 10" +
+                        ") limit 20" +
                         ") using sid,serial,module,machine,schemaname " +
                         "order by ni desc,sid asc,cnt asc";
                 //document.getElementById("query").innerHTML=sessionsQuery;
@@ -321,7 +336,7 @@
                 data.addRows(parseSessionsData(getData(sessionsQuery)));
                 var options = {
                     title: 'Sessions',
-                    width: '38%',
+                    width: '48%',
                     //height: '100%',
                     allowHtml: true,
                     showRowNumber: false,
@@ -339,6 +354,7 @@
                     } else {
                         var sel = sessionsTable.getSelection();
                         drawStatsTable(data.getValue(sel[0].row, 0).split(',')[0],data.getValue(sel[0].row, 0).split(',')[1]);
+                        drawSessionSQLs(data.getValue(sel[0].row, 0).split(',')[0],data.getValue(sel[0].row, 0).split(',')[1]);
                         document.getElementById('statsregion').scrollIntoView();
                     }
                 }
@@ -362,7 +378,7 @@
                         "select sql_id,count(1) as ni from sessions_buffer " +
                         "where classnum<>6 and toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
                         "group by sql_id having count(1)>0 order by ni desc" +
-                        ") limit 10" +
+                        ") limit 20" +
                         ") using sql_id order by ni desc,sql_id,cnt asc";
                 //alert(sqlsQuery);
                 var data = new google.visualization.DataTable();
@@ -371,7 +387,7 @@
                 data.addRows(parseSQLsData(getData(sqlsQuery)));
                 var options = {
                     title: 'SQL',
-                    width: '58%',
+                    width: '48%',
                     //height: '100%',
                     allowHtml: true,
                     showRowNumber: false,
@@ -432,6 +448,35 @@
                 statsTable.draw(data, options);
             }
             //--STATS
+            //--SESSIONSQLS            
+            function drawSessionSQLs(inputsid,inputserial) {
+                if (typeof inputsid === 'undefined') {
+                    return null;
+                }
+				var drawRegion = "sessionsqlsregion";
+                var SessionSQLsQuery = "select snapTime, "+
+					"sipHash64(concat(toString(sql_id),toString(sql_exec_start))) as numid, "+
+					"concat(toString(sql_id),concat(' (',concat(toString(sql_exec_start),')'))) as sql "+
+					" from sessions_buffer where snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "' and "+
+					" dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and serial="+ inputserial + " and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0'"
+					" order by snapTime asc";
+				//alert(SessionSQLsQuery);
+                var data = new google.visualization.DataTable();
+                data.addColumn('string', 'SnapTime');
+                data.addColumn('string', 'SQLs for SID ' + inputsid);
+                data.addRows(parseSessionSqlsData(getData(SessionSQLsQuery)));
+                var options = {
+                    title: 'SQLs fo sesion '+inputsid+','+inputserial,
+                    width: '100%',
+                    allowHtml: true,
+                    showRowNumber: false,
+                    backgroundColor: {fill: 'transparent'},
+                    cssClassNames: { tableCell: 'sc' }            
+                };
+                sessionSQLsChart = new google.visualization.Table(document.getElementById(drawRegion));
+                sessionSQLsChart.draw(data, options);
+            }
+            //--SESSIONSQLS            
             //--SQLTEXT
             function getSQLText(sqlid){
 				if(sqlid.length == 13){
@@ -498,6 +543,39 @@
                 }
                 return outData;
             }
+            //--
+            function parseSessionSqlsData(inputData) {
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                //var tmpData = [];
+                var rowData = [];
+                //var tmpIdx = [];
+                //var k = 0;
+                //var idx;
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+                        /*
+                        idx = Number(rowData[1]);
+                        if (typeof tmpIdx[idx] === 'undefined') {
+                            tmpIdx[idx] = k;
+                            tmpData[k] = [rowData[2] , rowData[0], rowData[0]];
+                            k++;
+                        } else {
+                            tmpData[tmpIdx[idx]][2] = rowData[0];
+                        }
+                        */
+						outData.push([rowData[0],rowData[2]]);
+                    }
+                }
+                /*
+                for (var si in tmpData) {
+                    outData.push(tmpData[si]);
+                }
+				alert(outData);
+				*/
+                return outData;
+            }            
             //--
             function parseWaitsData(inputData) {
                 var dataLines = inputData.split(/[\n]+/);
@@ -699,5 +777,6 @@
 		<span id="sessionsregion"></span>
 	</div>
 	<div id="statsregion"></div>
+	<div id="sessionsqlsregion"></div>
   </body>
 </html>
