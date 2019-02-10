@@ -9,7 +9,7 @@
     <script type="text/javascript">
             google.charts.load('current', {'packages': ['corechart']});
             google.charts.load('current', {'packages': ['table']});
-            //google.charts.load("current", {packages:["timeline"]});
+            google.charts.load("current", {packages:["timeline"]});
             //google.charts.load('current', {'packages':['bar']});
             
             google.charts.setOnLoadCallback(drawWaitsChart);
@@ -104,19 +104,6 @@
                 return tree;
             }
             //--------------------------------------------------------------
-            function getDatefromSnapTime( ts ){
-				return 
-					new Date(
-						ts.substring(0,4), 
-						Number(ts.substring(5,7))-1, 
-						ts.substring(8,10), 
-						ts.substring(11,13), 
-						ts.substring(14,16), 
-						ts.substring(17,20), 
-						0
-					);
-			}
-            //--------------------------------------------------------------
             function preDraw() {
                 te = new Date();
                 ts = new Date(te.getTime() - 1000 * 60 * spanMinutes);
@@ -131,6 +118,20 @@
                         ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
                         ;
             }
+			//--------------------------------------------------------------            
+            function getDatefromSnapTime( ts ){
+				var out = new Date(
+					ts.substring(0,4), 
+					Number(ts.substring(5,7))-1, 
+					ts.substring(8,10), 
+					ts.substring(11,13), 
+					ts.substring(14,16), 
+					ts.substring(17,20), 
+					0
+				).getTime();
+				return out;
+			}
+            //--------------------------------------------------------------            
             //------WAITS
             function drawWaitsChart() {
                 preDraw();				
@@ -459,23 +460,59 @@
 					"concat(toString(sql_id),concat(' (',concat(toString(sql_exec_start),')'))) as sql "+
 					" from sessions_buffer where snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "' and "+
 					" dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and serial="+ inputserial + " and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0'"
-					" order by snapTime asc";
+					" order by sql_exec_start asc";
 				//alert(SessionSQLsQuery);
                 var data = new google.visualization.DataTable();
-                data.addColumn('string', 'SnapTime');
-                data.addColumn('string', 'SQLs for SID ' + inputsid);
-                data.addRows(parseSessionSqlsData(getData(SessionSQLsQuery)));
+                data.addColumn({type: 'string', id: 'SQL'});
+                data.addColumn({type: 'date', id: 'FirstSnapTime'});
+				data.addColumn({type: 'date', id: 'LastSnapTime'});
+				var tmpData = parseSessionSqlsData(getData(SessionSQLsQuery));
+				var ts1;
+				var ts2;
+				var tt;
+				for (var i=0;i<tmpData.length; i++){
+					ts1 = getDatefromSnapTime(tmpData[i][1]);
+					ts2 = getDatefromSnapTime(tmpData[i][2]);
+					if (ts2<ts1){
+						tt=ts2;
+						ts2=ts1;
+						ts1=tt;
+					}
+					if (ts1 == ts2){
+						ts2 = ts2+10000;
+					}
+					data.addRow(
+						[
+							tmpData[i][0],
+							new Date(ts1),
+							new Date(ts2)
+						]
+					);
+				}
                 var options = {
                     title: 'SQLs fo sesion '+inputsid+','+inputserial,
                     width: '100%',
-                    allowHtml: true,
-                    showRowNumber: false,
-                    backgroundColor: {fill: 'transparent'},
-                    cssClassNames: { tableCell: 'sc' }            
+                    height: 500,
+                    backgroundColor: {fill: 'transparent'},         
                 };
-                sessionSQLsChart = new google.visualization.Table(document.getElementById(drawRegion));
-                sessionSQLsChart.draw(data, options);
-            }
+                data.sort([{column: 2}]);
+                sessionSQLsChart = new google.visualization.Timeline(document.getElementById(drawRegion));
+                sessionSQLsChart.draw(data,options);
+                
+                function sessSQLIdSelectHandler(e) {
+                    if (sessionSQLsChart.getSelection().length !== 0) {
+                        var sel = sessionSQLsChart.getSelection();
+                        var sqlid  = data.getValue(sel[0].row, 0).split(' ')[0];
+                        document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
+							sqlid+
+							'</b>:<br />'+
+							getSQLText(sqlid.replace(/\\n/g,'<br />').replace(/\\\'/g,"'"))+
+							'</span>';
+                        document.getElementById('sqltextregion').scrollIntoView();
+                    }
+                }
+                google.visualization.events.addListener(sessionSQLsChart, 'select', sessSQLIdSelectHandler);                 
+             }
             //--SESSIONSQLS            
             //--SQLTEXT
             function getSQLText(sqlid){
@@ -547,33 +584,27 @@
             function parseSessionSqlsData(inputData) {
                 var dataLines = inputData.split(/[\n]+/);
                 var outData = [];
-                //var tmpData = [];
+                var tmpData = [];
                 var rowData = [];
-                //var tmpIdx = [];
-                //var k = 0;
-                //var idx;
+                var tmpIdx = [];
+                var k = 0;
+                var idx;                
                 for (var i = 0; i < dataLines.length; i++) {
                     if (dataLines[i].length > 0) {
                         rowData = dataLines[i].split(/[\t]+/);
-                        /*
                         idx = Number(rowData[1]);
                         if (typeof tmpIdx[idx] === 'undefined') {
                             tmpIdx[idx] = k;
-                            tmpData[k] = [rowData[2] , rowData[0], rowData[0]];
+                            tmpData[k] = [rowData[2], rowData[0], rowData[0]];
                             k++;
                         } else {
                             tmpData[tmpIdx[idx]][2] = rowData[0];
                         }
-                        */
-						outData.push([rowData[0],rowData[2]]);
                     }
                 }
-                /*
                 for (var si in tmpData) {
                     outData.push(tmpData[si]);
-                }
-				alert(outData);
-				*/
+                }                
                 return outData;
             }            
             //--
@@ -742,11 +773,6 @@
                 }
                 //--
                 outData.push(arrLocksTreeColumns);
-                /*
-                 for (var lti in tmpData) {
-                 outData.push(tmpData[lti]);
-                 }
-                 */
                 for (var i = 0; i < arrSIDSorted.length; i++) {
                     if (arrSIDLevel[i] === 0) {
                         tmpData[arrSIDSorted[i]][0] = '<strong>' + tmpData[arrSIDSorted[i]][0] + '</strong>';
