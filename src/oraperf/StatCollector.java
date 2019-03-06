@@ -71,7 +71,44 @@ public class StatCollector
     private boolean shutdown = false;
     private final BlockingQueue<OraCkhMsg> ckhQueue;
     private static final String ORASYSSTATSQUERY = "select statistic#,value from v$sysstat where value<>0";
-    private static final String ORASESSWAITSQUERY = "select   sid,  serial#,  decode(taddr,null,'N','Y'),  status,  nvl(username,schemaname),  nvl(osuser,'-'),  nvl(machine,'-'),  nvl(program,'-'),  type,  nvl(module,'-'),  nvl(blocking_session,0),  decode(state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',event),   decode(state,'WAITED KNOWN TIME',127,'WAITED SHORT TIME',127,wait_class#),  round(wait_time_micro/1000000,3),  nvl(sql_id,'-'),  nvl(sql_exec_start,to_date('19700101','YYYYMMDD')),  sql_exec_id,  logon_time,  seq#,  nvl(p1,0),  nvl(p2,0)  from gv$session a  where sid<>sys_context('USERENV','SID') and (  wait_class#<>6 or exists  ( select 1 from gv$session b where a.inst_id=b.inst_id and (a.sid = b.blocking_session or a.sid = b.final_blocking_session) )  )";
+    private static final String ORASESSWAITSQUERY = "SELECT " +
+    "    a.sid, " +
+    "    a.serial#, " +
+    "    DECODE(a.taddr,NULL,'N','Y'), " +
+    "    a.status, " +
+    "    nvl(a.username,a.schemaname), " +
+    "    nvl(a.osuser,'-'), " +
+    "    nvl(a.machine,'-'), " +
+    "    nvl(a.program,'-'), " +
+    "    a.type, " +
+    "    nvl(a.module,'-'), " +
+    "    nvl(a.blocking_session,0), " +
+    "    DECODE(a.state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',a.event), " +
+    "    DECODE(a.state,'WAITED KNOWN TIME',127,'WAITED SHORT TIME',127,a.wait_class#), " +
+    "    round(a.wait_time_micro / 1000000,3), " +
+    "    nvl(a.sql_id,'-'), " +
+    "    nvl(a.sql_exec_start,TO_DATE('19700101','YYYYMMDD')), " +
+    "    a.sql_exec_id, " +
+    "    a.logon_time, " +
+    "    a.seq#, " +
+    "    nvl(a.p1,0), " +
+    "    nvl(a.p2,0) " +
+    "    FROM " +
+    "    v$session a " +
+    "    join v$session b on ( " +
+    "        a.sid <> sys_context('USERENV','SID') " +
+    "        and ( " +
+    "            (a.wait_class# <> 6 and a.sid=b.sid) " +
+    "            or ( " +
+    "                a.sid<>b.sid and a.wait_class#=6 " +
+    "                and ( " +
+    "                    a.sid = b.blocking_session " +
+    "                    or " +
+    "                    a.sid = b.final_blocking_session" +
+    "                )" +
+    "            )" +
+    "        )" +
+    "    )";
     private static final String ORASESSTATSQUERY = "select sid,sserial,statistic#,value from (select sid,serial# sserial from v$session where type='USER' and sid<>sys_context('USERENV','SID') and ( wait_class#<>6 or (wait_class#=6 and seconds_in_wait < 10) )) join v$sesstat using(sid) join v$statname using(statistic#) where name in ( 'Requests to/from client','user commits','user rollbacks','user calls','recursive calls','recursive cpu usage','DB time','session pga memory','physical read total bytes','physical write total bytes','db block changes','redo size','redo size for direct writes','table fetch by rowid','table fetch continued row','lob reads','lob writes','index fetch by key','sql area evicted','session cursor cache hits','session cursor cache count','queries parallelized','Parallel operations not downgraded','Parallel operations downgraded to serial','parse time cpu','parse count (total)','parse count (hard)','parse count (failures)','sorts (memory)','sorts (disk)' )  and value<>0";
     private static final String ORASQLTEXTSQUERY = "select sql_id,sql_text from v$sqlarea";
     private static final String ORASQLPLANSQUERY = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0";
