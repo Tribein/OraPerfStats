@@ -26,7 +26,66 @@ public class SesCollector {
     private PreparedStatement oraSesStatsPreparedStatement;
     private long currentDateTime;
     private boolean shutdown = false;
-    private static final String ORASESSTATSQUERY = "select sid,sserial,statistic#,value from (select sid,serial# sserial from v$session where type='USER' and sid<>sys_context('USERENV','SID') and ( wait_class#<>6 or (wait_class#=6 and seconds_in_wait < 10) )) join v$sesstat using(sid) join v$statname using(statistic#) where name in ( 'Requests to/from client','user commits','user rollbacks','user calls','recursive calls','recursive cpu usage','DB time','session pga memory','physical read total bytes','physical write total bytes','db block changes','redo size','redo size for direct writes','table fetch by rowid','table fetch continued row','lob reads','lob writes','index fetch by key','sql area evicted','session cursor cache hits','session cursor cache count','queries parallelized','Parallel operations not downgraded','Parallel operations downgraded to serial','parse time cpu','parse count (total)','parse count (hard)','parse count (failures)','sorts (memory)','sorts (disk)' )  and value<>0";
+    private static final String ORASESSTATSQUERY = 
+            "SELECT " +
+            "    sid, " +
+            "    sserial, " +
+            "    statistic#, " +
+            "    value " +
+            "FROM " +
+            "    ( " +
+            "        SELECT " +
+            "            sid, " +
+            "            serial# sserial " +
+            "        FROM " +
+            "            v$session " +
+            "        WHERE " +
+            "            type = 'USER' " +
+            "            AND sid <> sys_context('USERENV','SID') " +
+            "            AND ( " +
+            "                wait_class# <> 6 " +
+            "                OR ( " +
+            "                    wait_class# = 6 " +
+            "                    AND seconds_in_wait < 10 " +
+            "                ) " +
+            "            ) " +
+            "    ) a " +
+            "    JOIN v$sesstat b USING ( sid ) " +
+            "    JOIN v$statname c USING ( statistic# ) " +
+            "WHERE" +
+            "    name IN (" +
+            "        'Requests to/from client'," +
+            "        'user commits'," +
+            "        'user rollbacks'," +
+            "        'user calls'," +
+            "        'recursive calls'," +
+            "        'recursive cpu usage'," +
+            "        'DB time'," +
+            "        'session pga memory'," +
+            "        'physical read total bytes'," +
+            "        'physical write total bytes'," +
+            "        'db block changes'," +
+            "        'redo size'," +
+            "        'redo size for direct writes'," +
+            "        'table fetch by rowid'," +
+            "        'table fetch continued row'," +
+            "        'lob reads'," +
+            "        'lob writes'," +
+            "        'index fetch by key'," +
+            "        'sql area evicted'," +
+            "        'session cursor cache hits'," +
+            "        'session cursor cache count'," +
+            "        'queries parallelized'," +
+            "        'Parallel operations not downgraded'," +
+            "        'Parallel operations downgraded to serial'," +
+            "        'parse time cpu'," +
+            "        'parse count (total)'," +
+            "        'parse count (hard)'," +
+            "        'parse count (failures)'," +
+            "        'sorts (memory)'," +
+            "        'sorts (disk)'" +
+            "    ) " +
+            "    AND b.value <> 0";
     private final BlockingQueue<OraCkhMsg> ckhQueue;    
 
     public SesCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr){
