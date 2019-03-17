@@ -239,6 +239,7 @@ public class SysCollector {
             shutdown = true;
         }
         while (!shutdown) {
+            begints = System.currentTimeMillis();
             try {
                 currentDateTime = Instant.now().getEpochSecond();
                 oraSysStatsPreparedStatement.execute();
@@ -255,7 +256,6 @@ public class SysCollector {
                 e.printStackTrace();
             }
             if( ( (snapcounter>=5) && (snapcounter!=30) && (snapcounter % 5 == 0) || (snapcounter==0) ) ){
-                begints = System.currentTimeMillis();
                 if(!shutdown){
                     try{
                         oraFilesSizePreparedStatement.execute();
@@ -285,15 +285,10 @@ public class SysCollector {
                         shutdown = true;
                         e.printStackTrace();
                     }                                        
-                }
-                endts = System.currentTimeMillis();
-                if (endts - begints < SECONDSBETWEENSYSSTATSSNAPS*1000L) {
-                    TimeUnit.SECONDS.sleep(SECONDSBETWEENSYSSTATSSNAPS - (int) ((endts - begints) / 1000L));
-                }                
+                }          
             }
-            if (snapcounter == 30) {
+            else if (snapcounter == 30) {
                 snapcounter = 0;
-                begints = System.currentTimeMillis();
                 if (!shutdown) {
                     try {
                         oraSQLPlansPreparedStatement.execute();
@@ -326,14 +321,12 @@ public class SysCollector {
                         e.printStackTrace();
                     }
                 }
-                endts = System.currentTimeMillis();
-                if (endts - begints < SECONDSBETWEENSYSSTATSSNAPS*1000L) {
-                    TimeUnit.SECONDS.sleep(SECONDSBETWEENSYSSTATSSNAPS - (int) ((endts - begints) / 1000L));
-                }
-            } else {
-                TimeUnit.SECONDS.sleep(SECONDSBETWEENSYSSTATSSNAPS);
-                snapcounter++;
+            } 
+            endts = System.currentTimeMillis();
+            if (endts - begints < SECONDSBETWEENSYSSTATSSNAPS*1000L) {
+                TimeUnit.SECONDS.sleep(SECONDSBETWEENSYSSTATSSNAPS - (int) ((endts - begints) / 1000L));
             }
+            snapcounter++;
         }   
         cleanup();
     }
