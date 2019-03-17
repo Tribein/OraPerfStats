@@ -1,0 +1,2 @@
+CREATE TABLE oradb.dbfiles ( dbuniquename String,  hostname String,  snapTime DateTime,  fileType UInt8,  fileId UInt32,  fileName String,  sizeMb UInt32,  autoExt FixedString(1),  maxSizeMb UInt32,  tsName String) ENGINE = ReplicatedMergeTree('/clickhouse/tables/dbfiles', '{replica}') PARTITION BY toYYYYMM(snapTime) ORDER BY (dbuniquename, snapTime) SETTINGS index_granularity = 8192;
+create table oradb.dbfiles_buffer as oradb.dbfiles ENGINE = Buffer('oradb', 'dbfiles', 16, 14400, 86400, 100000, 1000000, 10000000, 100000000);

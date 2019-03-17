@@ -1,0 +1,2 @@
+CREATE TABLE oradb.segments ( dbuniquename String,  hostname String,  snapTime DateTime,  owner String,  segName String,  partName String,  segType String, tsName String, sizeMb UInt32) ENGINE = ReplicatedMergeTree('/clickhouse/tables/segments', '{replica}') PARTITION BY toYYYYMM(snapTime) ORDER BY (dbuniquename, snapTime) SETTINGS index_granularity = 8192;
+create table oradb.segments_buffer as oradb.segments ENGINE = Buffer('oradb', 'segments', 16, 14400, 86400, 100000, 1000000, 10000000, 100000000);

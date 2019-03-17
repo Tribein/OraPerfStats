@@ -23,6 +23,8 @@ public class StatProcessorCKH
   private final int RSSTATNAME = 7;
   private final int RSIOFILESTAT = 8;
   private final int RSIOFUNCTIONSTAT = 9;
+  private final int RSFILESSIZE = 10;
+  private final int RSSEGMENTSSIZE = 11;
   private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
   private ComboPooledDataSource ckhDataSource;
   private final int dataType;
@@ -39,16 +41,17 @@ public class StatProcessorCKH
   private final String CKHINSERTSTATNAMESQUERY = "insert into statnames_buffer values (?,?,?)";
   private final String CKHINSERTIOFILESTATSQUERY = "insert into iofilestats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
   private final String CKHINSERTIOFUNCTIONSTATSQUERY = "insert into iofunctionstats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+  private final String CKHINSERTFILESSIZEQUERY = "insert into dbfiles_buffer values(?,?,?,?,?,?,?,?,?,?)";
+  private final String CKHINSERTSEGMENTSSIZEQUERY = "insert into segments_buffer values(?,?,?,?,?,?,?,?,?)";
   
   public StatProcessorCKH(int inpType, long inpTS, String inpDBName, String inpDBHost, ComboPooledDataSource ckhDS, List inpList)
   {
-    dbUniqueName = inpDBName;
-    dbHostName = inpDBHost;
-    dataList = inpList;
-    
-    dataType = inpType;
-    ckhDataSource = ckhDS;
-    dataTS = inpTS;
+    dbUniqueName        = inpDBName;
+    dbHostName          = inpDBHost;
+    dataList            = inpList;
+    dataType            = inpType;
+    ckhDataSource       = ckhDS;
+    dataTS              = inpTS;
   }
   
   public void processIOFileStats(PreparedStatement prep, List lst, long currentDateTime)
@@ -324,6 +327,69 @@ public class StatProcessorCKH
     }
   }
   
+  public void processFilesSize(PreparedStatement prep, List lst, long currentDateTime)
+  {
+    List row = new ArrayList();
+    try
+    {
+      for (int i = 0; i < lst.size(); i++)
+      {
+        row = (List)lst.get(i);
+        prep.setString(1,   dbUniqueName);
+        prep.setString(2,   dbHostName);
+        prep.setLong(3,     currentDateTime);
+        prep.setInt(4,      ((int)row.get(0)));
+        prep.setInt(5,      ((int)row.get(1)));
+        prep.setString(6,   ((String)row.get(2)));
+        prep.setLong(7,     ((long)row.get(3)));        
+        prep.setString(8,   ((String)row.get(4)));
+        prep.setLong(9,     ((long)row.get(5)));        
+        prep.setString(10,  ((String)row.get(6)));
+        prep.addBatch();
+      }
+      prep.executeBatch();
+    }
+    catch (SQLException e)
+    {
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error processing file size!"
+      );
+      
+      e.printStackTrace();
+    }
+  }  
+
+  public void processSegmentsSize(PreparedStatement prep, List lst, long currentDateTime)
+  {
+    List row = new ArrayList();
+    try
+    {
+      for (int i = 0; i < lst.size(); i++)
+      {
+        row = (List)lst.get(i);
+        prep.setString(1,   dbUniqueName);
+        prep.setString(2,   dbHostName);
+        prep.setLong(3,     currentDateTime);
+        prep.setString(4,   ((String)row.get(0)));
+        prep.setString(5,   ((String)row.get(1)));
+        prep.setString(6,   ((String)row.get(2)));
+        prep.setString(7,   ((String)row.get(3)));    
+        prep.setString(8,   ((String)row.get(4)));
+        prep.setLong(9,     ((long)row.get(5)));        ;        
+        prep.addBatch();
+      }
+      prep.executeBatch();
+    }
+    catch (SQLException e)
+    {
+      lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
+              dbUniqueName + "\t" + dbHostName + "\t"+"Error processing segment size!"
+      );
+      
+      e.printStackTrace();
+    }
+  }    
+  
   public void run()
   {
     lg = new SL4JLogger();
@@ -367,9 +433,17 @@ public class StatProcessorCKH
         break;
       case RSSQLSTAT: 
         ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSQLSTATSQUERY);
-        
         break;
-      case 4: 
+      case RSSEGMENTSTAT: 
+          break;
+      case RSFILESSIZE:
+          ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTFILESSIZEQUERY);
+          processFilesSize(ckhPreparedStatement,dataList,dataTS);
+          break;
+      case RSSEGMENTSSIZE:
+          ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSEGMENTSSIZEQUERY);
+          processSegmentsSize(ckhPreparedStatement,dataList, dataTS);
+          break;
       default: 
         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                 "Unsupported run type: " + dataType

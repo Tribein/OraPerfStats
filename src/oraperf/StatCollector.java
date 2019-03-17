@@ -24,13 +24,13 @@ public class StatCollector
     private boolean shutdown = false;
 
     public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, int runTType, BlockingQueue<OraCkhMsg> queue) {
-        dbConnectionString = inputString;
-        dbUniqueName = inputString.split("/")[1];
-        dbHostName = inputString.split(":")[0];
-        dbUserName = dbUSN;
-        dbPassword = dbPWD;
-        threadType = runTType;
-        ckhQueue = queue;
+        dbConnectionString      = inputString;
+        dbUniqueName            = inputString.split("/")[1];
+        dbHostName              = inputString.split(":")[0];
+        dbUserName              = dbUSN;
+        dbPassword              = dbPWD;
+        threadType              = runTType;
+        ckhQueue                = queue;
     }
 
     private void cleanup() {
