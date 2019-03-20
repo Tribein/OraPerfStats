@@ -433,7 +433,7 @@
 							") using statId,dbuniquename where (endvalue-beginvalue)<>0 ) "+
 							" any left join statnames_buffer using statId,dbuniquename " +
 							"order by vl desc";
-				alert(statsQuery);
+				//alert(statsQuery);
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'Statistic for SID ' + inputsid);
                 data.addColumn('number', 'Value diff');
