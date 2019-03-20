@@ -227,7 +227,7 @@ public class SysCollector {
         int snapcounter = 0;
         try {
             oraStatNamesPreparedStatement.execute();
-            ckhQueue.put(new OraCkhMsg(RSSTATNAME, 0, null, null,
+            ckhQueue.put(new OraCkhMsg(RSSTATNAME, 0, dbUniqueName, null,
                     getStatNamesListFromRS(oraStatNamesPreparedStatement.getResultSet())));
 
             oraStatNamesPreparedStatement.close();

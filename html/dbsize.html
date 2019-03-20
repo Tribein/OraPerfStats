@@ -56,9 +56,9 @@
         function drawSysStatsChart() {
 			preDraw();				
 			var drawRegion = "dbsize";	
-            var dbSizeQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" +
-				dbUniqueName +
-                "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,classnum order by snapTime asc";
+            var dbSizeQuery = "select toYYYYMMDD(snapTime) as st,min(snapTime) as minst, max(snapTime) as maxst"+
+				" from oradb.segments_buffer where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+				" group by st";
                 //alert(waitsQuery);
             var data = new google.visualization.DataTable();
             //--add Columns

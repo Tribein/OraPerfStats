@@ -75,6 +75,9 @@ public class SesCollector {
             "        'sql area evicted'," +
             "        'session cursor cache hits'," +
             "        'session cursor cache count'," +
+            "        'opened cursors cumulative'," +
+            "        'opened cursors current'," +
+            "        'pinned cursors current'," +
             "        'queries parallelized'," +
             "        'Parallel operations not downgraded'," +
             "        'Parallel operations downgraded to serial'," +
