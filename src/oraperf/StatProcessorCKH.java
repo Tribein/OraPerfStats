@@ -32,7 +32,7 @@ public class StatProcessorCKH
   private final List dataList;
   private final String dbUniqueName;
   private final String dbHostName;
-  private final String CKHINSERTSESSIONSQUERY = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+  private final String CKHINSERTSESSIONSQUERY = "insert into sessions_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
   private final String CKHINSERTSYSSTATSQUERY = "insert into sysstats_buffer values (?,?,?,?)";
   private final String CKHINSERTSESSTATSQUERY = "insert into sesstats_buffer values (?,?,?,?,?,?)";
   private final String CKHINSERTSQLTEXTSQUERY = "insert into sqltexts_buffer values (?,?)";
@@ -164,6 +164,16 @@ public class StatProcessorCKH
         prep.setInt(22, ((int)row.get(18)));
         prep.setLong(23, ((long)row.get(19)));
         prep.setLong(24, ((long)row.get(20)));
+        prep.setLong(25, ((long)row.get(21)));
+        prep.setLong(26, ((long)row.get(22)));
+        prep.setLong(27, ((long)row.get(23)));
+        prep.setLong(28, ((long)row.get(24)));
+        prep.setLong(29, ((long)row.get(25)));
+        prep.setLong(30, ((long)row.get(26)));
+        prep.setString(31, (String)row.get(27));
+        prep.setString(32, (String)row.get(28));
+        prep.setString(33, (String)row.get(29));
+        prep.setString(34, (String)row.get(30));
         prep.addBatch();
       }
       prep.executeBatch();
