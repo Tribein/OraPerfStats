@@ -13,7 +13,7 @@
             //google.charts.load('current', {'packages':['bar']});
             
             google.charts.setOnLoadCallback(drawWaitsChart);
-            var arrLocksTreeColumns = ['SID', 'Serial', 'Machine', 'Module', 'Program', 'Logon Time', 'SQLID', 'SQL Exec Start Time', 'Event', 'SEQUENCE', 'P1', 'P2', 'Blocking Session'];
+            var arrLocksTreeColumns = ['SID', 'Serial', 'Machine', 'Module', 'Program', 'Logon Time', 'SQLID', 'SQL Exec Start Time', 'Event', 'SEQUENCE', 'P1', 'P2', 'Blocking Session', 'Call Time', 'Wait Object'];
             var arrWaitClass = [
                 'Timestamp',
                 'System I/O',
@@ -56,7 +56,7 @@
             var statsTable;
             //--changable
             var spanMinutes = 10;
-            var dbUniqueName = 'lspp_prod';
+            var dbUniqueName = 'DWH_M';
             var sessionsBlocked = 0;
             var loadimg = "circle.gif";
             //--
@@ -229,7 +229,7 @@
             //------LOCKSTREE
             function drawLocksTreeTable(input) {
 				var drawRegion = "lockstreeregion";
-                locksTreeQuery = "select sid,serial,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session from sessions_buffer " +
+                locksTreeQuery = "select sid,serial,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session,callEt,waitobj from sessions_buffer " +
                         "where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "' and (" +
                         "blocking_session<>0 or sid in (select blocking_session from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "') )";
                 var data = google.visualization.arrayToDataTable(parseLocksTreeData(getData(locksTreeQuery)));
