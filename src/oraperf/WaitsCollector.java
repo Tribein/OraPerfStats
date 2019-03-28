@@ -53,7 +53,17 @@ public class WaitsCollector {
     "    a.logon_time, " +
     "    a.seq#, " +
     "    nvl(a.p1,0), " +
-    "    nvl(a.p2,0) " +
+    "    nvl(a.p2,0), " +
+    "    a.row_wait_obj#," +
+    "    nvl(a.PLSQL_ENTRY_OBJECT_ID,0), " +
+    "    nvl(a.PLSQL_ENTRY_SUBPROGRAM_ID,0), " +
+    "    nvl(a.PLSQL_OBJECT_ID,0), " +           
+    "    nvl(a.PLSQL_SUBPROGRAM_ID,0), " +    
+    "    a.LAST_CALL_ET, " +                                   
+    "    substr(a.PDML_STATUS,1,1), " +                       
+    "    substr(a.PDDL_STATUS,1,1), " +                       
+    "    substr(a.PQ_STATUS,1,1), " +                                   
+    "    nvl(a.ECID,'-') " +                                               
     "    FROM " +
     "    v$session a " +
     "    join v$session b on ( " +
@@ -165,6 +175,16 @@ public class WaitsCollector {
                 rowList.add(rs.getInt(19));
                 rowList.add((long) new BigDecimal(rs.getDouble(20)).setScale(0, RoundingMode.HALF_UP).doubleValue() );
                 rowList.add(rs.getLong(21));
+                rowList.add(((rs.getLong(22)>=0)? rs.getLong(22) : 0));
+                rowList.add(rs.getLong(23));
+                rowList.add(rs.getLong(24));
+                rowList.add(rs.getLong(25));
+                rowList.add(rs.getLong(26));
+                rowList.add(rs.getLong(27));
+                rowList.add(rs.getString(28));
+                rowList.add(rs.getString(29));
+                rowList.add(rs.getString(30));
+                rowList.add(rs.getString(31));
                 outList.add(rowList);
             }
             rs.close();
