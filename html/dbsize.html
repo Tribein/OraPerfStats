@@ -5,9 +5,9 @@
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
             google.charts.load('current', {'packages': ['corechart']});
-            //google.charts.load('current', {'packages': ['table']});
+            google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
-            google.charts.setOnLoadCallback(drawIOCharts);
+            google.charts.setOnLoadCallback(drawDBSizeChart);
             //--
             function getData(query) {
                 var xmlHttp = new XMLHttpRequest();
@@ -22,7 +22,7 @@
             var timeSpan1;
             var timeSpan2;
             //--changable
-            var spanMinutes = 1440;
+            var spanMinutes = 20*1440;
             var dbUniqueName = 'sefarm_prd';
             //--------------------------------------------------------------
             function preDraw() {
@@ -40,30 +40,95 @@
                         ;
             }
 		//--------------------------------------------------------------
-		function ParseDBSizeData(inputData){
+		function parseDBSizeData(inputData){
 			var dataLines = inputData.split(/[\n]+/);
 			var outData = [];
 			var rowData = [];
 			for (var i = 0; i < dataLines.length; i++) {
 				if (dataLines[i].length > 0) {
 					rowData = dataLines[i].split(/[\t]+/);
-					outData.push([rowData[0], Number(rowData[1])]);
+					outData.push([rowData[0]+" "+rowData[1]+":00:00", Number(rowData[2]), Number(rowData[3])]);
 				}
 			}
 			return outData;
 		}
+		//--------------------------------------------------------------
+		function parseSchemasSizeDiffData(inputData){
+			var dataLines = inputData.split(/[\n]+/);
+			var outData = [];
+			var rowData = [];
+			for (var i = 0; i < dataLines.length; i++) {
+				if (dataLines[i].length > 0) {
+					rowData = dataLines[i].split(/[\t]+/);
+					outData.push([rowData[0],rowData[1]]);
+				}
+			}
+			return outData;			
+		}
+		//--------------------------------------------------------------
+		function parseSegmentsSizeDiffData(inputData){
+			var dataLines = inputData.split(/[\n]+/);
+			var outData = [];
+			var rowData = [];
+			for (var i = 0; i < dataLines.length; i++) {
+				if (dataLines[i].length > 0) {
+					rowData = dataLines[i].split(/[\t]+/);
+					outData.push([rowData[0],rowData[1]]);
+				}
+			}
+			return outData;			
+		}		
+		//--------------------------------------------------------------
+		function parseSegmentDetailsData(inputData){
+			var dataLines = inputData.split(/[\n]+/);
+			var outData = [];
+			var rowData = [];
+			for (var i = 0; i < dataLines.length; i++) {
+				if (dataLines[i].length > 0) {
+					rowData = dataLines[i].split(/[\t]+/);
+					outData.push([rowData[0],rowData[1]]);
+				}
+			}
+			return outData;			
+		}		
+		//--------------------------------------------------------------
         //------DBSIZE
-        function drawSysStatsChart() {
+        function drawDBSizeChart() {
 			preDraw();				
-			var drawRegion = "dbsize";	
-            var dbSizeQuery = "select toYYYYMMDD(snapTime) as st,min(snapTime) as minst, max(snapTime) as maxst"+
-				" from oradb.segments_buffer where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
-				" group by st";
-                //alert(waitsQuery);
+			var drawRegion = "dbsizeregion";	
+            var dbSizeQuery = "select st,hr,round(filesMb/1024),round(segmentsMb/1024) from ( "+
+				"select toYYYYMMDD(snapTime) st,toHour(snapTime) hr, sum(sizeMb) as filesMb "+
+					"from dbfiles_buffer "+
+					"where dbuniquename='"+dbUniqueName+"' "+
+					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+					"and snapTime in ( "+
+						"select min(snapTime) as st "+
+						"from oradb.dbfiles_buffer "+
+						"where dbuniquename='"+dbUniqueName+"' "+
+						"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+						"group by toYYYYMMDD(snapTime), toHour(snapTime)    "+
+					") "+
+					"group by st,hr "+
+				") any join ( "+
+					"select toYYYYMMDD(snapTime) st,toHour(snapTime) hr, sum(sizeMb) as segmentsMb "+
+					"from segments_buffer "+
+					"where dbuniquename='"+dbUniqueName+"' "+
+					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+					"and snapTime in ( "+
+						"select min(snapTime) as st "+
+						"from oradb.segments_buffer  "+
+						"where dbuniquename='"+dbUniqueName+"' "+
+						"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+						"group by toYYYYMMDD(snapTime), toHour(snapTime)    "+
+				") "+
+				"group by st,hr "+
+			") using (st,hr) order by st,hr";
+            //alert(dbSizeQuery);
             var data = new google.visualization.DataTable();
             //--add Columns
             data.addColumn('string', 'TimeStamp');
-            data.addColumn('number', 'DBSize');
+            data.addColumn('number', 'FilesSize');
+            data.addColumn('number', 'SegmentsSize');
             //-- add Data
             data.addRows(parseDBSizeData(getData(dbSizeQuery)));
              var options = {
@@ -77,17 +142,111 @@
                  //orientation : 'vertical',
                  bar: {groupWidth: '95%'},
                  legend: {position: 'right', maxLines: 3},
-                 colors: legendColors,
-                 isStacked: true,
+                 isStacked: false,
                  backgroundColor: {fill: 'transparent'}
              };
-             var dbSizeChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
-             dbSizeChart.draw(data, options);				
+             var dbSizeChart = new google.visualization.AreaChart(document.getElementById(drawRegion));
+             dbSizeChart.draw(data, options);
+             drawSchemasSizeDiff();				
 		}
+		//------DBSIZE
+		//------SCHEMASDIFF
+		function drawSchemasSizeDiff() {
+			var drawRegion = "schemasregion";
+			var schemasSizeDiffQuery =  
+				"select owner,round((seg2-seg1)/1024,0) as diff "+
+				"from ( "+
+					"select sum(sizeMb) as seg1, owner  "+
+					"from segments_buffer "+
+					"where dbuniquename='"+dbUniqueName+"' "+
+					"and snapTime = ( "+
+						"select min(snapTime) as st "+
+						"from oradb.segments_buffer  "+
+						"where dbuniquename='"+dbUniqueName+"' "+
+						"and snapTime>='"+timeSpan1+"' "+
+					") "+
+					"group by owner "+
+				") any full  join ( "+
+					"select sum(sizeMb) as seg2, owner  "+
+					"from segments_buffer "+
+					"where dbuniquename='"+dbUniqueName+"' "+
+					"and snapTime = ( "+
+						"select max(snapTime) as st "+
+						"from oradb.segments_buffer "+
+						"where dbuniquename='"+dbUniqueName+"' "+
+						"and snapTime<='"+timeSpan2+"' "+
+				")		"+
+				"group by owner "+
+			") using (owner) "+
+			"where diff<>0 "+
+			"order by diff desc,owner";
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Schema');
+            data.addColumn('string', 'Size diff, Gb');
+            data.addRows(parseSchemasSizeDiffData(getData(schemasSizeDiffQuery)));
+            var options = {
+                title: 'Schemas size difference for period',
+                width: '98%',
+                //height: '100%',
+                allowHtml: true,
+                showRowNumber: false,
+                backgroundColor: {fill: 'transparent'}
+            };
+            var schemasSizeDiffTable = new google.visualization.Table(document.getElementById(drawRegion));
+            schemasSizeDiffTable.draw(data, options);            
+
+            function schemasSizeDiffTableHandler(e) {
+                if (schemasSizeDiffTable.getSelection().length !== 0) {
+                    var sel = schemasSizeDiffTable.getSelection();
+                    drawSegmentsSizeDiff(data.getValue(sel[0].row, 0));
+                    document.getElementById('segmentsregion').scrollIntoView();
+                }
+            }
+            google.visualization.events.addListener(schemasSizeDiffTable, 'select', schemasSizeDiffTableHandler); 			
+		}
+		//------SCHEMASDIFF
+		//------SEGMENTSDIFF
+		function drawSegmentsSizeDiff( owner ){
+			var drawRegion = "segmentsregion";
+			var segmentsSizeDiffQuery = "";
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Segment');
+            data.addColumn('string', 'Type');
+            data.addColumn('string', 'Size diff, Gb');
+            data.addRows(parseSegmentsSizeDiffData(getData(segmentsSizeDiffQuery)));
+            var options = {
+                title: 'Segments size difference for '+owner,
+                width: '98%',
+                //height: '100%',
+                allowHtml: true,
+                showRowNumber: false,
+                backgroundColor: {fill: 'transparent'}
+            };
+            var segmentsSizeDiffTable = new google.visualization.Table(document.getElementById(drawRegion));
+            segmentsSizeDiffTable.draw(data, options); 			
+            function segmentsSizeDiffTableHandler(e) {
+                if (segmentsSizeDiffTable.getSelection().length !== 0) {
+                    var sel = segmentsSizeDiffTable.getSelection();
+                    drawSegmentDetailsSizeDiff(owner,data.getValue(sel[0].row, 0));
+                    document.getElementById('segmentdetailsregion').scrollIntoView();
+                }
+            }
+            google.visualization.events.addListener(segmentsSizeDiffTable, 'select', segmentsSizeDiffTableHandler); 			            
+		}
+		//------SEGMENTSDIFF
+		//------SEGMENTDETAILS
+		function drawSegmentDetails( owner, segment){
+			alert(owner+" "+segment);
+		}
+		//------SEGMENTDETAILS
     </script>
   </head>
 
   <body onLoad=''>
-	<div id="dbsize"></div>
+	<div id="dbsizeregion"></div>
+	<div id="schemasregion"></div>
+	<div id="segmentsregion"></div>
+	<div id="segmentdetailsregion"></div>
+	<div id=""></div>
   </body>
 </html>                        

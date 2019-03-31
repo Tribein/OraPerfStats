@@ -13,7 +13,19 @@
             //google.charts.load('current', {'packages':['bar']});
             
             google.charts.setOnLoadCallback(drawWaitsChart);
-            var arrLocksTreeColumns = ['SID', 'Serial', 'Machine', 'Module', 'Program', 'Logon Time', 'SQLID', 'SQL Exec Start Time', 'Event', 'SEQUENCE', 'P1', 'P2', 'Blocking Session', 'Call Time', 'Wait Object'];
+            var arrLocksTreeColumns = [
+				'SID', 'Serial', 'Machine', 'Module', 'Program', 
+				'Logon Time', 'SQLID', 'SQL Exec Start Time', 'Event', 
+				'SEQUENCE', 'P1', 'P2', 
+				'Blocking Session', 'Call Time', 'Wait Object'
+			];
+            var arrSessionTimeLineColumns = [
+				'Time', 'Logon Time', 
+				'SQLID', 'SQL Exec Start Time', 'Event', 'SEQUENCE', 'P1', 'P2', 
+				'Blocking Session', 'Call Time', 'Wait Object',
+				'EntObj','EntSubP','Obj','SubP',
+				'PQ','PDML','PDDL','ECID'
+			];
             var arrWaitClass = [
                 'Timestamp',
                 'System I/O',
@@ -258,6 +270,7 @@
 							getSQLText(data.getValue(sel[0].row, 6)).replace(/\\n/g,'<br />')+
 							'</span>';
                         drawStatsTable(data.getValue(sel[0].row, 0).match(/[0-9]+/)[0],data.getValue(sel[0].row, 1));
+                        drawSessionTimeLine(data.getValue(sel[0].row, 0).match(/[0-9]+/)[0],data.getValue(sel[0].row, 1));
                         document.getElementById('statsregion').scrollIntoView();
                     }
                 }
@@ -355,7 +368,8 @@
                     } else {
                         var sel = sessionsTable.getSelection();
                         drawStatsTable(data.getValue(sel[0].row, 0).split(',')[0],data.getValue(sel[0].row, 0).split(',')[1]);
-                        drawSessionSQLs(data.getValue(sel[0].row, 0).split(',')[0],data.getValue(sel[0].row, 0).split(',')[1]);
+                        drawSessionTimeLine(data.getValue(sel[0].row, 0).split(',')[0],data.getValue(sel[0].row, 0).split(',')[1]);
+                        //drawSessionSQLs(data.getValue(sel[0].row, 0).split(',')[0],data.getValue(sel[0].row, 0).split(',')[1]);
                         document.getElementById('statsregion').scrollIntoView();
                     }
                 }
@@ -450,6 +464,30 @@
                 statsTable.draw(data, options);
             }
             //--STATS
+            //--SESSIONTIMELINE
+            function drawSessionTimeLine(inputsid,inputserial){
+				var drawRegion = "sessiontimelineregion";
+				var SessionTimeLineQuery = "select snapTime,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session,callEt,waitobj,"+
+						"plsqlEnObj,plsqlEtnSubP,plsqlObj,plsqlSubP,pq,pdml,pddl,ecid "+
+						"from sessions_buffer " +
+                        "where dbuniquename='" + dbUniqueName + "' and snapTime>='" + timeSpan1 + "' and snapTime<='"+timeSpan2 +"' " +
+                        "and sid="+inputsid+" and serial="+inputserial+" "+
+                        "order by snapTime asc";	
+                //alert(SessionTimeLineQuery);
+                var data = google.visualization.arrayToDataTable(parseSessionTimeLineData(getData(SessionTimeLineQuery)));
+                var options = {
+                    title: "Session "+inputsid+","+inputserial+" timeline",
+                    width: '100%',
+                    //height: '100%',
+                    allowHtml: true,
+                    showRowNumber: true,
+                    backgroundColor: {fill: 'transparent'},
+                    cssClassNames: { tableCell: 'sc' }
+                };
+                var sessTimeLine = new google.visualization.Table(document.getElementById(drawRegion));
+                sessTimeLine.draw(data, options);
+			}
+            //--SESSIONTIMELINE
             //--SESSIONSQLS            
             function drawSessionSQLs(inputsid,inputserial) {
                 if (typeof inputsid === 'undefined') {
@@ -787,6 +825,32 @@
                 return outData;
             }
             //--
+            //--
+            function parseSessionTimeLineData(inputData) {
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                var tmpData = [];
+                var rowData = [];
+                var idx;
+                var arrTree = [];
+                var arrSIDSorted = [];
+                var arrSIDLevel = [];
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+                        tmpData[i] = [];
+                        for (var j = 0; j < arrSessionTimeLineColumns.length; j++) {
+                            tmpData[i][j] = rowData[j];
+                        }
+                    }
+                }
+                outData.push(arrSessionTimeLineColumns);
+                for (var i = 0; i < tmpData.length; i++) {
+                    outData.push(tmpData[i]);
+                }
+                return outData;
+            }
+            //--            
  
     </script>
   </head>
@@ -805,5 +869,6 @@
 	</div>
 	<div id="statsregion"></div>
 	<div id="sessionsqlsregion"></div>
+	<div id="sessiontimelineregion"></div>
   </body>
 </html>
