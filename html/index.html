@@ -24,8 +24,13 @@
 				'SQLID', 'SQL Exec Start Time', 'Event', 'SEQUENCE', 'P1', 'P2', 
 				'Blocking Session', 'Call Time', 'Wait Object',
 				'EntObj','EntSubP','Obj','SubP',
-				'PQ','PDML','PDDL','ECID'
+				'PQ','PDML','PDDL'
 			];
+            var arrEventSessionsColumns = [
+				'SID', 'Serial#', 'Machine','Module','Program','Logon Time',
+				'SQLID','SQL Start','Seq#','P1','P2',
+				'Blocking Session','Call Time','Waito Object','ECID'
+			];			
             var arrWaitClass = [
                 'Timestamp',
                 'System I/O',
@@ -66,6 +71,7 @@
             var eventsChart;
             var locksTreeTable;
             var statsTable;
+            var eventSessionsTable;
             //--changable
             var spanMinutes = 10;
             var dbUniqueName = 'DWH_M';
@@ -234,10 +240,56 @@
                 eventsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 eventsChart.draw(data, options);
                 function eventsSelectHandler(e) {
+                    if (eventsChart.getSelection().length === 0) {
+                        if (typeof eventSessionsTable !== 'undefined') {
+                            eventSessionsTable.clearChart();
+                        }
+                    } else {
+                        var sel = eventsChart.getSelection();
+                        drawEventSessions(data.getColumnLabel(sel[0].column),data.getValue(sel[0].row, 0));
+                        document.getElementById('eventsessregion').scrollIntoView();
+                    }					
                 }
                 google.visualization.events.addListener(eventsChart, 'select', eventsSelectHandler);
             }
             //------EVENTS
+            //------SESSIONSBYEVENTS
+            function drawEventSessions (event,ts){
+				var drawRegion = "eventsessregion";
+				eventSessionsQuery = "select sid,serial,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,seq,p1,p2,blocking_session,callEt,waitobj,ecid "+
+						"from sessions_buffer " +
+                        "where dbuniquename='" + dbUniqueName + "' and snapTime='" + ts + "' and event='"+event+"' order by sid";
+                alert(eventSessionsQuery);
+                var data = google.visualization.arrayToDataTable(parseEventSessionsData(getData(eventSessionsQuery)));
+                var options = {
+                    title: 'Sessions by Event',
+                    width: '100%',
+                    //height: '100%',
+                    allowHtml: true,
+                    showRowNumber: false,
+                    backgroundColor: {fill: 'transparent'},
+                    cssClassNames: { tableCell: 'sc' }
+                };
+                var eventSessionsTable = new google.visualization.Table(document.getElementById(drawRegion));
+                eventSessionsTable.draw(data, options);
+
+                function eventSessionsTableSelectHandler(e) {
+                    if (eventSessionsTable.getSelection().length === 0) {
+                    } else {
+                        var sel = eventSessionsTable.getSelection();
+                        document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
+							data.getValue(sel[0].row, 7)+
+							'</b>:<br />'+
+							getSQLText(data.getValue(sel[0].row, 6)).replace(/\\n/g,'<br />')+
+							'</span>';
+                        drawStatsTable(data.getValue(sel[0].row, 0).match(/[0-9]+/)[0],data.getValue(sel[0].row, 1));
+                        drawSessionTimeLine(data.getValue(sel[0].row, 0).match(/[0-9]+/)[0],data.getValue(sel[0].row, 1));
+                        document.getElementById('statsregion').scrollIntoView();
+                    }
+                }
+                google.visualization.events.addListener(eventSessionsTable, 'select', eventSessionsTableSelectHandler);				
+			}
+            //------SESSIONSBYEVENTS
             //------LOCKSTREE
             function drawLocksTreeTable(input) {
 				var drawRegion = "lockstreeregion";
@@ -468,7 +520,7 @@
             function drawSessionTimeLine(inputsid,inputserial){
 				var drawRegion = "sessiontimelineregion";
 				var SessionTimeLineQuery = "select snapTime,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session,callEt,waitobj,"+
-						"plsqlEnObj,plsqlEtnSubP,plsqlObj,plsqlSubP,pq,pdml,pddl,ecid "+
+						"plsqlEnObj,plsqlEtnSubP,plsqlObj,plsqlSubP,pq,pdml,pddl "+
 						"from sessions_buffer " +
                         "where dbuniquename='" + dbUniqueName + "' and snapTime>='" + timeSpan1 + "' and snapTime<='"+timeSpan2 +"' " +
                         "and sid="+inputsid+" and serial="+inputserial+" "+
@@ -486,6 +538,22 @@
                 };
                 var sessTimeLine = new google.visualization.Table(document.getElementById(drawRegion));
                 sessTimeLine.draw(data, options);
+                function sqlidSelectHandler(e) {
+                    if (sessTimeLine.getSelection().length === 0) {
+                        if (typeof sessTimeLine !== 'undefined') {
+                            document.getElementById('sqltextregion').innerHTML='';
+                        }
+                    } else {
+                        var sel = sessTimeLine.getSelection();
+                        document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
+							data.getValue(sel[0].row, 2)+
+							'</b>:<br />'+
+							getSQLText(data.getValue(sel[0].row, 2)).replace(/\\n/g,'<br />').replace(/\\\'/g,"'")+
+							'</span>';
+                        document.getElementById('sqltextregion').scrollIntoView();
+                    }
+                }
+                google.visualization.events.addListener(sessTimeLine, 'select', sqlidSelectHandler);                 
 			}
             //--SESSIONTIMELINE
             //--SESSIONSQLS            
@@ -851,6 +919,31 @@
                 return outData;
             }
             //--            
+            function parseEventSessionsData(inputData) {
+                var dataLines = inputData.split(/[\n]+/);
+                var outData = [];
+                var tmpData = [];
+                var rowData = [];
+                var idx;
+                var arrTree = [];
+                var arrSIDSorted = [];
+                var arrSIDLevel = [];
+                for (var i = 0; i < dataLines.length; i++) {
+                    if (dataLines[i].length > 0) {
+                        rowData = dataLines[i].split(/[\t]+/);
+                        tmpData[i] = [];
+                        for (var j = 0; j < arrEventSessionsColumns.length; j++) {
+                            tmpData[i][j] = rowData[j];
+                        }
+                    }
+                }
+                outData.push(arrEventSessionsColumns);
+                for (var i = 0; i < tmpData.length; i++) {
+                    outData.push(tmpData[i]);
+                }
+                return outData;
+            }
+            //--              
  
     </script>
   </head>
@@ -859,6 +952,7 @@
     <div id="waitsregion"></div>
     <div id="eventsregion"></div>
     <div id="eventsregion"></div>
+    <div id="eventsessregion"></div>
     <div id="locksregion"></div>
     <div id="lockstreeregion"></div>
     <div id="sqltextregion"></div>
