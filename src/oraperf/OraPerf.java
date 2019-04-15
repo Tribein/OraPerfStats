@@ -83,7 +83,7 @@ public class OraPerf
     
     Connection dbListcon = DriverManager.getConnection(cstr, usn, pwd);
     dbListcon.setAutoCommit(false);
-    Statement dbListstmt = dbListcon.createStatement(1005, 1007);
+    Statement dbListstmt = dbListcon.createStatement(/*1005, 1007*/);
     ResultSet dbListrs = dbListstmt.executeQuery(query);
     while (dbListrs.next()) {
       retList.add(dbListrs.getString(1));
@@ -216,7 +216,7 @@ public class OraPerf
   
   private static void processSessions(String dbLine)
   {
-    if ((!dbSessionsList.containsKey(dbLine)) || (dbSessionsList.get(dbLine) == null) || (!((Thread)dbSessionsList.get(dbLine)).isAlive())) {
+    if ( (!dbSessionsList.containsKey(dbLine)) || (dbSessionsList.get(dbLine) == null) || (!((Thread)dbSessionsList.get(dbLine)).isAlive()) ) {
       try
       {
         dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 0, ckhQueue));

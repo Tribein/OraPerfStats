@@ -66,7 +66,7 @@ public class StatCollector
             shutdown = true;
         }
     }
-
+    @Override
     public void run() {
         lg = new SL4JLogger();
 

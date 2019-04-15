@@ -399,7 +399,7 @@ public class StatProcessorCKH
       e.printStackTrace();
     }
   }    
-  
+  @Override
   public void run()
   {
     lg = new SL4JLogger();
