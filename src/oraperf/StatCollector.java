@@ -34,6 +34,7 @@ public class StatCollector
     }
 
     private void cleanup() {
+        shutdown = true;
         try {
             if ((con != null) && (!con.isClosed())) {
                 con.close();
