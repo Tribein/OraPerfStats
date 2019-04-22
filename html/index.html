@@ -200,7 +200,7 @@
                         var sel = waitsChart.getSelection();
                         if (typeof arrWaitClass[(Number(sel[0].column) + 1) / 2] !== 'undefined') {
                             drawEventsChart((Number(sel[0].column) + 1) / 2);
-                            document.getElementById('eventsregion').scrollIntoView();
+                            document.getElementById('eventsregion').scrollIntoView({block: "center", behavior: "smooth"});
                         }
                     }
                 }
@@ -368,7 +368,7 @@
                     } else {
                         var sel = locksChart.getSelection();
                         drawLocksTreeTable(data.getValue(sel[0].row, 0));
-                        document.getElementById('lockstreeregion').scrollIntoView();
+                        document.getElementById('lockstreeregion').scrollIntoView({block: "center", behavior: "smooth"});
                     }
                 }
                 google.visualization.events.addListener(locksChart, 'select', locksSelectHandler);
@@ -783,7 +783,7 @@
                 var out = '<font class="ns" title="' + arrWaitClass[arrClassNum[classnum]] + " " + (Math.round(100 * current / total)) + '%" color="' + arrWaitClassStyle[arrClassNum[classnum]] + '">';
                 var maxchars = 100;// * Math.ceil(nonidle / total);
                 for (var i = 0; i < Math.ceil(maxchars * current / total); i++) {
-                    out += "|";
+                    out += "█";
                 }
                 out += '</font>';
                 return out;
