@@ -13,7 +13,7 @@
            
             google.charts.setOnLoadCallback(drawWaitsChart);
             var arrLocksTreeColumns = [
-				'SID', 'Serial', 'Machine', 'Module', 'Program', 
+				'SID', 'Serial', 'User', 'Machine', 'Module', 'Program', 
 				'Logon Time', 'SQLID', 'SQL Exec Start Time', 'Event', 
 				'SEQUENCE', 'P1', 'P2', 
 				'Blocking Session', 'Call Time', 'Wait Object'
@@ -26,7 +26,7 @@
 				'PQ','PDML','PDDL'
 			];
             var arrEventSessionsColumns = [
-				'SID', 'Serial#', 'Machine','Module','Program','Logon Time',
+				'SID', 'Serial', 'User', 'Machine','Module','Program','Logon Time',
 				'SQLID','SQL Start','Seq#','P1','P2',
 				'Blocking Session','Call Time','Waito Object','ECID'
 			];			
@@ -257,7 +257,7 @@
             //------SESSIONSBYEVENTS
             function drawEventSessions (event,ts){
 				var drawRegion = "eventsessregion";
-				eventSessionsQuery = "select sid,serial,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,seq,p1,p2,blocking_session,callEt,waitobj,ecid "+
+				eventSessionsQuery = "select sid,serial,schemaname,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,seq,p1,p2,blocking_session,callEt,waitobj,ecid "+
 						"from sessions_buffer " +
                         "where dbuniquename='" + dbUniqueName + "' and snapTime='" + ts + "' and event='"+event+"' order by sid";
                 var data = google.visualization.arrayToDataTable(parseEventSessionsData(getData(eventSessionsQuery)));
@@ -295,7 +295,7 @@
             //------LOCKSTREE
             function drawLocksTreeTable(input) {
 				var drawRegion = "lockstreeregion";
-                locksTreeQuery = "select sid,serial,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session,callEt,waitobj from sessions_buffer " +
+                locksTreeQuery = "select sid,serial,schemaname,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session,callEt,waitobj from sessions_buffer " +
                         "where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "' and (" +
                         "blocking_session<>0 or sid in (select blocking_session from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "') )";
                 var data = google.visualization.arrayToDataTable(parseLocksTreeData(getData(locksTreeQuery)));
