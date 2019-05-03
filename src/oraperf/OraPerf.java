@@ -219,6 +219,12 @@ public class OraPerf
     if ( (!dbSessionsList.containsKey(dbLine)) || (dbSessionsList.get(dbLine) == null) || (!((Thread)dbSessionsList.get(dbLine)).isAlive()) ) {
       try
       {
+        if (dbSessionsList.containsKey(dbLine)){
+            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
+                    ((Thread)dbSessionsList.get(dbLine)).getState().toString()
+            );
+            dbSessionsList.remove(dbLine);   
+        }
         dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 0, ckhQueue));
         lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                 "Starting sessions waits thread for " + dbLine
@@ -234,6 +240,10 @@ public class OraPerf
         
         e.printStackTrace();
       }
+    }else{
+            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
+                    ((Thread)dbSessionsList.get(dbLine)).getState().toString()
+            );        
     }
   }
   
@@ -242,7 +252,13 @@ public class OraPerf
     if ((!dbSessStatsList.containsKey(dbLine)) || (dbSessStatsList.get(dbLine) == null) || (!((Thread)dbSessStatsList.get(dbLine)).isAlive())) {
       try
       {
-        dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 1, ckhQueue));
+        if (dbSessStatsList.containsKey(dbLine)){
+            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
+                    ((Thread)dbSessStatsList.get(dbLine)).getState().toString()
+            );
+            dbSessStatsList.remove(dbLine);   
+        }
+          dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 1, ckhQueue));
         lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                 "Starting sessions stats thread for " + dbLine
         );
@@ -257,6 +273,10 @@ public class OraPerf
         
         e.printStackTrace();
       }
+    }else{
+            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
+                    ((Thread)dbSessStatsList.get(dbLine)).getState().toString()
+            );        
     }
   }
   
@@ -269,6 +289,12 @@ public class OraPerf
     ) {
       try
       {
+        if (dbSyssStatsList.containsKey(dbLine)){
+            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
+                    ((Thread)dbSyssStatsList.get(dbLine)).getState().toString()
+            );
+            dbSyssStatsList.remove(dbLine);   
+        }          
         dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 2, ckhQueue));
         lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                 "Starting system stats thread for " + dbLine
@@ -284,6 +310,10 @@ public class OraPerf
         
         e.printStackTrace();
       }
+    }else{
+            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
+                    ((Thread)dbSyssStatsList.get(dbLine)).getState().toString()
+            );        
     }
   }
   

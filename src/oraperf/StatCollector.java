@@ -71,6 +71,7 @@ public class StatCollector
         lg = new SL4JLogger();
 
         openConnection();
+        
         if (!shutdown) {
             try {
                 switch (threadType) {
