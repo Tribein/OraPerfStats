@@ -73,7 +73,7 @@
 			for (var i = 0; i < dataLines.length; i++) {
 				if (dataLines[i].length > 0) {
 					rowData = dataLines[i].split(/[\t]+/);
-					outData.push([rowData[0],rowData[1]]);
+					outData.push([((rowData[1].localeCompare("-")===0) ? rowData[0] : rowData[0] +"."+rowData[1]),rowData[2], Number(rowData[3])]);
 				}
 			}
 			return outData;			
@@ -209,11 +209,30 @@
 		//------SEGMENTSDIFF
 		function drawSegmentsSizeDiff( owner ){
 			var drawRegion = "segmentsregion";
-			var segmentsSizeDiffQuery = "";
+			var segmentsSizeDiffQuery = "select sn,pn,st,(sz2-sz1) as df "+
+				"from ( "+
+					"select segName as sn,partName as pn,segType as st,sizeMb as sz1 "+
+					"from segments_buffer "+
+					"where dbuniquename='"+dbUniqueName+"' and owner='"+owner+"' "+
+					"and snapTime=( "+
+						"select min(snapTime) from segments_buffer "+
+						"where dbuniquename='"+dbUniqueName+"'  and snapTime>='"+timeSpan1+"' "+
+					") " +
+				") any full join ( "+
+					"select segName as sn,partName as pn,segType as st,sizeMb as sz2 "+
+					"from segments_buffer "+
+					"where dbuniquename='"+dbUniqueName+"' and owner='"+owner+"' "+
+					"and snapTime=( "+
+						"select max(snapTime) from segments_buffer "+
+						"where dbuniquename='"+dbUniqueName+"'  and snapTime<='"+timeSpan2+"' "+
+					") "+
+				") using (sn,pn,st) "+
+				"where sz2<>sz1 "+
+				"order by abs(df) desc";
             var data = new google.visualization.DataTable();
             data.addColumn('string', 'Segment');
             data.addColumn('string', 'Type');
-            data.addColumn('string', 'Size diff, Gb');
+            data.addColumn('number', 'Size diff, Mb');
             data.addRows(parseSegmentsSizeDiffData(getData(segmentsSizeDiffQuery)));
             var options = {
                 title: 'Segments size difference for '+owner,
@@ -225,6 +244,7 @@
             };
             var segmentsSizeDiffTable = new google.visualization.Table(document.getElementById(drawRegion));
             segmentsSizeDiffTable.draw(data, options); 			
+            /*
             function segmentsSizeDiffTableHandler(e) {
                 if (segmentsSizeDiffTable.getSelection().length !== 0) {
                     var sel = segmentsSizeDiffTable.getSelection();
@@ -233,6 +253,7 @@
                 }
             }
             google.visualization.events.addListener(segmentsSizeDiffTable, 'select', segmentsSizeDiffTableHandler); 			            
+            */
 		}
 		//------SEGMENTSDIFF
 		//------SEGMENTDETAILS
