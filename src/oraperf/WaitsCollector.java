@@ -168,6 +168,7 @@ public class WaitsCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }
         return outList;
@@ -196,6 +197,7 @@ public class WaitsCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }
         return outList;
@@ -243,6 +245,7 @@ public class WaitsCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }
         return outList;
@@ -261,7 +264,7 @@ public class WaitsCollector {
             }
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!"
+                    + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!" 
                     + "\t" + e.getMessage()
             );
             //e.printStackTrace();

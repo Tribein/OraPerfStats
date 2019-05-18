@@ -59,10 +59,12 @@ public class StatCollector
             Properties props = new Properties();
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_USER_NAME, dbUserName);
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_PASSWORD, dbPassword);
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_DEFAULT_USE_NIO, "true");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_NET_KEEPALIVE, "true");
-            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "9000");
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "30000");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_READ_TIMEOUT, "180000");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_AUTOCOMMIT, "false");
+            props.setProperty("oracle.jdbc.javaNetNio", "true");
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, props);
             //con.setAutoCommit(false);
         } catch (ClassNotFoundException e) {

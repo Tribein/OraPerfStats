@@ -179,6 +179,7 @@ public class SesCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                     "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }
         return outList;
@@ -208,6 +209,7 @@ public class SesCollector {
         }catch(SQLException e){
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                         "Cannot prepare statements for  Oracle database: " + dbConnectionString
+                        + "\t" + e.getMessage()
                 ); 
                 shutdown = true;
         }  
@@ -221,7 +223,7 @@ public class SesCollector {
                 oraSesStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                        dbConnectionString + "\t"+"Error processing session statistics!"
+                        dbConnectionString + "\t" + "Error processing session statistics!" 
                         + "\t" + e.getMessage()
                 );
 

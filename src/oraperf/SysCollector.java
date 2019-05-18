@@ -102,6 +102,7 @@ public class SysCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                     "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }
         return outList;
@@ -120,6 +121,7 @@ public class SysCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                     "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }
         return outList;
@@ -143,6 +145,7 @@ public class SysCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                     "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }        
         return outList;
@@ -165,6 +168,7 @@ public class SysCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                     "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }               
         return outList;
@@ -183,6 +187,7 @@ public class SysCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                     "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }
         return outList;
@@ -201,6 +206,7 @@ public class SysCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                     "Error getting data from resultset " + dbConnectionString
+                    + "\t" + e.getMessage()
             );
         }
         return outList;
@@ -226,6 +232,7 @@ public class SysCollector {
         }catch(SQLException e){
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
                     "Cannot prepare statements for  Oracle database: " + dbConnectionString
+                    + "\t" + e.getMessage()
             ); 
             shutdown = true;
         }
@@ -239,6 +246,7 @@ public class SysCollector {
         } catch (Exception e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                     dbConnectionString + "\t"+"Error processing statistics names!"
+                    + "\t" + e.getMessage()
             );
 
             shutdown = true;
@@ -323,7 +331,7 @@ public class SysCollector {
                         oraSQLTextsPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                                dbConnectionString + "\t"+"Error processing sql texts!"
+                                dbConnectionString + "\t"+"Error processing sql texts!" 
                                 + "\t" + e.getMessage()
                         );
 

@@ -57,8 +57,7 @@ public class SQLCollector {
             }
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                    dbConnectionString + "\t"+"Error durring ORADB resource cleanups!"
-                    + "\t" + e.getMessage()
+                    dbConnectionString + "\t"+"Error durring ORADB resource cleanups!" + "\t" + e.getMessage()
             );
 
             //e.printStackTrace();
@@ -85,8 +84,7 @@ public class SQLCollector {
                 oraSQLStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                        dbConnectionString + "\t"+"Error processing SQL statistics!"
-                        + "\t" + e.getMessage()
+                        dbConnectionString + "\t"+"Error processing SQL statistics!" + "\t" + e.getMessage()
                 );
 
                 shutdown = true;
