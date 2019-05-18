@@ -191,8 +191,8 @@ public class SesCollector {
             }
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                    dbConnectionString + "\t"+"Error durring ORADB resource cleanups!"
-                    + "\n" + e.getMessage()
+                    dbConnectionString + "\t"+"Error during ORADB resource cleanups!"
+                    + "\t" + e.getMessage()
             );
 
             //e.printStackTrace();
@@ -222,7 +222,7 @@ public class SesCollector {
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         dbConnectionString + "\t"+"Error processing session statistics!"
-                        + "\n" + e.getMessage()
+                        + "\t" + e.getMessage()
                 );
 
                 shutdown = true;

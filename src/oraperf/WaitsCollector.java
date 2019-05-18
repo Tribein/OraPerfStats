@@ -262,7 +262,7 @@ public class WaitsCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!"
-                    + "\n" + e.getMessage()
+                    + "\t" + e.getMessage()
             );
             //e.printStackTrace();
         }
@@ -294,7 +294,7 @@ public class WaitsCollector {
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                         + "Error getting io file stats from database " + dbConnectionString
-                        + "\n" + e.getMessage()
+                        + "\t" + e.getMessage()
                 );
 
                 shutdown = true;
@@ -311,7 +311,7 @@ public class WaitsCollector {
                 } catch (SQLException e) {
                     lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                             + "Error getting io function stats from database " + dbConnectionString
-                            + "\n" + e.getMessage()
+                            + "\t" + e.getMessage()
                     );
 
                     shutdown = true;
@@ -329,7 +329,7 @@ public class WaitsCollector {
                 } catch (SQLException e) {
                     lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                             + "Error getting sessions from database " + dbConnectionString
-                            + "\n" + e.getMessage()
+                            + "\t" + e.getMessage()
                     );
 
                     shutdown = true;

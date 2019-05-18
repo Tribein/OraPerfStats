@@ -82,7 +82,7 @@ public class SysCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                     dbConnectionString + "\t"+"Error durring ORADB resource cleanups!"
-                    + "\n" + e.getMessage()
+                    + "\t" + e.getMessage()
             );
 
             //e.printStackTrace();
@@ -255,7 +255,7 @@ public class SysCollector {
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         dbConnectionString + "\t"+"Error processing system statistics!"
-                        + "\n" + e.getMessage()
+                        + "\t" + e.getMessage()
                 );
 
                 shutdown = true;
@@ -272,7 +272,7 @@ public class SysCollector {
                     } catch (SQLException e) {
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                                 dbConnectionString + "\t"+"Error processing files size!"
-                                + "\n" + e.getMessage()
+                                + "\t" + e.getMessage()
                         );
                         shutdown = true;
                         //e.printStackTrace();
@@ -288,7 +288,7 @@ public class SysCollector {
                     } catch (SQLException e) {
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                                 dbConnectionString + "\t"+"Error processing segments size!"
-                                + "\n" + e.getMessage()
+                                + "\t" + e.getMessage()
                         );
                         shutdown = true;
                         //e.printStackTrace();
@@ -307,7 +307,7 @@ public class SysCollector {
                     } catch (SQLException e) {
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                                 dbConnectionString + "\t"+"Error processing sql plan hash values!"
-                                + "\n" + e.getMessage()
+                                + "\t" + e.getMessage()
                         );
 
                         shutdown = true;
@@ -324,7 +324,7 @@ public class SysCollector {
                     } catch (SQLException e) {
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                                 dbConnectionString + "\t"+"Error processing sql texts!"
-                                + "\n" + e.getMessage()
+                                + "\t" + e.getMessage()
                         );
 
                         shutdown = true;

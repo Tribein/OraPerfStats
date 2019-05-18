@@ -220,9 +220,6 @@ public class OraPerf
       try
       {
         if (dbSessionsList.containsKey(dbLine)){
-            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
-                    ((Thread)dbSessionsList.get(dbLine)).getState().toString()
-            );
             dbSessionsList.remove(dbLine);   
         }
         dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 0, ckhQueue));
@@ -240,10 +237,6 @@ public class OraPerf
         
         e.printStackTrace();
       }
-    }else{
-            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
-                    ((Thread)dbSessionsList.get(dbLine)).getState().toString()
-            );        
     }
   }
   
@@ -253,9 +246,6 @@ public class OraPerf
       try
       {
         if (dbSessStatsList.containsKey(dbLine)){
-            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
-                    ((Thread)dbSessStatsList.get(dbLine)).getState().toString()
-            );
             dbSessStatsList.remove(dbLine);   
         }
           dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 1, ckhQueue));
@@ -273,10 +263,6 @@ public class OraPerf
         
         e.printStackTrace();
       }
-    }else{
-            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
-                    ((Thread)dbSessStatsList.get(dbLine)).getState().toString()
-            );        
     }
   }
   
@@ -290,9 +276,6 @@ public class OraPerf
       try
       {
         if (dbSyssStatsList.containsKey(dbLine)){
-            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
-                    ((Thread)dbSyssStatsList.get(dbLine)).getState().toString()
-            );
             dbSyssStatsList.remove(dbLine);   
         }          
         dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 2, ckhQueue));
@@ -310,10 +293,6 @@ public class OraPerf
         
         e.printStackTrace();
       }
-    }else{
-            lg.LogWarn( LocalDateTime.now() + "\t"+ dbLine + "\t" +
-                    ((Thread)dbSyssStatsList.get(dbLine)).getState().toString()
-            );        
     }
   }
   

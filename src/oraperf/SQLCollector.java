@@ -58,7 +58,7 @@ public class SQLCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                     dbConnectionString + "\t"+"Error durring ORADB resource cleanups!"
-                    + "\n" + e.getMessage()
+                    + "\t" + e.getMessage()
             );
 
             //e.printStackTrace();
@@ -86,7 +86,7 @@ public class SQLCollector {
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         dbConnectionString + "\t"+"Error processing SQL statistics!"
-                        + "\n" + e.getMessage()
+                        + "\t" + e.getMessage()
                 );
 
                 shutdown = true;

@@ -46,7 +46,7 @@ public class StatCollector
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" +
                     "Error durring ORADB resource cleanups for database: " + dbConnectionString 
-                    + "\n" + e.getMessage()
+                    + "\t" + e.getMessage()
             );
 
             //e.printStackTrace();
@@ -61,7 +61,7 @@ public class StatCollector
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_PASSWORD, dbPassword);
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_NET_KEEPALIVE, "true");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "9000");
-            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_READ_TIMEOUT, "300000");
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_READ_TIMEOUT, "180000");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_AUTOCOMMIT, "false");
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, props);
             //con.setAutoCommit(false);
@@ -73,7 +73,7 @@ public class StatCollector
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + "Cannot initiate connection to target Oracle database: " + dbConnectionString
-                    + "\n" + e.getMessage()
+                    + "\t" + e.getMessage()
             );
             //e.printStackTrace();
 
@@ -97,7 +97,7 @@ public class StatCollector
             }catch(Exception e){
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + "Cannot get version from database: " + dbConnectionString
-                    + "\n" + e.getMessage()
+                    + "\t" + e.getMessage()
             );                
                 //e.printStackTrace();
                 if( rs != null || !rs.isClosed()){
