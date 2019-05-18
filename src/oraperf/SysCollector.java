@@ -23,6 +23,7 @@ public class SysCollector {
     private final int RSSTATNAME = 7;
     private final int RSFILESSIZE = 10;
     private final int RSSEGMENTSSIZE = 11;
+    private final int dbVersion;
     private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
     private final String dbConnectionString;
     private final String dbUniqueName;
@@ -39,7 +40,9 @@ public class SysCollector {
     private final BlockingQueue<OraCkhMsg> ckhQueue;
     private static final String ORASYSSTATSQUERY = "select statistic#,value from v$sysstat where value<>0";
     private static final String ORASQLTEXTSQUERY = "select sql_id,sql_text from v$sqlarea";
+    private static final String ORASQLTEXTSQUERYCDB = "select sql_id,sql_text from v$sqlarea where con_id=sys_context('USERENV','CON_ID')";
     private static final String ORASQLPLANSQUERY = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0";
+    private static final String ORASQLPLANSQUERYCDB = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0 and con_id=sys_context('USERENV','CON_ID')";    
     private static final String ORASTATNAMESQUERY = "select statistic#,name from v$statname";
     private static final String ORAFILESSIZEQUERY = 
             "select 0 file_type,file_id,file_name,round(bytes/1024/1024) sizemb,substr(autoextensible,1,1),round(maxbytes/1024/1024) maxmb,tablespace_name from dba_data_files " +
@@ -50,12 +53,13 @@ public class SysCollector {
             "from dba_segments " +
             "where bytes>1024*1024*64 and segment_type not in ('TYPE2 UNDO','TEMPORARY')";
     
-    public SysCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr){
+    public SysCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr, int version){
         ckhQueue                = queue;
         con                     = conn;
         dbConnectionString      = connstr;
         dbUniqueName            = dbname;
-        dbHostName              = dbhost;           
+        dbHostName              = dbhost;  
+        dbVersion               = version;
     }
 
     private void cleanup() {
@@ -78,9 +82,10 @@ public class SysCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                     dbConnectionString + "\t"+"Error durring ORADB resource cleanups!"
+                    + "\n" + e.getMessage()
             );
 
-            e.printStackTrace();
+            //e.printStackTrace();
         }
     }    
     
@@ -208,11 +213,11 @@ public class SysCollector {
         try{
             oraSysStatsPreparedStatement = con.prepareStatement(ORASYSSTATSQUERY);
             oraSysStatsPreparedStatement.setFetchSize(500);
-            oraSQLTextsPreparedStatement = con.prepareStatement(ORASQLTEXTSQUERY);
+            oraSQLTextsPreparedStatement = con.prepareStatement((dbVersion>=12)? ORASQLTEXTSQUERYCDB : ORASQLTEXTSQUERY);
             oraSQLTextsPreparedStatement.setFetchSize(1000);
             oraStatNamesPreparedStatement = con.prepareStatement(ORASTATNAMESQUERY);
             oraStatNamesPreparedStatement.setFetchSize(1000);
-            oraSQLPlansPreparedStatement = con.prepareStatement(ORASQLPLANSQUERY);
+            oraSQLPlansPreparedStatement = con.prepareStatement((dbVersion>=12)? ORASQLPLANSQUERYCDB : ORASQLPLANSQUERY);
             oraSQLPlansPreparedStatement.setFetchSize(1000);            
             oraFilesSizePreparedStatement = con.prepareStatement(ORAFILESSIZEQUERY);
             oraFilesSizePreparedStatement.setFetchSize(100);
@@ -250,10 +255,11 @@ public class SysCollector {
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         dbConnectionString + "\t"+"Error processing system statistics!"
+                        + "\n" + e.getMessage()
                 );
 
                 shutdown = true;
-                e.printStackTrace();
+                //e.printStackTrace();
             }
             if( ( (snapcounter>=5) && (snapcounter!=30) && (snapcounter % 5 == 0) || (snapcounter==0) ) ){
                 if(!shutdown){
@@ -266,9 +272,10 @@ public class SysCollector {
                     } catch (SQLException e) {
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                                 dbConnectionString + "\t"+"Error processing files size!"
+                                + "\n" + e.getMessage()
                         );
                         shutdown = true;
-                        e.printStackTrace();
+                        //e.printStackTrace();
                     }                    
                 }
                 if(!shutdown){
@@ -281,9 +288,10 @@ public class SysCollector {
                     } catch (SQLException e) {
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                                 dbConnectionString + "\t"+"Error processing segments size!"
+                                + "\n" + e.getMessage()
                         );
                         shutdown = true;
-                        e.printStackTrace();
+                        //e.printStackTrace();
                     }                                        
                 }          
             }
@@ -299,10 +307,11 @@ public class SysCollector {
                     } catch (SQLException e) {
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                                 dbConnectionString + "\t"+"Error processing sql plan hash values!"
+                                + "\n" + e.getMessage()
                         );
 
                         shutdown = true;
-                        e.printStackTrace();
+                        //e.printStackTrace();
                     }
                 }
                 if (!shutdown) {
@@ -315,10 +324,11 @@ public class SysCollector {
                     } catch (SQLException e) {
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                                 dbConnectionString + "\t"+"Error processing sql texts!"
+                                + "\n" + e.getMessage()
                         );
 
                         shutdown = true;
-                        e.printStackTrace();
+                        //e.printStackTrace();
                     }
                 }
             } 

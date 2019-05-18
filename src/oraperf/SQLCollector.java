@@ -20,6 +20,7 @@ public class SQLCollector {
     private final int RSSQLSTAT = 3;
     private final int RSSQLPHV = 5;
     private final int RSSQLTEXT = 6;
+    private final int dbVersion;
     private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
     private final String dbConnectionString;
     private final String dbUniqueName;
@@ -32,15 +33,19 @@ public class SQLCollector {
     private boolean shutdown = false;
     private final BlockingQueue<OraCkhMsg> ckhQueue;
     private static final String ORASQLTEXTSQUERY = "select sql_id,sql_text from v$sqlarea";
+    private static final String ORASQLTEXTSQUERYCDB = "select sql_id,sql_text from v$sqlarea where con_id=sys_context('USERENV','CON_ID')";
     private static final String ORASQLPLANSQUERY = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0";
+    private static final String ORASQLPLANSQUERYCDB = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0 and con_id=sys_context('USERENV','CON_ID')";
     private static final String ORASQLSTATSQUERY = "";
+    private static final String ORASQLSTATSQUERYCDB = "";
     
-    public SQLCollector (Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr){
+    public SQLCollector (Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr, int version){
         ckhQueue                = queue;
         con                     = conn;
         dbConnectionString      = connstr;
         dbUniqueName            = dbname;
-        dbHostName              = dbhost;           
+        dbHostName              = dbhost; 
+        dbVersion               = version;
     }
     private void cleanup() {
         try {
@@ -53,9 +58,10 @@ public class SQLCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                     dbConnectionString + "\t"+"Error durring ORADB resource cleanups!"
+                    + "\n" + e.getMessage()
             );
 
-            e.printStackTrace();
+            //e.printStackTrace();
         }
     }
     public void RunCollection() throws InterruptedException{
@@ -80,10 +86,11 @@ public class SQLCollector {
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         dbConnectionString + "\t"+"Error processing SQL statistics!"
+                        + "\n" + e.getMessage()
                 );
 
                 shutdown = true;
-                e.printStackTrace();
+                //e.printStackTrace();
             }
             TimeUnit.SECONDS.sleep(SECONDSBETWEENSQLSNAPS);
         }

@@ -3,10 +3,14 @@ package oraperf;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
+import oracle.jdbc.OracleConnection;
 
 public class StatCollector
         extends Thread {
@@ -40,19 +44,27 @@ public class StatCollector
                 con.close();
             }
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!"
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" +
+                    "Error durring ORADB resource cleanups for database: " + dbConnectionString 
+                    + "\n" + e.getMessage()
             );
 
-            e.printStackTrace();
+            //e.printStackTrace();
         }
     }
 
     private void openConnection() {
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
-            con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, dbUserName, dbPassword);
-            con.setAutoCommit(false);
+            Properties props = new Properties();
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_USER_NAME, dbUserName);
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_PASSWORD, dbPassword);
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_NET_KEEPALIVE, "true");
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "9000");
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_READ_TIMEOUT, "300000");
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_AUTOCOMMIT, "false");
+            con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, props);
+            //con.setAutoCommit(false);
         } catch (ClassNotFoundException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + "Cannot load Oracle driver!"
@@ -61,34 +73,72 @@ public class StatCollector
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + "Cannot initiate connection to target Oracle database: " + dbConnectionString
+                    + "\n" + e.getMessage()
             );
+            //e.printStackTrace();
 
             shutdown = true;
         }
     }
+    
+    private int getVersion () {
+            int version = 0;
+            ResultSet rs = null;
+            Statement stmt = null;
+            try{
+                stmt = con.createStatement();
+                rs = stmt.executeQuery("select to_number(substr(version,1,instr(version,'.',1,1)-1)) from v$instance");
+                if(rs.next()){
+                    version = rs.getInt(1);
+                }
+                rs.close();
+                stmt.close();
+                return version;
+            }catch(Exception e){
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
+                    + "Cannot get version from database: " + dbConnectionString
+                    + "\n" + e.getMessage()
+            );                
+                //e.printStackTrace();
+                if( rs != null || !rs.isClosed()){
+                    rs.close();
+                }
+                if ( stmt != null || ! stmt.isClosed()){
+                    stmt.close();
+                }
+                version = 0;
+            }finally{
+                return version;
+            }
+    }
+    
     @Override
     public void run() {
+        int dbVersion = 0;
+        Thread.currentThread().setName(dbHostName+"@"+dbUniqueName+"@"+String.valueOf(threadType));
         lg = new SL4JLogger();
 
         openConnection();
-        
-        if (!shutdown) {
+        if(! shutdown){
+            dbVersion = getVersion();
+        }
+        if (!shutdown && dbVersion>0) {
             try {
                 switch (threadType) {
                     case 0:
-                        WaitsCollector waits = new WaitsCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString);
+                        WaitsCollector waits = new WaitsCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
                         waits.RunCollection();
                         break;
                     case 1:
-                        SesCollector ses = new SesCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString);
+                        SesCollector ses = new SesCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
                         ses.RunCollection();
                         break;
                     case 2:
-                        SysCollector sys = new SysCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString);
+                        SysCollector sys = new SysCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
                         sys.RunCollection();
                         break;
                     case 3:
-                        SQLCollector sql = new SQLCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString);
+                        SQLCollector sql = new SQLCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
                         sql.RunCollection();
                         break;
                     default:

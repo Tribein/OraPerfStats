@@ -21,6 +21,7 @@ public class WaitsCollector {
     private final int RSIOFILESTAT = 8;
     private final int RSIOFUNCTIONSTAT = 9;
     private final int SECONDSBETWEENSESSWAITSSNAPS = 10;
+    private final int dbVersion;
     private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
     private final Connection con;
     private PreparedStatement oraWaitsPreparedStatement;
@@ -79,16 +80,65 @@ public class WaitsCollector {
             + ") "
             + "where  "
             + "a.sid <> sys_context('USERENV','SID')";
+    private static final String ORASESSWAITSQUERYCDB
+            = "with t as ( "
+            + "SELECT /*+ m0aterialize */ "
+            + "        * "
+            + "        FROM   "
+            + "        v$session  "
+            + "         where con_id=sys_context('USERENV','CON_ID') "
+            + ") "
+            + "select  "
+            + "        a.sid,   "
+            + "        a.serial#,   "
+            + "        DECODE(a.taddr,NULL,'N','Y') trn,   "
+            + "        a.status,   "
+            + "        nvl(a.username,a.schemaname),   "
+            + "        nvl(a.osuser,'-'),   "
+            + "        nvl(a.machine,'-'),   "
+            + "        nvl(a.program,'-'),   "
+            + "        a.type,   "
+            + "        nvl(a.module,'-'),   "
+            + "        nvl(a.blocking_session,0),   "
+            + "        DECODE(a.state,'WAITED KNOWN TIME','CPU','WAITED SHORT TIME','CPU',a.event)  event, "
+            + "        DECODE(a.state,'WAITED KNOWN TIME',127,'WAITED SHORT TIME',127,a.wait_class#) waitclass, "
+            + "        round(a.wait_time_micro / 1000000,3) wittime,   "
+            + "        nvl(a.sql_id,'-') sqlid,   "
+            + "        nvl(a.sql_exec_start,TO_DATE('19700101','YYYYMMDD')) sqlexecstart,   "
+            + "        a.sql_exec_id,   "
+            + "        a.logon_time,   "
+            + "        a.seq#,   "
+            + "        nvl(a.p1,0),   "
+            + "        nvl(a.p2,0),   "
+            + "        a.row_wait_obj#,  "
+            + "        nvl(a.PLSQL_ENTRY_OBJECT_ID,0) penobj,   "
+            + "        nvl(a.PLSQL_ENTRY_SUBPROGRAM_ID,0) pensubp,   "
+            + "        nvl(a.PLSQL_OBJECT_ID,0) pobj,  "
+            + "        nvl(a.PLSQL_SUBPROGRAM_ID,0) psubp,   "
+            + "        a.LAST_CALL_ET,  "
+            + "        substr(a.PDML_STATUS,1,1) pdml,  "
+            + "        substr(a.PDDL_STATUS,1,1) pddl,  "
+            + "        substr(a.PQ_STATUS,1,1) pq,  "
+            + "        nvl(a.ECID,'-') ecid "
+            + "from t a "
+            + "join t b on ( "
+            + "    (a.wait_class#<>6 and a.sid=b.sid) "
+            + "    or "
+            + "    (a.wait_class#=6 and a.sid in (nvl(b.blocking_session,-1),nvl(b.final_blocking_session,-1))) "
+            + ") "
+            + "where  "
+            + "a.sid <> sys_context('USERENV','SID')";    
     private static final String ORAIOFILESTATSQUERY = "select /*+ rule */filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from v$iostat_file a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)";
+    private static final String ORAIOFILESTATSQUERYCDB = "select /*+ rule */filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from v$iostat_file a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6) where a.con_id=sys_context('USERENV','CON_ID')";
     private static final String ORAIOFUNCTIONSTATSQUERY = "select function_name,filetype_name,small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,number_of_waits,wait_time from v$iostat_function_detail";
 
-    public WaitsCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr) {
-        ckhQueue = queue;
-        con = conn;
-        dbConnectionString = connstr;
-        dbUniqueName = dbname;
-        dbHostName = dbhost;
-
+    public WaitsCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr, int version) {
+        ckhQueue            = queue;
+        con                 = conn;
+        dbConnectionString  = connstr;
+        dbUniqueName        = dbname;
+        dbHostName          = dbhost;
+        dbVersion           = version;
     }
 
     private List getIOFileStatsListFromRS(ResultSet rs) {
@@ -212,9 +262,9 @@ public class WaitsCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!"
+                    + "\n" + e.getMessage()
             );
-
-            e.printStackTrace();
+            //e.printStackTrace();
         }
     }
 
@@ -244,10 +294,11 @@ public class WaitsCollector {
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                         + "Error getting io file stats from database " + dbConnectionString
+                        + "\n" + e.getMessage()
                 );
 
                 shutdown = true;
-                e.printStackTrace();
+                //e.printStackTrace();
             }
             if (!shutdown) {
                 currentDateTime = Instant.now().getEpochSecond();
@@ -260,10 +311,11 @@ public class WaitsCollector {
                 } catch (SQLException e) {
                     lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                             + "Error getting io function stats from database " + dbConnectionString
+                            + "\n" + e.getMessage()
                     );
 
                     shutdown = true;
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
             }
             if (!shutdown) {
@@ -277,10 +329,11 @@ public class WaitsCollector {
                 } catch (SQLException e) {
                     lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                             + "Error getting sessions from database " + dbConnectionString
+                            + "\n" + e.getMessage()
                     );
 
                     shutdown = true;
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
             }
             TimeUnit.SECONDS.sleep(SECONDSBETWEENSESSWAITSSNAPS);

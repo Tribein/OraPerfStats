@@ -18,6 +18,7 @@ public class SesCollector {
     SL4JLogger lg;
     private final int SECONDSBETWEENSESSSTATSSNAPS = 30;
     private final int RSSESSIONSTAT = 1;
+    private final int dbVersion;
     private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
     private final String dbConnectionString;
     private final String dbUniqueName;
@@ -89,15 +90,78 @@ public class SesCollector {
             "        'sorts (disk)'" +
             "    ) " +
             "    AND b.value <> 0";
+    private static final String ORASESSTATSQUERYCDB = 
+            "SELECT " +
+            "    sid, " +
+            "    sserial, " +
+            "    statistic#, " +
+            "    value " +
+            "FROM " +
+            "    ( " +
+            "        SELECT " +
+            "            sid, " +
+            "            serial# sserial " +
+            "        FROM " +
+            "            v$session " +
+            "        WHERE " +
+            "            type = 'USER' " +
+            "            AND sid <> sys_context('USERENV','SID') " +
+            "            AND ( " +
+            "                wait_class# <> 6 " +
+            "                OR ( " +
+            "                    wait_class# = 6 " +
+            "                    AND seconds_in_wait < 10 " +
+            "                ) " +
+            "            ) " +
+            "    ) a " +
+            "    JOIN v$sesstat b USING ( sid ) " +
+            "    JOIN v$statname c USING ( statistic# ) " +
+            "WHERE" +
+            "    name IN (" +
+            "        'Requests to/from client'," +
+            "        'user commits'," +
+            "        'user rollbacks'," +
+            "        'user calls'," +
+            "        'recursive calls'," +
+            "        'recursive cpu usage'," +
+            "        'DB time'," +
+            "        'session pga memory'," +
+            "        'physical read total bytes'," +
+            "        'physical write total bytes'," +
+            "        'db block changes'," +
+            "        'redo size'," +
+            "        'redo size for direct writes'," +
+            "        'table fetch by rowid'," +
+            "        'table fetch continued row'," +
+            "        'lob reads'," +
+            "        'lob writes'," +
+            "        'index fetch by key'," +
+            "        'sql area evicted'," +
+            "        'session cursor cache hits'," +
+            "        'session cursor cache count'," +
+            "        'opened cursors cumulative'," +
+            "        'opened cursors current'," +
+            "        'pinned cursors current'," +
+            "        'queries parallelized'," +
+            "        'Parallel operations not downgraded'," +
+            "        'Parallel operations downgraded to serial'," +
+            "        'parse time cpu'," +
+            "        'parse count (total)'," +
+            "        'parse count (hard)'," +
+            "        'parse count (failures)'," +
+            "        'sorts (memory)'," +
+            "        'sorts (disk)'" +
+            "    ) " +
+            "    AND b.value <> 0 and a.con_id=sys_context('USERENV','CON_ID')";    
     private final BlockingQueue<OraCkhMsg> ckhQueue;    
 
-    public SesCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr){
+    public SesCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr, int version){
         ckhQueue                = queue;
         con                     = conn;
         dbConnectionString      = connstr;
         dbUniqueName            = dbname;
         dbHostName              = dbhost;
-        
+        dbVersion               = version;
     }
     
     private List getSesStatsListFromRS(ResultSet rs) {
@@ -128,15 +192,17 @@ public class SesCollector {
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                     dbConnectionString + "\t"+"Error durring ORADB resource cleanups!"
+                    + "\n" + e.getMessage()
             );
 
-            e.printStackTrace();
+            //e.printStackTrace();
         }
     }
     
     public void RunCollection() throws InterruptedException{
         lg = new SL4JLogger();
         try{
+            //oraSesStatsPreparedStatement = con.prepareStatement((dbVersion>=12)? ORASESSTATSQUERYCDB : ORASESSTATSQUERY);
             oraSesStatsPreparedStatement = con.prepareStatement(ORASESSTATSQUERY);
             oraSesStatsPreparedStatement.setFetchSize(1000);      
         }catch(SQLException e){
@@ -156,10 +222,11 @@ public class SesCollector {
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
                         dbConnectionString + "\t"+"Error processing session statistics!"
+                        + "\n" + e.getMessage()
                 );
 
                 shutdown = true;
-                e.printStackTrace();
+                //e.printStackTrace();
             }
             TimeUnit.SECONDS.sleep(SECONDSBETWEENSESSSTATSSNAPS);
         }        
