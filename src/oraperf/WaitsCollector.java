@@ -274,8 +274,10 @@ public class WaitsCollector {
     public void RunCollection() throws InterruptedException {
         lg = new SL4JLogger();
         try {
+            //oraWaitsPreparedStatement = con.prepareStatement((dbVersion>=12)? ORASESSWAITSQUERYCDB : ORASESSWAITSQUERY);
             oraWaitsPreparedStatement = con.prepareStatement(ORASESSWAITSQUERY);
             oraWaitsPreparedStatement.setFetchSize(1000);
+            //oraIOFileStatsPreparedStatement = con.prepareStatement((dbVersion>=12)? ORAIOFILESTATSQUERYCDB: ORAIOFILESTATSQUERY);
             oraIOFileStatsPreparedStatement = con.prepareStatement(ORAIOFILESTATSQUERY);
             oraIOFileStatsPreparedStatement.setFetchSize(100);
             oraIOFunctionStatsPreparedStatement = con.prepareStatement(ORAIOFUNCTIONSTATSQUERY);
