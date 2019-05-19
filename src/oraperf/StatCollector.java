@@ -64,7 +64,6 @@ public class StatCollector
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "30000");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_READ_TIMEOUT, "180000");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_AUTOCOMMIT, "false");
-            props.setProperty("oracle.jdbc.javaNetNio", "true");
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, props);
             //con.setAutoCommit(false);
         } catch (ClassNotFoundException e) {
