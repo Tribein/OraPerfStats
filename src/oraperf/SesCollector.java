@@ -177,8 +177,8 @@ public class SesCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                    "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset" 
                     + "\t" + e.getMessage()
             );
         }
@@ -191,8 +191,8 @@ public class SesCollector {
                 oraSesStatsPreparedStatement.close();
             }
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                    dbConnectionString + "\t"+"Error during ORADB resource cleanups!"
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error during ORADB resource cleanups"
                     + "\t" + e.getMessage()
             );
 
@@ -207,8 +207,8 @@ public class SesCollector {
             oraSesStatsPreparedStatement = con.prepareStatement(ORASESSTATSQUERY);
             oraSesStatsPreparedStatement.setFetchSize(1000);      
         }catch(SQLException e){
-                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                        "Cannot prepare statements for  Oracle database: " + dbConnectionString
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                        + "\t" + "cannot prepare statements"
                         + "\t" + e.getMessage()
                 ); 
                 shutdown = true;
@@ -222,8 +222,8 @@ public class SesCollector {
 
                 oraSesStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                        dbConnectionString + "\t" + "Error processing session statistics!" 
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                        + "\t" + "error processing session statistics" 
                         + "\t" + e.getMessage()
                 );
 
