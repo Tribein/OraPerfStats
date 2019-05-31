@@ -80,8 +80,8 @@ public class SysCollector {
                 oraSQLPlansPreparedStatement.close();
             }
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                    dbConnectionString + "\t"+"Error durring ORADB resource cleanups!"
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error during ORADB resource cleanups"
                     + "\t" + e.getMessage()
             );
 
@@ -100,8 +100,8 @@ public class SysCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                    "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset"
                     + "\t" + e.getMessage()
             );
         }
@@ -119,8 +119,8 @@ public class SysCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                    "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset" 
                     + "\t" + e.getMessage()
             );
         }
@@ -143,8 +143,8 @@ public class SysCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                    "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset" 
                     + "\t" + e.getMessage()
             );
         }        
@@ -166,8 +166,8 @@ public class SysCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                    "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset" 
                     + "\t" + e.getMessage()
             );
         }               
@@ -185,8 +185,8 @@ public class SysCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                    "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset" 
                     + "\t" + e.getMessage()
             );
         }
@@ -204,8 +204,8 @@ public class SysCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                    "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset" 
                     + "\t" + e.getMessage()
             );
         }
@@ -230,8 +230,8 @@ public class SysCollector {
             oraSegmentsSizePreparedStatement = con.prepareStatement(ORASEGMENTSSIZEQUERY);
             oraSegmentsSizePreparedStatement.setFetchSize(100);            
         }catch(SQLException e){
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                    "Cannot prepare statements for  Oracle database: " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+ dbConnectionString
+                    + "\t" + "cannot prepare statements"
                     + "\t" + e.getMessage()
             ); 
             shutdown = true;
@@ -244,8 +244,8 @@ public class SysCollector {
 
             oraStatNamesPreparedStatement.close();
         } catch (Exception e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                    dbConnectionString + "\t"+"Error processing statistics names!"
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error processing statistics names"
                     + "\t" + e.getMessage()
             );
 
@@ -261,8 +261,8 @@ public class SysCollector {
 
                 oraSysStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                        dbConnectionString + "\t"+"Error processing system statistics!"
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                        + "\t" + "error processing system statistics"
                         + "\t" + e.getMessage()
                 );
 
@@ -278,8 +278,8 @@ public class SysCollector {
 
                         oraFilesSizePreparedStatement.clearWarnings();                        
                     } catch (SQLException e) {
-                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                                dbConnectionString + "\t"+"Error processing files size!"
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                                + "\t" + "error processing files size"
                                 + "\t" + e.getMessage()
                         );
                         shutdown = true;
@@ -294,8 +294,8 @@ public class SysCollector {
 
                         oraSegmentsSizePreparedStatement.clearWarnings();                         
                     } catch (SQLException e) {
-                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                                dbConnectionString + "\t"+"Error processing segments size!"
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                                + "\t" + "error processing segments size"
                                 + "\t" + e.getMessage()
                         );
                         shutdown = true;
@@ -313,8 +313,8 @@ public class SysCollector {
 
                         oraSQLPlansPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
-                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                                dbConnectionString + "\t"+"Error processing sql plan hash values!"
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                                + "\t" + "error processing sql plan hash values"
                                 + "\t" + e.getMessage()
                         );
 
@@ -330,8 +330,8 @@ public class SysCollector {
 
                         oraSQLTextsPreparedStatement.clearWarnings();
                     } catch (SQLException e) {
-                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + 
-                                dbConnectionString + "\t"+"Error processing sql texts!" 
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                                + "\t" + "error processing sql texts!" 
                                 + "\t" + e.getMessage()
                         );
 
