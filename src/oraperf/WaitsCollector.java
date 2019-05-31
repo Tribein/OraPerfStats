@@ -166,8 +166,8 @@ public class WaitsCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset" 
                     + "\t" + e.getMessage()
             );
         }
@@ -195,8 +195,8 @@ public class WaitsCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset" 
                     + "\t" + e.getMessage()
             );
         }
@@ -243,8 +243,8 @@ public class WaitsCollector {
             }
             rs.close();
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + "Error getting data from resultset " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset" 
                     + "\t" + e.getMessage()
             );
         }
@@ -263,8 +263,8 @@ public class WaitsCollector {
                 oraIOFunctionStatsPreparedStatement.close();
             }
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!" 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error durring ORADB resource cleanups" 
                     + "\t" + e.getMessage()
             );
             //e.printStackTrace();
@@ -283,8 +283,8 @@ public class WaitsCollector {
             oraIOFunctionStatsPreparedStatement = con.prepareStatement(ORAIOFUNCTIONSTATSQUERY);
             oraIOFunctionStatsPreparedStatement.setFetchSize(100);
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + "Cannot prepare statements for  Oracle database: " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "cannot prepare statements" 
             );
             shutdown = true;
         }
@@ -297,8 +297,8 @@ public class WaitsCollector {
 
                 oraIOFileStatsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
-                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                        + "Error getting io file stats from database " + dbConnectionString
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                        + "\t" + "error getting io file stats from database " 
                         + "\t" + e.getMessage()
                 );
 
@@ -314,8 +314,8 @@ public class WaitsCollector {
 
                     oraIOFunctionStatsPreparedStatement.clearWarnings();
                 } catch (SQLException e) {
-                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                            + "Error getting io function stats from database " + dbConnectionString
+                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                            + "\t" + "error getting io function stats from database" 
                             + "\t" + e.getMessage()
                     );
 
@@ -332,8 +332,8 @@ public class WaitsCollector {
 
                     oraWaitsPreparedStatement.clearWarnings();
                 } catch (SQLException e) {
-                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                            + "Error getting sessions from database " + dbConnectionString
+                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                            + "\t" + "error getting sessions from database" 
                             + "\t" + e.getMessage()
                     );
 
