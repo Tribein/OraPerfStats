@@ -44,8 +44,8 @@ public class StatCollector
                 con.close();
             }
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" +
-                    "Error durring ORADB resource cleanups for database: " + dbConnectionString 
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString 
+                    + "\t" + "error during ORADB resource cleanups"
                     + "\t" + e.getMessage()
             );
 
@@ -59,21 +59,21 @@ public class StatCollector
             Properties props = new Properties();
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_USER_NAME, dbUserName);
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_PASSWORD, dbPassword);
-            props.setProperty(OracleConnection.CONNECTION_PROPERTY_DEFAULT_USE_NIO, "true");
-            props.setProperty(OracleConnection.CONNECTION_PROPERTY_NET_KEEPALIVE, "true");
-            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "30000");
+            //props.setProperty(OracleConnection.CONNECTION_PROPERTY_DEFAULT_USE_NIO, "true");
+            //props.setProperty(OracleConnection.CONNECTION_PROPERTY_NET_KEEPALIVE, "true");
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "60000");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_READ_TIMEOUT, "180000");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_AUTOCOMMIT, "false");
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, props);
             //con.setAutoCommit(false);
         } catch (ClassNotFoundException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + "Cannot load Oracle driver!"
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "cannot load Oracle driver!"
             );
             shutdown = true;
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + "Cannot initiate connection to target Oracle database: " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "cannot initiate connection to target Oracle database"
                     + "\t" + e.getMessage()
             );
             //e.printStackTrace();
@@ -96,8 +96,8 @@ public class StatCollector
                 stmt.close();
                 return version;
             }catch(Exception e){
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + "Cannot get version from database: " + dbConnectionString
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "cannot get version from database" 
                     + "\t" + e.getMessage()
             );                
                 //e.printStackTrace();
@@ -116,10 +116,13 @@ public class StatCollector
     @Override
     public void run() {
         int dbVersion = 0;
+        
         Thread.currentThread().setName(dbHostName+"@"+dbUniqueName+"@"+String.valueOf(threadType));
+        
         lg = new SL4JLogger();
 
         openConnection();
+        
         if(! shutdown){
             dbVersion = getVersion();
         }
@@ -143,8 +146,8 @@ public class StatCollector
                         sql.RunCollection();
                         break;
                     default:
-                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                                + dbConnectionString + "\t" + "Unknown thread type provided!"
+                        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString 
+                                + "\t" + "unknown thread type provided!"
                         );
                 }
             } catch (InterruptedException e) {
