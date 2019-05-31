@@ -216,62 +216,80 @@ public class OraPerf
   
   private static void processSessions(String dbLine)
   {
-    if ( (!dbSessionsList.containsKey(dbLine)) || (dbSessionsList.get(dbLine) == null) || (!((Thread)dbSessionsList.get(dbLine)).isAlive()) ) {
+    if ( 
+            (!dbSessionsList.containsKey(dbLine))
+            || 
+            (!dbSessionsList.get(dbLine).isAlive())
+    ) {
       try
       {
         if (dbSessionsList.containsKey(dbLine)){
             dbSessionsList.remove(dbLine);   
         }
         dbSessionsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 0, ckhQueue));
-        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                "Starting sessions waits thread for " + dbLine
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
+                + "\t" + "starting sessions waits thread" 
         );
         
-        ((Thread)dbSessionsList.get(dbLine)).start();
+        dbSessionsList.get(dbLine).start();
       }
       catch (Exception e)
       {
-        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                "Error running sessions thread for " + dbLine
+        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
+                + "\t" + "error running sessions thread" 
         );
         
         e.printStackTrace();
       }
+    }else{
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine        
+                + "\t" + "sessions thread state" 
+                + "\t" + dbSessionsList.get(dbLine).getState().toString()
+        );
     }
   }
   
   private static void processSessionStats(String dbLine)
   {
-    if ((!dbSessStatsList.containsKey(dbLine)) || (dbSessStatsList.get(dbLine) == null) || (!((Thread)dbSessStatsList.get(dbLine)).isAlive())) {
+    if (
+            (!dbSessStatsList.containsKey(dbLine))
+            || 
+            (!dbSessStatsList.get(dbLine).isAlive())            
+    ) {
       try
       {
         if (dbSessStatsList.containsKey(dbLine)){
             dbSessStatsList.remove(dbLine);   
         }
           dbSessStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 1, ckhQueue));
-        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                "Starting sessions stats thread for " + dbLine
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
+                + "\t" + "starting sessions stats thread"
         );
         
-        ((Thread)dbSessStatsList.get(dbLine)).start();
+        dbSessStatsList.get(dbLine).start();
       }
       catch (Exception e)
       {
-        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                "Error running sessions stats thread for " + dbLine
+        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
+                + "\t" + "error running sessions stats thread"
         );
         
         e.printStackTrace();
       }
+    }else{
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine        
+                + "\t" + "sesstats thread state" 
+                + "\t" + dbSessStatsList.get(dbLine).getState().toString()
+        );
     }
   }
   
   private static void processSystemRoutines(String dbLine)
   {
     if (
-            dbSyssStatsList.get(dbLine) == null || 
-            !dbSyssStatsList.containsKey(dbLine) ||  
-            !((Thread)dbSyssStatsList.get(dbLine)).isAlive()
+            (!dbSyssStatsList.containsKey(dbLine))
+            ||
+            (!dbSyssStatsList.get(dbLine).isAlive())
     ) {
       try
       {
@@ -279,20 +297,25 @@ public class OraPerf
             dbSyssStatsList.remove(dbLine);   
         }          
         dbSyssStatsList.put(dbLine, new StatCollector(dbLine, DBUSERNAME, DBPASSWORD, CKHDataSource, 2, ckhQueue));
-        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                "Starting system stats thread for " + dbLine
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
+                + "\t" + "starting system stats thread"
         );
         
-        ((Thread)dbSyssStatsList.get(dbLine)).start();
+        dbSyssStatsList.get(dbLine).start();
       }
       catch (Exception e)
       {
-        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-                "Error running system stats thread for " + dbLine
+        lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
+                + "\t" + "error running system stats thread"
         );
         
         e.printStackTrace();
       }
+    }else{
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine        
+                + "\t" + "sysstats thread state" 
+                + "\t" + dbSyssStatsList.get(dbLine).getState().toString()
+        );
     }
   }
   
@@ -301,7 +324,7 @@ public class OraPerf
     for (int i = 0; i < CKHQUEUECONSUMERS; i++) {
       if ((ckhQueueThreads[i] == null) || (!ckhQueueThreads[i].isAlive()))
       {
-        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
+        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" +
                 "Starting clickhouse queue consumer #" + i
         );
         
@@ -327,8 +350,8 @@ public class OraPerf
     if (CKHDataSource == null) {
       System.exit(2);
     }
-    lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
-            "Starting"
+    lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) 
+            + "\t" + "Starting"
     );
     while(true)
     {
@@ -337,7 +360,7 @@ public class OraPerf
       oraDBList = getOraDBList();
       for (int i = 0; i < oraDBList.size(); i++)
       {
-        String dbLine = (String)oraDBList.get(i);
+        String dbLine = oraDBList.get(i);
         if (GATHERSESSIONS) {
           processSessions(dbLine);
         }
