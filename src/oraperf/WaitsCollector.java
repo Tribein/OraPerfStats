@@ -8,25 +8,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class WaitsCollector {
+public class WaitsCollector implements Configurable {
 
     SL4JLogger lg;
-    private final int RSSESSIONWAIT = 0;
-    private final int RSIOFILESTAT = 8;
-    private final int RSIOFUNCTIONSTAT = 9;
-    private final int SECONDSBETWEENSESSWAITSSNAPS = 10;
     private final int dbVersion;
-    private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
     private final Connection con;
     private PreparedStatement oraWaitsPreparedStatement;
-    private PreparedStatement oraIOFileStatsPreparedStatement;
-    private PreparedStatement oraIOFunctionStatsPreparedStatement;
     private long currentDateTime;
     private boolean shutdown = false;
     private final BlockingQueue<OraCkhMsg> ckhQueue;
@@ -127,80 +119,15 @@ public class WaitsCollector {
             + "    (a.wait_class#=6 and a.sid in (nvl(b.blocking_session,-1),nvl(b.final_blocking_session,-1))) "
             + ") "
             + "where  "
-            + "a.sid <> sys_context('USERENV','SID')";    
-    private static final String ORAIOFILESTATSQUERY = "select /*+ rule */filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from v$iostat_file a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)";
-    private static final String ORAIOFILESTATSQUERYCDB = "select /*+ rule */filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from v$iostat_file a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6) where a.con_id=sys_context('USERENV','CON_ID')";
-    private static final String ORAIOFUNCTIONSTATSQUERY = "select function_name,filetype_name,small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,number_of_waits,wait_time from v$iostat_function_detail";
+            + "a.sid <> sys_context('USERENV','SID')";
 
     public WaitsCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr, int version) {
-        ckhQueue            = queue;
-        con                 = conn;
-        dbConnectionString  = connstr;
-        dbUniqueName        = dbname;
-        dbHostName          = dbhost;
-        dbVersion           = version;
-    }
-
-    private List getIOFileStatsListFromRS(ResultSet rs) {
-        List<List> outList = new ArrayList();
-        try {
-            while (rs != null && rs.next()) {
-                List rowList = new ArrayList();
-                rowList.add(rs.getString(1));
-                rowList.add(rs.getString(2));
-                rowList.add(new BigDecimal(rs.getDouble(3)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(4)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(5)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(6)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(7)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(8)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(9)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(10)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(11)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(12)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(13)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(14)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(15)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(16)).longValue());
-                outList.add(rowList);
-            }
-            rs.close();
-        } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset" 
-                    + "\t" + e.getMessage()
-            );
-        }
-        return outList;
-    }
-
-    private List getIOFunctionStatsListFromRS(ResultSet rs) {
-        List<List> outList = new ArrayList();
-        try {
-            while (rs != null && rs.next()) {
-                List rowList = new ArrayList();
-                rowList.add(rs.getString(1));
-                rowList.add(rs.getString(2));
-                rowList.add(new BigDecimal(rs.getDouble(3)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(4)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(5)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(6)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(7)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(8)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(9)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(10)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(11)).longValue());
-                rowList.add(new BigDecimal(rs.getDouble(12)).longValue());
-                outList.add(rowList);
-            }
-            rs.close();
-        } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset" 
-                    + "\t" + e.getMessage()
-            );
-        }
-        return outList;
+        ckhQueue = queue;
+        con = conn;
+        dbConnectionString = connstr;
+        dbUniqueName = dbname;
+        dbHostName = dbhost;
+        dbVersion = version;
     }
 
     private List getSessionWaitsListFromRS(ResultSet rs) {
@@ -244,7 +171,7 @@ public class WaitsCollector {
             rs.close();
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset" 
+                    + "\t" + "error getting data from resultset"
                     + "\t" + e.getMessage()
             );
         }
@@ -256,15 +183,9 @@ public class WaitsCollector {
             if ((oraWaitsPreparedStatement != null) && (!oraWaitsPreparedStatement.isClosed())) {
                 oraWaitsPreparedStatement.close();
             }
-            if ((oraIOFileStatsPreparedStatement != null) && (!oraIOFileStatsPreparedStatement.isClosed())) {
-                oraIOFileStatsPreparedStatement.close();
-            }
-            if ((oraIOFunctionStatsPreparedStatement != null) && (!oraIOFunctionStatsPreparedStatement.isClosed())) {
-                oraIOFunctionStatsPreparedStatement.close();
-            }
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error durring ORADB resource cleanups" 
+                    + "\t" + "error durring ORADB resource cleanups"
                     + "\t" + e.getMessage()
             );
             //e.printStackTrace();
@@ -277,69 +198,28 @@ public class WaitsCollector {
             //oraWaitsPreparedStatement = con.prepareStatement((dbVersion>=12)? ORASESSWAITSQUERYCDB : ORASESSWAITSQUERY);
             oraWaitsPreparedStatement = con.prepareStatement(ORASESSWAITSQUERY);
             oraWaitsPreparedStatement.setFetchSize(1000);
-            //oraIOFileStatsPreparedStatement = con.prepareStatement((dbVersion>=12)? ORAIOFILESTATSQUERYCDB: ORAIOFILESTATSQUERY);
-            oraIOFileStatsPreparedStatement = con.prepareStatement(ORAIOFILESTATSQUERY);
-            oraIOFileStatsPreparedStatement.setFetchSize(100);
-            oraIOFunctionStatsPreparedStatement = con.prepareStatement(ORAIOFUNCTIONSTATSQUERY);
-            oraIOFunctionStatsPreparedStatement.setFetchSize(100);
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "cannot prepare statements" 
+                    + "\t" + "cannot prepare statements"
             );
             shutdown = true;
         }
         while (!shutdown) {
             currentDateTime = Instant.now().getEpochSecond();
             try {
-                oraIOFileStatsPreparedStatement.execute();
-                ckhQueue.put(new OraCkhMsg(RSIOFILESTAT, currentDateTime, dbUniqueName, dbHostName,
-                        getIOFileStatsListFromRS(oraIOFileStatsPreparedStatement.getResultSet())));
+                oraWaitsPreparedStatement.execute();
+                ckhQueue.put(new OraCkhMsg(RSSESSIONWAIT, currentDateTime, dbUniqueName, dbHostName,
+                        getSessionWaitsListFromRS(oraWaitsPreparedStatement.getResultSet())));
 
-                oraIOFileStatsPreparedStatement.clearWarnings();
+                oraWaitsPreparedStatement.clearWarnings();
             } catch (SQLException e) {
                 lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                        + "\t" + "error getting io file stats from database " 
+                        + "\t" + "error getting sessions from database"
                         + "\t" + e.getMessage()
                 );
 
                 shutdown = true;
                 //e.printStackTrace();
-            }
-            if (!shutdown) {
-                currentDateTime = Instant.now().getEpochSecond();
-                try {
-                    oraIOFunctionStatsPreparedStatement.execute();
-                    ckhQueue.put(new OraCkhMsg(RSIOFUNCTIONSTAT, currentDateTime, dbUniqueName, dbHostName,
-                            getIOFunctionStatsListFromRS(oraIOFunctionStatsPreparedStatement.getResultSet())));
-
-                    oraIOFunctionStatsPreparedStatement.clearWarnings();
-                } catch (SQLException e) {
-                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                            + "\t" + "error getting io function stats from database" 
-                            + "\t" + e.getMessage()
-                    );
-
-                    shutdown = true;
-                    //e.printStackTrace();
-                }
-            }
-            if (!shutdown) {
-                currentDateTime = Instant.now().getEpochSecond();
-                try {
-                    oraWaitsPreparedStatement.execute();
-                    ckhQueue.put(new OraCkhMsg(RSSESSIONWAIT, currentDateTime, dbUniqueName, dbHostName,
-                            getSessionWaitsListFromRS(oraWaitsPreparedStatement.getResultSet())));
-
-                    oraWaitsPreparedStatement.clearWarnings();
-                } catch (SQLException e) {
-                    lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                            + "\t" + "error getting sessions from database" 
-                            + "\t" + e.getMessage()
-                    );
-
-                    shutdown = true;
-                    //e.printStackTrace();
-                }
             }
             TimeUnit.SECONDS.sleep(SECONDSBETWEENSESSWAITSSNAPS);
         }

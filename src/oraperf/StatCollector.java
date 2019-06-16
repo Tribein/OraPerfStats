@@ -7,16 +7,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import oracle.jdbc.OracleConnection;
 
 public class StatCollector
-        extends Thread {
+        extends Thread implements Configurable {
 
     SL4JLogger lg;
-    private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
     private final int threadType;
     private final String dbUserName;
     private final String dbPassword;
@@ -129,19 +127,19 @@ public class StatCollector
         if (!shutdown && dbVersion>0) {
             try {
                 switch (threadType) {
-                    case 0:
+                    case THREADWAITS:
                         WaitsCollector waits = new WaitsCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
                         waits.RunCollection();
                         break;
-                    case 1:
+                    case THREADSESSION:
                         SesCollector ses = new SesCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
                         ses.RunCollection();
                         break;
-                    case 2:
+                    case THREADSYSTEM:
                         SysCollector sys = new SysCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
                         sys.RunCollection();
                         break;
-                    case 3:
+                    case THREADSQL:
                         SQLCollector sql = new SQLCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
                         sql.RunCollection();
                         break;

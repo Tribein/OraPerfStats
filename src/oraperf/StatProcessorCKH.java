@@ -5,27 +5,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class StatProcessorCKH
-  extends Thread
+  extends Thread implements Configurable
 {
   SL4JLogger lg;
-  private final int RSSESSIONWAIT = 0;
-  private final int RSSESSIONSTAT = 1;
-  private final int RSSYSTEMSTAT = 2;
-  private final int RSSQLSTAT = 3;
-  private final int RSSEGMENTSTAT = 4;
-  private final int RSSQLPHV = 5;
-  private final int RSSQLTEXT = 6;
-  private final int RSSTATNAME = 7;
-  private final int RSIOFILESTAT = 8;
-  private final int RSIOFUNCTIONSTAT = 9;
-  private final int RSFILESSIZE = 10;
-  private final int RSSEGMENTSSIZE = 11;
-  private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
   private ComboPooledDataSource ckhDataSource;
   private final int dataType;
   private final long dataTS;
@@ -403,8 +389,7 @@ public class StatProcessorCKH
   public void run()
   {
     lg = new SL4JLogger();
-    try
-    {
+    try{
       Connection ckhConnection = ckhDataSource.getConnection();
       PreparedStatement ckhPreparedStatement = null;
       switch (dataType)
@@ -466,9 +451,7 @@ public class StatProcessorCKH
         ckhConnection.close();
       }
       ckhDataSource = null;
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e){
       lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"+
             "Cannot connect to ClickHouse server!"
       );

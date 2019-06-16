@@ -8,18 +8,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class SesCollector {
+public class SesCollector implements Configurable {
     SL4JLogger lg;
-    private final int SECONDSBETWEENSESSSTATSSNAPS = 30;
-    private final int RSSESSIONSTAT = 1;
     private final int dbVersion;
-    private final DateTimeFormatter DATEFORMAT = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss");
     private final String dbConnectionString;
     private final String dbUniqueName;
     private final String dbHostName;
