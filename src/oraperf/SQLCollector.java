@@ -30,7 +30,58 @@ public class SQLCollector implements Configurable {
     private static final String ORASQLTEXTSQUERYCDB = "select sql_id,sql_text from v$sqlarea where con_id=sys_context('USERENV','CON_ID')";
     private static final String ORASQLPLANSQUERY = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0";
     private static final String ORASQLPLANSQUERYCDB = "select distinct sql_id,plan_hash_value from v$sqlarea_plan_hash where plan_hash_value<>0 and con_id=sys_context('USERENV','CON_ID')";
-    private static final String ORASQLSTATSQUERY = "";
+    private static final String ORASQLSTATSQUERY = "select " +
+    "sql_id , " +
+    "plan_hash_value , " +
+    "version_count , " +
+    "sharable_mem , " +
+    "persistent_mem , " +
+    "runtime_mem , " +
+    "sorts , " +
+    "loaded_versions , " +
+    "open_versions , " +
+    "users_opening , " +
+    "users_executing , " +
+    "fetches , " +
+    "executions , " +
+    "px_servers_executions , " +
+    "end_of_fetch_count , " +
+    "loads , " +
+    "first_load_time , " +
+    "last_load_time , " +
+    "last_active_time , " +
+    "invalidations , " +
+    "parse_calls , " +
+    "disk_reads , " +
+    "direct_writes , " +
+    "buffer_gets , " +
+    "cpu_time , " +
+    "elapsed_time , " +
+    "application_wait_time , " +
+    "concurrency_wait_time , " +
+    "cluster_wait_time , " +
+    "user_io_wait_time , " +
+    "plsql_exec_time ," +
+    "java_exec_time , " +
+    "rows_processed , " +
+    "command_type , " +
+    "optimizer_cost , " +
+    "parsing_schema_name , " +
+    "kept_versions , " +
+    "object_status , " +
+    "sql_profile , " +
+    "program_id , " +
+    "program_line# , " +
+    "io_cell_offload_eligible_bytes , " +
+    "io_interconnect_bytes , " +
+    "physical_read_requests , " +
+    "physical_read_bytes , " +
+    "physical_write_requests , " +
+    "physical_write_bytes , " +
+    "optimized_phy_read_requests , " +
+    "io_cell_uncompressed_bytes , " +
+    "io_cell_offload_returned_bytes " +
+    "from v$sqlarea_plan_hash";
     private static final String ORASQLSTATSQUERYCDB = "";
 
     public SQLCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr, int version) {

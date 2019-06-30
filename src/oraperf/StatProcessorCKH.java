@@ -160,6 +160,7 @@ public class StatProcessorCKH
         prep.setString(32, (String)row.get(28));
         prep.setString(33, (String)row.get(29));
         prep.setString(34, (String)row.get(30));
+        //prep.setInt(35, (int) row.get(31)); //SQL_CHILD_NUMBER
         prep.addBatch();
       }
       prep.executeBatch();

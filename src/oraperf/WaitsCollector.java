@@ -63,7 +63,8 @@ public class WaitsCollector implements Configurable {
             + "        substr(a.PDML_STATUS,1,1) pdml,  "
             + "        substr(a.PDDL_STATUS,1,1) pddl,  "
             + "        substr(a.PQ_STATUS,1,1) pq,  "
-            + "        nvl(a.ECID,'-') ecid "
+            + "        nvl(a.ECID,'-') ecid, "
+            + "        nvl(a.SQL_CHILD_NUMBER,-1) sql_child_number "
             + "from t a "
             + "join t b on ( "
             + "    (a.wait_class#<>6 and a.sid=b.sid) "
@@ -166,6 +167,7 @@ public class WaitsCollector implements Configurable {
                 rowList.add(rs.getString(29));
                 rowList.add(rs.getString(30));
                 rowList.add(rs.getString(31));
+                rowList.add(rs.getInt(32)); 
                 outList.add(rowList);
             }
             rs.close();

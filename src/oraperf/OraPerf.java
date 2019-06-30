@@ -183,7 +183,7 @@ public class OraPerf implements Configurable {
             cpds.setMinPoolSize(100);
             cpds.setAcquireIncrement(100);
             cpds.setMaxPoolSize(4096);
-            cpds.setMaxIdleTime(180);
+            cpds.setMaxIdleTime(120);
             cpds.setNumHelperThreads(8);
             cpds.setForceSynchronousCheckins(true);
             return cpds;
@@ -325,6 +325,7 @@ public class OraPerf implements Configurable {
         if (!processProperties(PROPERTIESFILENAME)) {
             System.exit(1);
         }
+        
         configureLogger();
 
         lg = new SL4JLogger();
@@ -332,12 +333,11 @@ public class OraPerf implements Configurable {
         ckhQueueThreads = new Thread[CKHQUEUECONSUMERS];
 
         CKHDataSource = initDataSource();
+        
         if (CKHDataSource == null) {
             System.exit(2);
         }
-        lg.LogWarn(DATEFORMAT.format(LocalDateTime.now())
-                + "\t" + "Starting"
-        );
+        
         while (true) {
             processCKHQueueConsumers();
 
