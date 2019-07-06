@@ -45,12 +45,12 @@ public class SysCollector implements Configurable {
     private static final String ORAIOFUNCTIONSTATSQUERY = "select function_name,filetype_name,small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,number_of_waits,wait_time from v$iostat_function_detail";
 
     public SysCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr, int version) {
-        ckhQueue = queue;
-        con = conn;
-        dbConnectionString = connstr;
-        dbUniqueName = dbname;
-        dbHostName = dbhost;
-        dbVersion = version;
+        ckhQueue            = queue;
+        con                 = conn;
+        dbConnectionString  = connstr;
+        dbUniqueName        = dbname;
+        dbHostName          = dbhost;
+        dbVersion           = version;
     }
 
     private void cleanup() {

@@ -85,12 +85,12 @@ public class SQLCollector implements Configurable {
     private static final String ORASQLSTATSQUERYCDB = "";
 
     public SQLCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr, int version) {
-        ckhQueue = queue;
-        con = conn;
-        dbConnectionString = connstr;
-        dbUniqueName = dbname;
-        dbHostName = dbhost;
-        dbVersion = version;
+        ckhQueue                = queue;
+        con                     = conn;
+        dbConnectionString      = connstr;
+        dbUniqueName            = dbname;
+        dbHostName              = dbhost;
+        dbVersion               = version;
     }
 
     private void cleanup() {
@@ -196,11 +196,11 @@ public class SQLCollector implements Configurable {
 
         try {
             oraSQLStatsPreparedStatement = con.prepareStatement(ORASQLSTATSQUERY);
-            oraSQLStatsPreparedStatement.setFetchSize(500);
+            oraSQLStatsPreparedStatement.setFetchSize(10000);
             oraSQLPlansPreparedStatement = con.prepareStatement((dbVersion >= 12) ? ORASQLPLANSQUERYCDB : ORASQLPLANSQUERY);
-            oraSQLPlansPreparedStatement.setFetchSize(1000);
+            oraSQLPlansPreparedStatement.setFetchSize(10000);
             oraSQLTextsPreparedStatement = con.prepareStatement((dbVersion >= 12) ? ORASQLTEXTSQUERYCDB : ORASQLTEXTSQUERY);
-            oraSQLTextsPreparedStatement.setFetchSize(1000);
+            oraSQLTextsPreparedStatement.setFetchSize(10000);
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
                     + "Cannot prepare statements for  Oracle database: " + dbConnectionString

@@ -123,12 +123,12 @@ public class WaitsCollector implements Configurable {
             + "a.sid <> sys_context('USERENV','SID')";
 
     public WaitsCollector(Connection conn, BlockingQueue<OraCkhMsg> queue, String dbname, String dbhost, String connstr, int version) {
-        ckhQueue = queue;
-        con = conn;
-        dbConnectionString = connstr;
-        dbUniqueName = dbname;
-        dbHostName = dbhost;
-        dbVersion = version;
+        ckhQueue                = queue;
+        con                     = conn;
+        dbConnectionString      = connstr;
+        dbUniqueName            = dbname;
+        dbHostName              = dbhost;
+        dbVersion               = version;
     }
 
     private List getSessionWaitsListFromRS(ResultSet rs) {
