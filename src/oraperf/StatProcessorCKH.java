@@ -23,7 +23,7 @@ public class StatProcessorCKH
   private final String CKHINSERTSESSTATSQUERY = "insert into sesstats_buffer values (?,?,?,?,?,?)";
   private final String CKHINSERTSQLTEXTSQUERY = "insert into sqltexts_buffer values (?,?)";
   private final String CKHINSERTSQLPLANSQUERY = "insert into sqlplans_buffer values (?,?)";
-  private final String CKHINSERTSQLSTATSQUERY = "insert into sqlstats_buffer values ()";
+  private final String CKHINSERTSQLSTATSQUERY = "insert into sqlstats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
   private final String CKHINSERTSTATNAMESQUERY = "insert into statnames_buffer values (?,?,?)";
   private final String CKHINSERTIOFILESTATSQUERY = "insert into iofilestats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
   private final String CKHINSERTIOFUNCTIONSTATSQUERY = "insert into iofunctionstats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -286,6 +286,59 @@ public class StatProcessorCKH
       for (int i = 0; i < lst.size(); i++)
       {
         row = (List)lst.get(i);
+        prep.setString(1, dbUniqueName);
+        prep.setString(2, dbHostName);
+        prep.setLong(3, currentDateTime);
+        prep.setString(4, (String) row.get(0) );
+        prep.setLong(5, (Long) row.get(1) );
+        prep.setInt(6, (int) row.get(2) );
+        prep.setLong(7, (Long) row.get(3) );
+        prep.setLong(8, (Long) row.get(4) );
+        prep.setLong(9, (Long) row.get(5) );
+        prep.setLong(10, (Long) row.get(6) );
+        prep.setInt(11, (int) row.get(7) );
+        prep.setInt(12, (int) row.get(8) );
+        prep.setInt(13, (int) row.get(9) );
+        prep.setInt(14, (int) row.get(10) );
+        prep.setLong(15, (Long) row.get(11) );
+        prep.setLong(16, (Long) row.get(12) );
+        prep.setLong(17, (Long) row.get(13) );
+        prep.setLong(18, (Long) row.get(14) );
+        prep.setInt(19, (int) row.get(15) );
+        prep.setLong(20, (Long) row.get(16) );
+        prep.setLong(21, (Long) row.get(17) );
+        prep.setLong(22, (Long) row.get(18) );
+        prep.setLong(23, (Long) row.get(19) );
+        prep.setLong(24, (Long) row.get(20) );
+        prep.setLong(25, (Long) row.get(21) );
+        prep.setLong(26, (Long) row.get(22) );
+        prep.setLong(27, (Long) row.get(23) );
+        prep.setLong(28, (Long) row.get(24) );
+        prep.setLong(29, (Long) row.get(25) );
+        prep.setLong(30, (Long) row.get(26) );
+        prep.setLong(31, (Long) row.get(27) );
+        prep.setLong(32, (Long) row.get(28) );
+        prep.setLong(33, (Long) row.get(29) );
+        prep.setLong(34, (Long) row.get(30) );
+        prep.setLong(35, (Long) row.get(31) );
+        prep.setLong(36, (Long) row.get(32) );
+        prep.setInt(37, (int) row.get(33) );
+        prep.setLong(38, (Long) row.get(34) );
+        prep.setString(39, (String) row.get(35) );
+        prep.setInt(40, (int) row.get(36) );
+        prep.setString(41, (String) row.get(37) );
+        prep.setString(42, (String) row.get(38) );
+        prep.setInt(43, (int) row.get(39) );
+        prep.setInt(44, (int) row.get(40) );
+        prep.setLong(45, (Long) row.get(41) );
+        prep.setLong(46, (Long) row.get(42) );
+        prep.setLong(47, (Long) row.get(43) );
+        prep.setLong(48, (Long) row.get(44) );
+        prep.setLong(49, (Long) row.get(45) );
+        prep.setLong(50, (Long) row.get(46) );
+        prep.setLong(51, (Long) row.get(47) );
+        prep.setLong(52, (Long) row.get(48) );
+        prep.setLong(53, (Long) row.get(49) );
         prep.addBatch();
       }
       prep.executeBatch();
@@ -429,6 +482,7 @@ public class StatProcessorCKH
         break;
       case RSSQLSTAT: 
         ckhPreparedStatement = ckhConnection.prepareStatement(CKHINSERTSQLSTATSQUERY);
+        processSQLStats(ckhPreparedStatement, dataList,dataTS);
         break;
       case RSSEGMENTSTAT: 
           break;

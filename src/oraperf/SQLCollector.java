@@ -47,9 +47,9 @@ public class SQLCollector implements Configurable {
     "px_servers_executions , " +
     "end_of_fetch_count , " +
     "loads , " +
-    "first_load_time , " +
-    "last_load_time , " +
-    "last_active_time , " +
+    "nvl(first_load_time,to_date('19700101000000','YYYYMMDDHH24MISS')) , " +
+    "nvl(last_load_time,to_date('19700101000000','YYYYMMDDHH24MISS')) , " +
+    "nvl(last_active_time,to_date('19700101000000','YYYYMMDDHH24MISS')) , " +
     "invalidations , " +
     "parse_calls , " +
     "disk_reads , " +
@@ -65,11 +65,11 @@ public class SQLCollector implements Configurable {
     "java_exec_time , " +
     "rows_processed , " +
     "command_type , " +
-    "optimizer_cost , " +
-    "parsing_schema_name , " +
+    "nvl(optimizer_cost,0) , " +
+    "nvl(parsing_schema_name,'-') , " +
     "kept_versions , " +
-    "object_status , " +
-    "sql_profile , " +
+    "nvl(object_status,'-') , " +
+    "nvl(sql_profile,'-') , " +
     "program_id , " +
     "program_line# , " +
     "io_cell_offload_eligible_bytes , " +
@@ -151,6 +151,94 @@ public class SQLCollector implements Configurable {
         return outList;
     }
 
+    private List getSQlStatsListFromRS(ResultSet rs) {
+        List<List> outList = new ArrayList();
+        try {
+            while (rs != null && rs.next()) {
+                List rowList = new ArrayList();
+                rowList.add(rs.getString(1));
+                rowList.add(rs.getLong(2));
+                rowList.add(rs.getInt(3));
+                rowList.add(rs.getLong(4));
+                rowList.add(rs.getLong(5));
+                rowList.add(rs.getLong(6));
+                rowList.add(rs.getLong(7));
+                rowList.add(rs.getInt(8));
+                rowList.add(rs.getInt(9));
+                rowList.add(rs.getInt(10));
+                rowList.add(rs.getInt(11));
+                rowList.add(rs.getLong(12));
+                rowList.add(rs.getLong(13));
+                rowList.add(rs.getLong(14));
+                rowList.add(rs.getLong(15));
+                rowList.add(rs.getInt(16));
+                rowList.add(rs.getTimestamp(17).getTime() / 1000L); //--first load time
+                rowList.add(rs.getTimestamp(18).getTime() / 1000L);
+                rowList.add(rs.getTimestamp(19).getTime() / 1000L);
+                rowList.add(rs.getLong(20));
+                rowList.add(rs.getLong(21));
+                rowList.add(rs.getLong(22));
+                rowList.add(rs.getLong(23));
+                rowList.add(rs.getLong(24));
+                rowList.add(rs.getLong(25));
+                rowList.add(rs.getLong(26));
+                rowList.add(rs.getLong(27));
+                rowList.add(rs.getLong(28));
+                rowList.add(rs.getLong(29));
+                rowList.add(rs.getLong(30));
+                rowList.add(rs.getLong(31));
+                rowList.add(rs.getLong(32));
+                rowList.add(rs.getLong(33)); //-- rows processed
+                rowList.add(rs.getInt(34));
+                rowList.add(rs.getLong(35));
+                rowList.add(rs.getString(36));
+                rowList.add(rs.getInt(37));
+                rowList.add(rs.getString(38));
+                rowList.add(rs.getString(39));
+                rowList.add(rs.getInt(40));
+                rowList.add(rs.getInt(41)); //program line
+                rowList.add(rs.getLong(42));
+                rowList.add(rs.getLong(43));
+                rowList.add(rs.getLong(44));
+                rowList.add(rs.getLong(45));
+                rowList.add(rs.getLong(46));
+                rowList.add(rs.getLong(47));
+                rowList.add(rs.getLong(48));
+                rowList.add(rs.getLong(49));
+                rowList.add(rs.getLong(50));
+                outList.add(rowList);
+            }
+            rs.close();
+        } catch (SQLException e) {
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "error getting data from resultset"
+                    + "\t" + e.getMessage()
+            );
+        }
+        return outList;
+    }    
+    
+    private void collectSQLStats() throws InterruptedException {
+        if (!shutdown) {
+            currentDateTime = Instant.now().getEpochSecond();
+            try {
+                oraSQLStatsPreparedStatement.execute();
+                ckhQueue.put(new OraCkhMsg(RSSQLSTAT, currentDateTime, dbUniqueName, dbHostName,
+                        getSQlStatsListFromRS(oraSQLStatsPreparedStatement.getResultSet())));
+
+                oraSQLStatsPreparedStatement.clearWarnings();
+            } catch (SQLException e) {
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                        + "\t" + "error processing sql stats!"
+                        + "\t" + e.getMessage()
+                );
+
+                shutdown = true;
+                //e.printStackTrace();
+            }        
+        }
+    }
+        
     private void collectSQLTexts() throws InterruptedException {
         if (!shutdown) {
             try {
@@ -207,12 +295,24 @@ public class SQLCollector implements Configurable {
             );
             shutdown = true;
         }
+        int counter = 0;
+        long begints,endts;
         while (!shutdown) {
-            TimeUnit.SECONDS.sleep(SECONDSBETWEENSQLSNAPS/2);
             currentDateTime = Instant.now().getEpochSecond();
-            collectSQLTexts();
-            collectSQLPlans();
-            TimeUnit.SECONDS.sleep(SECONDSBETWEENSQLSNAPS/2);
+            collectSQLStats();
+            if(counter==6){
+                begints = System.currentTimeMillis();
+                collectSQLTexts();
+                collectSQLPlans();
+                endts = System.currentTimeMillis();
+                counter = 0;
+                if (endts - begints < SECONDSBETWEENSQLSNAPS * 1000L) {
+                    TimeUnit.SECONDS.sleep(SECONDSBETWEENSQLSNAPS - (int) ((endts - begints) / 1000L));
+                }                
+            }else{
+                TimeUnit.SECONDS.sleep(SECONDSBETWEENSQLSNAPS);
+            }
+            counter++;
         }
         cleanup();
     }
