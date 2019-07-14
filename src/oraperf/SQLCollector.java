@@ -1,5 +1,6 @@
 package oraperf;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -47,9 +48,9 @@ public class SQLCollector implements Configurable {
     "px_servers_executions , " +
     "end_of_fetch_count , " +
     "loads , " +
-    "nvl(first_load_time,to_date('19700101000000','YYYYMMDDHH24MISS')) , " +
-    "nvl(last_load_time,to_date('19700101000000','YYYYMMDDHH24MISS')) , " +
-    "nvl(last_active_time,to_date('19700101000000','YYYYMMDDHH24MISS')) , " +
+    "nvl(first_load_time,to_date('19700101010000','YYYYMMDDHH24MISS')) , " +
+    "nvl(last_load_time,to_date('19700101010000','YYYYMMDDHH24MISS')) , " +
+    "greatest(nvl(last_active_time,to_date('19700101010000','YYYYMMDDHH24MISS')),to_date('19710101010000','YYYYMMDDHH24MISS')) , " +
     "invalidations , " +
     "parse_calls , " +
     "disk_reads , " +
@@ -65,22 +66,22 @@ public class SQLCollector implements Configurable {
     "java_exec_time , " +
     "rows_processed , " +
     "command_type , " +
-    "nvl(optimizer_cost,0) , " +
+    "to_char(nvl(optimizer_cost,0)) , " +
     "nvl(parsing_schema_name,'-') , " +
     "kept_versions , " +
     "nvl(object_status,'-') , " +
     "nvl(sql_profile,'-') , " +
     "program_id , " +
     "program_line# , " +
-    "io_cell_offload_eligible_bytes , " +
-    "io_interconnect_bytes , " +
+    "round(io_cell_offload_eligible_bytes/1024/1024) , " +
+    "round(io_interconnect_bytes/1024/1024) , " +
     "physical_read_requests , " +
-    "physical_read_bytes , " +
+    "round(physical_read_bytes/1024/1024) , " +
     "physical_write_requests , " +
-    "physical_write_bytes , " +
+    "round(physical_write_bytes/1024/1024) , " +
     "optimized_phy_read_requests , " +
-    "io_cell_uncompressed_bytes , " +
-    "io_cell_offload_returned_bytes " +
+    "round(io_cell_uncompressed_bytes/1024/1024), " +
+    "round(io_cell_offload_returned_bytes/1024/1024) " +
     "from v$sqlarea_plan_hash";
     private static final String ORASQLSTATSQUERYCDB = "";
 
@@ -177,9 +178,9 @@ public class SQLCollector implements Configurable {
                 rowList.add(rs.getTimestamp(19).getTime() / 1000L);
                 rowList.add(rs.getLong(20));
                 rowList.add(rs.getLong(21));
-                rowList.add(rs.getLong(22));
-                rowList.add(rs.getLong(23));
-                rowList.add(rs.getLong(24));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(22)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(23)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(24)).setScale(0));
                 rowList.add(rs.getLong(25));
                 rowList.add(rs.getLong(26));
                 rowList.add(rs.getLong(27));
@@ -188,24 +189,24 @@ public class SQLCollector implements Configurable {
                 rowList.add(rs.getLong(30));
                 rowList.add(rs.getLong(31));
                 rowList.add(rs.getLong(32));
-                rowList.add(rs.getLong(33)); //-- rows processed
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(33)).setScale(0)); //-- rows processed
                 rowList.add(rs.getInt(34));
-                rowList.add(rs.getLong(35));
+                rowList.add(rs.getString(35));
                 rowList.add(rs.getString(36));
                 rowList.add(rs.getInt(37));
                 rowList.add(rs.getString(38));
                 rowList.add(rs.getString(39));
                 rowList.add(rs.getInt(40));
                 rowList.add(rs.getInt(41)); //program line
-                rowList.add(rs.getLong(42));
-                rowList.add(rs.getLong(43));
-                rowList.add(rs.getLong(44));
-                rowList.add(rs.getLong(45));
-                rowList.add(rs.getLong(46));
-                rowList.add(rs.getLong(47));
-                rowList.add(rs.getLong(48));
-                rowList.add(rs.getLong(49));
-                rowList.add(rs.getLong(50));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(42)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(43)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(44)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(45)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(46)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(47)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(48)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(49)).setScale(0));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(50)).setScale(0));
                 outList.add(rowList);
             }
             rs.close();
@@ -214,6 +215,7 @@ public class SQLCollector implements Configurable {
                     + "\t" + "error getting data from resultset"
                     + "\t" + e.getMessage()
             );
+            //e.printStackTrace();
         }
         return outList;
     }    

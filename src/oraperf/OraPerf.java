@@ -182,7 +182,7 @@ public class OraPerf implements Configurable {
             cpds.setPassword(CKHPASSWORD);
             cpds.setMinPoolSize(100);
             cpds.setAcquireIncrement(100);
-            cpds.setMaxPoolSize(4096);
+            cpds.setMaxPoolSize(5120);
             cpds.setMaxIdleTime(120);
             cpds.setNumHelperThreads(8);
             cpds.setForceSynchronousCheckins(true);
@@ -216,10 +216,12 @@ public class OraPerf implements Configurable {
                 e.printStackTrace();
             }
         } else {
+            /*
             lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
                     + "\t" + "sessions thread state"
                     + "\t" + dbSessionsList.get(dbLine).getState().toString()
             );
+            */
         }
     }
 
@@ -244,10 +246,12 @@ public class OraPerf implements Configurable {
                 e.printStackTrace();
             }
         } else {
+            /*
             lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
                     + "\t" + "sesstats thread state"
                     + "\t" + dbSessStatsList.get(dbLine).getState().toString()
             );
+            */
         }
     }
 
@@ -272,10 +276,12 @@ public class OraPerf implements Configurable {
                 e.printStackTrace();
             }
         } else {
+            /*
             lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
                     + "\t" + "sysstats thread state"
                     + "\t" + dbSysStatsList.get(dbLine).getState().toString()
             );
+            */
         }
     }
 
@@ -300,10 +306,12 @@ public class OraPerf implements Configurable {
                 e.printStackTrace();
             }
         } else {
+            /*
             lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbLine
                     + "\t" + "sqls thread state"
                     + "\t" + dbSQLsStatsList.get(dbLine).getState().toString()
             );
+            */
         }
     }
 

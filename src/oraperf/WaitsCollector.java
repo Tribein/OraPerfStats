@@ -155,7 +155,7 @@ public class WaitsCollector implements Configurable {
                 rowList.add(rs.getInt(17));
                 rowList.add(rs.getTimestamp(18).getTime() / 1000L);
                 rowList.add(rs.getInt(19));
-                rowList.add((long) new BigDecimal(rs.getDouble(20)).setScale(0, RoundingMode.HALF_UP).doubleValue());
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(20)).setScale(0, RoundingMode.HALF_UP));
                 rowList.add(rs.getLong(21));
                 rowList.add(((rs.getLong(22) >= 0) ? rs.getLong(22) : 0));
                 rowList.add(rs.getLong(23));

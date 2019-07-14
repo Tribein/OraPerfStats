@@ -168,7 +168,7 @@ public class SesCollector implements Configurable {
                 rowList.add(rs.getInt(1));
                 rowList.add(rs.getInt(2));
                 rowList.add(rs.getInt(3));
-                rowList.add((long) new BigDecimal(rs.getDouble(4)).setScale(0, RoundingMode.HALF_UP).doubleValue());
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(4)).setScale(0, RoundingMode.HALF_UP));
                 outList.add(rowList);
             }
             rs.close();

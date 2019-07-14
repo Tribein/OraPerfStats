@@ -1,6 +1,7 @@
 package oraperf;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -148,7 +149,7 @@ public class StatProcessorCKH
         prep.setInt(20, ((int)row.get(16)));
         prep.setLong(21, ((long)row.get(17)));
         prep.setInt(22, ((int)row.get(18)));
-        prep.setLong(23, ((long)row.get(19)));
+        prep.setBigDecimal(23, ((BigDecimal)row.get(19)));
         prep.setLong(24, ((long)row.get(20)));
         prep.setLong(25, ((long)row.get(21)));
         prep.setLong(26, ((long)row.get(22)));
@@ -214,7 +215,7 @@ public class StatProcessorCKH
         prep.setInt(3, ((int)row.get(0)));
         prep.setInt(4, ((int)row.get(1)));
         prep.setInt(5, ((int)row.get(2)));
-        prep.setLong(6, ((long)row.get(3)));
+        prep.setBigDecimal(6, ((BigDecimal)row.get(3)));
         prep.addBatch();
       }
       prep.executeBatch();
@@ -310,9 +311,9 @@ public class StatProcessorCKH
         prep.setLong(22, (Long) row.get(18) );
         prep.setLong(23, (Long) row.get(19) );
         prep.setLong(24, (Long) row.get(20) );
-        prep.setLong(25, (Long) row.get(21) );
-        prep.setLong(26, (Long) row.get(22) );
-        prep.setLong(27, (Long) row.get(23) );
+        prep.setBigDecimal(25, (BigDecimal) row.get(21) );
+        prep.setBigDecimal(26, (BigDecimal) row.get(22) );
+        prep.setBigDecimal(27, (BigDecimal) row.get(23) );
         prep.setLong(28, (Long) row.get(24) );
         prep.setLong(29, (Long) row.get(25) );
         prep.setLong(30, (Long) row.get(26) );
@@ -321,24 +322,24 @@ public class StatProcessorCKH
         prep.setLong(33, (Long) row.get(29) );
         prep.setLong(34, (Long) row.get(30) );
         prep.setLong(35, (Long) row.get(31) );
-        prep.setLong(36, (Long) row.get(32) );
+        prep.setBigDecimal(36, (BigDecimal) row.get(32) ); 
         prep.setInt(37, (int) row.get(33) );
-        prep.setLong(38, (Long) row.get(34) );
+        prep.setString(38, (String) row.get(34) );
         prep.setString(39, (String) row.get(35) );
         prep.setInt(40, (int) row.get(36) );
         prep.setString(41, (String) row.get(37) );
         prep.setString(42, (String) row.get(38) );
         prep.setInt(43, (int) row.get(39) );
         prep.setInt(44, (int) row.get(40) );
-        prep.setLong(45, (Long) row.get(41) );
-        prep.setLong(46, (Long) row.get(42) );
-        prep.setLong(47, (Long) row.get(43) );
-        prep.setLong(48, (Long) row.get(44) );
-        prep.setLong(49, (Long) row.get(45) );
-        prep.setLong(50, (Long) row.get(46) );
-        prep.setLong(51, (Long) row.get(47) );
-        prep.setLong(52, (Long) row.get(48) );
-        prep.setLong(53, (Long) row.get(49) );
+        prep.setBigDecimal(45, (BigDecimal) row.get(41) );
+        prep.setBigDecimal(46, (BigDecimal) row.get(42) );
+        prep.setBigDecimal(47, (BigDecimal) row.get(43) );
+        prep.setBigDecimal(48, (BigDecimal) row.get(44) );
+        prep.setBigDecimal(49, (BigDecimal) row.get(45) );
+        prep.setBigDecimal(50, (BigDecimal) row.get(46) );
+        prep.setBigDecimal(51, (BigDecimal) row.get(47) );
+        prep.setBigDecimal(52, (BigDecimal) row.get(48) );
+        prep.setBigDecimal(53, (BigDecimal) row.get(49) );
         prep.addBatch();
       }
       prep.executeBatch();
