@@ -40,7 +40,19 @@ public class SysCollector implements Configurable {
             = "select owner,segment_name,nvl(partition_name,'-'),segment_type,tablespace_name,round(bytes/1024/1024) sizemb "
             + "from dba_segments "
             + "where segment_type not in ('TYPE2 UNDO','TEMPORARY')";
-    private static final String ORAIOFILESTATSQUERY = "select /*+ rule */filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from v$iostat_file a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)";
+    //private static final String ORAIOFILESTATSQUERY = "select /*+ rule */filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from v$iostat_file a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6)";
+    private static final String ORAIOFILESTATSQUERY = "with t as ( " +
+        "    select /*+ materialize */ name,file_no,filetype_id " +
+        "    from ( " +
+        "        select name,file# file_no, 2 filetype_id from v$datafile " +
+        "        union all " +
+        "        select name,file# file_no, 6 filetype_id from v$tempfile " +
+        "    )" +
+        ") " +
+        "select /*+ rule */ " +
+        "filetype_name,coalesce(b.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime " +
+        "from v$iostat_file a " +
+        "left join t b using(file_no,filetype_id)";
     private static final String ORAIOFILESTATSQUERYCDB = "select /*+ rule */filetype_name,coalesce(b.name,c.name,'-'),small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,small_sync_read_reqs,small_read_servicetime,small_write_servicetime,small_sync_read_latency,large_read_servicetime,large_write_servicetime from v$iostat_file a left join v$datafile b on (b.file#=a.file_no and a.filetype_id=2) left join v$tempfile c on (c.file#=a.file_no and a.filetype_id=6) where a.con_id=sys_context('USERENV','CON_ID')";
     private static final String ORAIOFUNCTIONSTATSQUERY = "select function_name,filetype_name,small_read_megabytes,small_write_megabytes,large_read_megabytes,large_write_megabytes,small_read_reqs,small_write_reqs,large_read_reqs,large_write_reqs,number_of_waits,wait_time from v$iostat_function_detail";
 
