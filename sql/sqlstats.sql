@@ -55,7 +55,7 @@ CREATE TABLE oradb.sqlstats
     io_cell_offload_returned_mb Int64
 )
 ENGINE = MergeTree()
-PARTITION BY toYYYYMM(snapTime)
+PARTITION BY toYYYYMMDD(snapTime)
 ORDER BY (dbuniquename, snapTime)
 SETTINGS index_granularity = 8192;
 CREATE TABLE oradb.sqlstats_buffer AS oradb.sqlstats ENGINE = Buffer('oradb', 'sqlstats', 16, 14400, 86400, 100000, 1000000, 100000000, 1000000000);

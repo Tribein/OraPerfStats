@@ -1,0 +1,92 @@
+<html>
+  <head>
+	<meta charset="utf-8">
+	<style></style>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+            google.charts.load('current', {'packages': ['corechart']});
+            google.charts.load('current', {'packages': ['table']});
+            google.charts.setOnLoadCallback(drawSQLStats);
+            var ts;
+            var te;
+            var timeSpan1;
+            var timeSpan2;
+            //--changable
+            var spanMinutes = 60;
+            var dbUniqueName = 'sefarm_prd';
+            var sqlstat = 'E';
+            //--------------------------------------------------------------
+            function getData(query) {
+                var xmlHttp = new XMLHttpRequest();
+                var xmlHttpOutput;
+                xmlHttp.open("POST", 'http://ogw.moscow.sportmaster.ru:18123/ckh', false);
+                xmlHttp.send(query);
+                return xmlHttp.responseText;
+            }            
+			//--------------------------------------------------------------            
+            function preDraw() {
+                te = new Date();
+                ts = new Date(te.getTime() - 1000 * 60 * spanMinutes);
+                timeSpan1 = ts.getFullYear() + '-' +
+                        ("0" + (ts.getMonth() + 1)).slice(-2) + '-' + ("0" + ts.getDate()).slice(-2)
+                        + ' ' +
+                        ("0" + ts.getHours()).slice(-2) + ':' + ("0" + ts.getMinutes()).slice(-2) + ':' + ("0" + ts.getSeconds()).slice(-2)
+                        ;
+                timeSpan2 = te.getFullYear() + '-' +
+                        ("0" + (te.getMonth() + 1)).slice(-2) + '-' + ("0" + te.getDate()).slice(-2)
+                        + ' ' +
+                        ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
+                        ;
+            }
+			//--------------------------------------------------------------
+			function drawSQLStats(){
+				drawSQLExecsChart();
+				
+			}
+			//--------------------------------------------------------------
+			function parseSQLStatsData(inputData) {
+				var dataLines = inputData.split(/[\n]+/);
+				var outData = [];
+				var rowData = [];
+				for (var i = 0; i < dataLines.length; i++) {
+					if (dataLines[i].length > 0) {
+						rowData = dataLines[i].split(/[\t]+/);
+						outData.push([rowData[0], rowData[1]+","+rowData[2],Number(rowData[3])]);
+					}
+				}
+				return outData;
+			}			
+			//--------------------------------------------------------------
+			function drawSQLExecsChart(){
+				var drawRegion = "sqlstatsregion";
+				var SQLExecsQuery = "select snapTime, sql_id, sum(executions) as val "+
+					"from sqlstats_buffer "+
+					"where dbuniquename='"+dbuniquename+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+					"group by snapTime,sql_id having val>0  order by snapTime";
+				//alert(sesStatsQuery);
+                var data = google.visualization.arrayToDataTable(parseSQLStatsData(getData(SQLStatsQuery)));
+                var options = {
+                    title: 'SQL Statistics',
+                    width: 1800,
+                    height: 500,
+                    hAxis: {textPosition: 'bottom'},
+                    vAxis: {minValue: 0, format: '####'},
+                    animation: {startup: 'true', duration: 300},
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '95%'},
+                    legend: {position: 'none'},
+                    isStacked: true,
+                    backgroundColor: {fill: 'transparent'}
+                };
+                var SQLStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
+                SQLStatsChart.draw(data, options);						
+			}   
+			//--------------------------------------------------------------
+    </script>
+  </head>
+
+  <body onLoad=''>
+    <div id="sqlstatsregion"></div>
+  </body>
+</html>			            

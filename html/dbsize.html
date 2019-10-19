@@ -150,11 +150,9 @@
                  height: 500,
                  hAxis: {textPosition: 'none'},
                  vAxis: {minValue: 0, format: '####'},
-                 animation: {startup: 'true', duration: 1000},
-                 bars: 'vertical',
+                 animation: {startup: 'false', duration: 10000},
                  //orientation : 'vertical',
-                 bar: {groupWidth: '95%'},
-                 legend: {position: 'right', maxLines: 3},
+                 legend: {position: 'bottom', maxLines: 1},
                  isStacked: false,
                  backgroundColor: {fill: 'transparent'},
                  pointSize: 1
@@ -247,10 +245,8 @@
                  height: 500,
                  hAxis: {textPosition: 'none'},
                  vAxis: {minValue: 0, format: '####'},
-                 bars: 'vertical',
                  //orientation : 'vertical',
-                 bar: {groupWidth: '95%'},
-                 legend: {position: 'right', maxLines: 3},
+                 legend: {position: 'bottom', maxLines: 1},
                  isStacked: false,
                  backgroundColor: {fill: 'transparent'},
                  pointSize: 1
@@ -289,9 +285,9 @@
             data.addRows(parseSegmentsSizeDiffData(getData(segmentsSizeDiffQuery)));
             var options = {
                 title: 'Segments size difference for '+owner,
-                width: '98%',
+                width: '100%',
                 //height: '100%',
-                allowHtml: true,
+                //allowHtml: true,
                 showRowNumber: false,
                 backgroundColor: {fill: 'transparent'}
             };
@@ -337,10 +333,8 @@
                  height: 500,
                  hAxis: {textPosition: 'none'},
                  vAxis: {minValue: 0, format: '####'},
-                 bars: 'vertical',
                  //orientation : 'vertical',
-                 bar: {groupWidth: '95%'},
-                 legend: {position: 'right', maxLines: 3},
+                 legend: {position: 'bottom', maxLines: 1},
                  isStacked: false,
                  backgroundColor: {fill: 'transparent'},
                  pointSize: 1

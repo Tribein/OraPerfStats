@@ -12,7 +12,7 @@
             function getData(query) {
                 var xmlHttp = new XMLHttpRequest();
                 var xmlHttpOutput;
-                xmlHttp.open("POST", 'http://apex.gksm.local:18123/ckh/?database=oradb&user=oracle&password=elcaro&query=', false);
+                xmlHttp.open("POST", 'http://ogw.moscow.sportmaster.ru:18123/ckh', false);
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
             }
