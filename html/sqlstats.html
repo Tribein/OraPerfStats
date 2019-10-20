@@ -131,7 +131,7 @@
 				//alert(SQLStatsQuery);	
                 var data = new google.visualization.arrayToDataTable(parseSQLStatsData(getData(SQLStatsQuery)));
                 var options = {
-                    title: 'SQL '+((sqlstat.localeCompare("E")===0)? 'Executions' : 'Time')+' Statistics',
+                    title: 'SQL '+((sqlstat.localeCompare("E")===0)? 'Execution' : 'Time')+' Statistics',
                     width: 1800,
                     height: 500,
                     hAxis: {textPosition: 'bottom'},
@@ -154,11 +154,52 @@
 							getSQLText(data.getColumnLabel(sel[0].column)).replace(/\\n/g,'<br />')+
 							'</span>';					
 							document.getElementById('sqltextregion').scrollIntoView({block: "center", behavior: "smooth"});
+							drawSQLPlansChart(data.getColumnLabel(sel[0].column));
                 }
                 google.visualization.events.addListener(SQLStatsChart, 'select', SQLStatsSelectHandler);                
 			}   
 			//--SQLSTATS
 			//--SQLPLANS
+			function drawSQLPlansChart(sqlid){
+				var drawRegion = "sqlplansregion";
+				var SQLPlansQuery = "select snapTime, plan_hash_value,execs from ( "+
+						"select snapTime,plan_hash_value,executions execs "+
+						"from sqlstats_buffer "+
+						"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' and sql_id='"+sqlid+"'"+
+						") any right join ( "+
+							"select plan_hash_value from ( "+
+								"select plan_hash_value,exec2-exec1 vl from ( "+
+									"select plan_hash_value,exec1,exec2 from ( "+
+										"select plan_hash_value,executions exec1 from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and sql_id='"+sqlid+"' and snapTime=( "+
+											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime<='"+timeSpan1+"' "+
+										") "+
+									") any left join ( "+
+										"select plan_hash_value,executions exec2 from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and sql_id='"+sqlid+"' and snapTime=( "+
+											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime<='"+timeSpan2+"' "+
+										") "+
+									") using plan_hash_value "+
+								") where vl>0 order by vl desc "+
+							") limit "+sqllimit+" "+
+						") using plan_hash_value order by snapTime,plan_hash_value";
+				//alert(SQLStatsQuery);	
+                var data = new google.visualization.arrayToDataTable(parseSQLStatsData(getData(SQLPlansQuery)));
+                var options = {
+                    title: 'Plan  '+((sqlstat.localeCompare("E")===0)? 'Execution' : 'Time')+' Statistics for SQL ID: '+sqlid,
+                    width: 1800,
+                    height: 500,
+                    hAxis: {textPosition: 'bottom'},
+                    vAxis: {minValue: 0, format: '####'},
+                    animation: {startup: 'true', duration: 300},
+                    bars: 'vertical',
+                    //orientation : 'vertical',
+                    bar: {groupWidth: '95%'},
+                    legend: {position: 'none'},
+                    isStacked: true,
+                    backgroundColor: {fill: 'transparent'}
+                };
+                var SQLPlansChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
+                SQLPlansChart.draw(data, options);						               
+			}   			
 			//--SQLPLANS
 			//--------------------------------------------------------------
     </script>
@@ -167,7 +208,7 @@
   <body onLoad=''>
     <div id="sqlstatsregion"></div>
     <div id="sqltextregion"></div>
-    <div id="sqlplanstatsregion"></div>
+    <div id="sqlplansregion"></div>
     <div id="sqldetailsregion"></div>
   </body>
 </html>			            
