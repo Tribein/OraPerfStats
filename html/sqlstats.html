@@ -94,6 +94,18 @@
 				return newData;
 			}			
 			//--------------------------------------------------------------
+            //--SQLTEXT
+            function getSQLText(sqlid){
+				if(sqlid.length == 13){
+					var sqlTextQuery = "select distinct sqltext from sqltexts_buffer where sqlid='"+sqlid+"'";
+					var	sqltext = getData(sqlTextQuery);
+					return sqltext;
+				}else{
+					return "Wrong SQLID"
+				}
+			}
+            //--SQLTEXT
+            //--SQLSTATS			
 			function drawSQLStatsChart(){
 				var drawRegion = "sqlstatsregion";
 				var SQLStatsQuery = "select snapTime, sql_id,execs from ( "+
@@ -134,12 +146,28 @@
                 };
                 var SQLStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 SQLStatsChart.draw(data, options);						
+                function SQLStatsSelectHandler(e) {
+					var sel = SQLStatsChart.getSelection();
+                    document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
+							data.getColumnLabel(sel[0].column) +
+							'</b>:<br />'+
+							getSQLText(data.getColumnLabel(sel[0].column)).replace(/\\n/g,'<br />')+
+							'</span>';					
+							document.getElementById('sqltextregion').scrollIntoView({block: "center", behavior: "smooth"});
+                }
+                google.visualization.events.addListener(SQLStatsChart, 'select', SQLStatsSelectHandler);                
 			}   
+			//--SQLSTATS
+			//--SQLPLANS
+			//--SQLPLANS
 			//--------------------------------------------------------------
     </script>
   </head>
 
   <body onLoad=''>
     <div id="sqlstatsregion"></div>
+    <div id="sqltextregion"></div>
+    <div id="sqlplanstatsregion"></div>
+    <div id="sqldetailsregion"></div>
   </body>
 </html>			            
