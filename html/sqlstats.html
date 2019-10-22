@@ -94,6 +94,19 @@
 				return newData;
 			}			
 			//--------------------------------------------------------------
+			function parseSQLDetailsData(inputData){
+				var dataLines = inputData.split(/[\n]+/);
+				var outData = [];
+				var rowData = [];
+				for (var i = 0; i < dataLines.length; i++) {
+					if (dataLines[i].length > 0) {
+						rowData = dataLines[i].split(/[\t]+/);
+						outData.push(rowData);
+					}
+				}
+				return outData;				
+			}
+			//--------------------------------------------------------------
             //--SQLTEXT
             function getSQLText(sqlid){
 				if(sqlid.length == 13){
@@ -153,8 +166,8 @@
 							'</b>:<br />'+
 							getSQLText(data.getColumnLabel(sel[0].column)).replace(/\\n/g,'<br />')+
 							'</span>';					
-							document.getElementById('sqltextregion').scrollIntoView({block: "center", behavior: "smooth"});
-							drawSQLPlansChart(data.getColumnLabel(sel[0].column));
+					document.getElementById('sqltextregion').scrollIntoView({block: "center", behavior: "smooth"});
+					drawSQLPlansChart(data.getColumnLabel(sel[0].column));
                 }
                 google.visualization.events.addListener(SQLStatsChart, 'select', SQLStatsSelectHandler);                
 			}   
@@ -198,9 +211,42 @@
                     backgroundColor: {fill: 'transparent'}
                 };
                 var SQLPlansChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
-                SQLPlansChart.draw(data, options);						               
+                SQLPlansChart.draw(data, options);	
+
+                function SQLPlansSelectHandler(e) {
+					var sel = SQLPlansChart.getSelection();
+					drawSQLDetails(sqlid,data.getColumnLabel(sel[0].column));
+                }
+                google.visualization.events.addListener(SQLPlansChart, 'select', SQLPlansSelectHandler);                    					               
 			}   			
 			//--SQLPLANS
+			//--SQLDETAILS
+			function drawSQLDetails(sqlid,planhv){
+				var drawRegion = "sqldetailsregion";
+                var SQLDetailsQuery = "select 0 as mk,sharable_mem,persistent_mem,runtime_mem,kept_versions,loaded_versions,open_versions,users_opening,users_executing,"+
+                "parsing_schema_name,optimizer_cost,object_status,sql_profile,program_id,program_line "+
+				"from oradb.sqlstats_buffer where sql_id='"+sqlid+"' and plan_hash_value="+planhv+" and dbuniquename = '"+dbUniqueName+"' "+
+				"and snapTime =(select max(snapTime) from sqlstats_buffer where snapTime<= '"+timeSpan1+"' and dbuniquename = '"+dbUniqueName+"') "+
+				"union all "+
+				"select 1 as mk,sharable_mem,persistent_mem,runtime_mem,kept_versions,loaded_versions,open_versions,users_opening,users_executing,"+
+                "parsing_schema_name,optimizer_cost,object_status,sql_profile,program_id,program_line "+
+				"from oradb.sqlstats_buffer "+
+				"where sql_id='"+sqlid+"' and plan_hash_value="+planhv+" and dbuniquename = '"+dbUniqueName+"' "+
+				"and snapTime =(select max(snapTime) from sqlstats_buffer where snapTime<= '"+timeSpan2+"' and dbuniquename = '"+dbUniqueName+"')";
+				//alert(SQLDetailsQuery);	
+                var data = google.visualization.arrayToDataTable(parseSQLDetailsData(getData(SQLDetailsQuery)));
+                var options = {
+                    title: 'Details for SQL ID: '+sqlid+', plan hash value: '+planhv,
+                    width: '100%',
+                    //height: '100%',
+                    allowHtml: true,
+                    showRowNumber: false,
+                    backgroundColor: {fill: 'transparent'}
+                };
+                var SQLDetailsTable = new google.visualization.Table(document.getElementById(drawRegion));
+                SQLDetailsTable.draw(data, options);				
+			}
+			//--SQLDETAILS
 			//--------------------------------------------------------------
     </script>
   </head>
