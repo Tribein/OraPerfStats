@@ -234,7 +234,23 @@
 				"where sql_id='"+sqlid+"' and plan_hash_value="+planhv+" and dbuniquename = '"+dbUniqueName+"' "+
 				"and snapTime =(select max(snapTime) from sqlstats_buffer where snapTime<= '"+timeSpan2+"' and dbuniquename = '"+dbUniqueName+"')";
 				//alert(SQLDetailsQuery);	
-                var data = google.visualization.arrayToDataTable(parseSQLDetailsData(getData(SQLDetailsQuery)));
+				var data = new google.visualization.DataTable();
+				data.addColumn('string', 'Dummy');
+				data.addColumn('string', 'sharable_mem');
+				data.addColumn('string', 'persistent_mem');
+				data.addColumn('string', 'runtime_mem');
+				data.addColumn('string', 'kept_versions');
+				data.addColumn('string', 'loaded_versions');
+				data.addColumn('string', 'open_versions');
+				data.addColumn('string', 'users_opening');
+				data.addColumn('string', 'users_executing');
+				data.addColumn('string', 'parsing_schema_name');
+				data.addColumn('string', 'optimizer_cost');
+				data.addColumn('string', 'object_status');
+				data.addColumn('string', 'sql_profile');
+				data.addColumn('string', 'program_id');
+				data.addColumn('string', 'program_line');
+                data.addRows(parseSQLDetailsData(getData(SQLDetailsQuery)));
                 var options = {
                     title: 'Details for SQL ID: '+sqlid+', plan hash value: '+planhv,
                     width: '100%',
