@@ -1,7 +1,43 @@
 <html>
   <head>
 	<meta charset="utf-8">
-	<style></style>
+	<style>
+.sbl-circ {
+  height: 48px;
+  width: 48px;
+  color: #333333;
+  position: relative;
+  display: inline-block;
+  border: 5px solid;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: rotate 1s linear infinite; }
+@keyframes rotate {
+  0% {
+    transform: rotate(0); }
+  100% {
+    transform: rotate(360deg); } 
+}		
+.modal {
+  display: none; 
+  position: fixed;
+  z-index: 1;
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0,0,0); 
+  background-color: rgba(160,160,160,0.4); 
+}
+.modal-content {
+  margin: auto;
+  padding: 20px;
+  border: 0px; 
+  width: 60px;
+}			
+	</style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
             google.charts.load('current', {'packages': ['corechart']});
@@ -16,6 +52,14 @@
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
             }
+			function showload(){
+				document.getElementById("modalrg").innerHTML='<div id="spinner" class="modal"><div class="modal-content" align="center"><span class="sbl-circ"></span></div></div>';
+				document.getElementById("spinner").style.display="block";
+			}
+			function hideload(){
+				document.getElementById("spinner").style.display="none";
+				document.getElementById("modalrg").innerHTML='';
+			}                
             //--            
             var ts;
             var te;
@@ -81,6 +125,7 @@
 					")"+
 				") where snapTime>='"+timeSpan1+"'";
 				//alert(sysStatsQuery);
+				showload();
                 var data = new google.visualization.DataTable();
                 data.addColumn( 'string', 'Time' );
                 data.addColumn( 'number', 'Value' );
@@ -101,6 +146,7 @@
                 };
                 var sysStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 sysStatsChart.draw(data, options);
+                hideload();
                 //--Register Events 
                 //--
                 /*
@@ -134,6 +180,7 @@
 				")"+*/
 				"order by snapTime";
 				//alert(sesStatsQuery);
+				showload();
                 var data = google.visualization.arrayToDataTable(
 					prepareSessData(
 						parseSesStatsData(
@@ -157,6 +204,7 @@
                 };
                 var sesStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 sesStatsChart.draw(data, options);			
+                hideload();
 			}
 			//------SESSTATS
 			function parseSysStatsData(inputData) {
@@ -296,6 +344,7 @@
   </head>
 
   <body onLoad=''>
+	<div id="modalrg"></div>
 	<div align="center">Statistic name:&nbsp;
 		<select id="stats" onchange="window.location='stats.html?statname='+this.options[this.selectedIndex].value">
 			<option>Requests to/from client</option>

@@ -3,7 +3,42 @@
 	<meta charset="utf-8">
 	<style>
 	.ns{ letter-spacing: -2px; }
-	.sc {  }	
+	.sc {  }
+.sbl-circ {
+  height: 48px;
+  width: 48px;
+  color: #333333;
+  position: relative;
+  display: inline-block;
+  border: 5px solid;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: rotate 1s linear infinite; }
+@keyframes rotate {
+  0% {
+    transform: rotate(0); }
+  100% {
+    transform: rotate(360deg); } 
+}		
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0,0,0); 
+  background-color: rgba(160,160,160,0.4); 
+}
+.modal-content {
+  margin: auto;
+  padding: 20px;
+  border: 0px; 
+  width: 60px;
+}			
 	</style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
@@ -117,6 +152,14 @@
                 }
                 return tree;
             }
+			function showload(){
+				document.getElementById("modalrg").innerHTML='<div id="spinner" class="modal"><div class="modal-content" align="center"><span class="sbl-circ"></span></div></div>';
+				document.getElementById("spinner").style.display="block";
+			}
+			function hideload(){
+				document.getElementById("spinner").style.display="none";
+				document.getElementById("modalrg").innerHTML='';
+			}                
             //--------------------------------------------------------------
             function preDraw() {
                 te = new Date();
@@ -154,6 +197,7 @@
                         dbUniqueName +
                         "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,classnum order by snapTime asc";
                 //alert(waitsQuery);
+                showload();
                 var data = new google.visualization.DataTable();
                 //--add Columns
                 data.addColumn('string', arrWaitClass[0]);
@@ -184,7 +228,7 @@
                 };
                 var waitsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 waitsChart.draw(data, options);
-                //--Register Events 
+                hideload();
                 //--
                 function waitsSelectHandler(e) {
                     if (waitsChart.getSelection().length === 0) {
@@ -218,6 +262,7 @@
                 var eventsQuery = "select snapTime,event, count(1) val,classnum from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
                         "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,event,classnum order by snapTime asc, val asc";
+                showload();
                 var data = google.visualization.arrayToDataTable(parseEventsData(getData(eventsQuery), Number(classNum)));
                 if (data.getNumberOfRows() === 0) {
                     return;
@@ -238,6 +283,7 @@
                 };
                 eventsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 eventsChart.draw(data, options);
+                hideload();
                 function eventsSelectHandler(e) {
                     if (eventsChart.getSelection().length === 0) {
                         if (typeof eventSessionsTable !== 'undefined') {
@@ -258,6 +304,7 @@
 				eventSessionsQuery = "select sid,serial,schemaname,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,seq,p1,p2,blocking_session,callEt,waitobj,ecid "+
 						"from sessions_buffer " +
                         "where dbuniquename='" + dbUniqueName + "' and snapTime='" + ts + "' and event='"+event+"' order by sid";
+                showload();
                 var data = google.visualization.arrayToDataTable(parseEventSessionsData(getData(eventSessionsQuery)));
                 var options = {
                     title: 'Sessions by Event',
@@ -270,6 +317,7 @@
                 };
                 eventSessionsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 eventSessionsTable.draw(data, options);
+                hideload();
 
                 function eventSessionsTableSelectHandler(e) {
                     if (eventSessionsTable.getSelection().length === 0) {
@@ -296,6 +344,7 @@
                 locksTreeQuery = "select sid,serial,schemaname,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session,callEt,waitobj from sessions_buffer " +
                         "where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "' and (" +
                         "blocking_session<>0 or sid in (select blocking_session from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "') )";
+                showload();
                 var data = google.visualization.arrayToDataTable(parseLocksTreeData(getData(locksTreeQuery)));
                 var options = {
                     title: 'LocksTree',
@@ -308,7 +357,7 @@
                 };
                 var locksTreeTable = new google.visualization.Table(document.getElementById(drawRegion));
                 locksTreeTable.draw(data, options);
-
+				hideload();
                 function locksTreeSelectHandler(e) {
                     if (locksTreeTable.getSelection().length === 0) {
                         if (typeof statsTable !== 'undefined') {
@@ -335,6 +384,7 @@
                 var locksQuery = "select snapTime, sum(if(blocking_session=0,0,1)) as val from sessions_buffer where dbuniquename='" +
                         dbUniqueName +
                         "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime order by snapTime asc";
+                showload();
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'Timestamp');
                 data.addColumn('number', 'Sessons blocked');
@@ -358,6 +408,7 @@
                 }
                 var locksChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 locksChart.draw(data, options);
+                hideload();
                 function locksSelectHandler(e) {
                     if (locksChart.getSelection().length === 0) {
                         if (typeof locksTreeTable !== 'undefined') {
@@ -393,7 +444,7 @@
                         ") limit 20" +
                         ") using sid,serial,module,machine,schemaname " +
                         "order by ni desc,sid asc,cnt asc";
-                //document.getElementById("query").innerHTML=sessionsQuery;
+                showload();
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'SID,SERIAL');
                 data.addColumn('string', 'SCHEMA');
@@ -411,7 +462,7 @@
                 };
                 var sessionsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 sessionsTable.draw(data, options);
-
+				hideload();
                 function sessionsSelectHandler(e) {
                     if (sessionsTable.getSelection().length === 0) {
                         if (typeof statsTable !== 'undefined') {
@@ -447,7 +498,7 @@
                         "group by sql_id having count(1)>0 order by ni desc" +
                         ") limit 20" +
                         ") using sql_id order by ni desc,sql_id,cnt asc";
-                //alert(sqlsQuery);
+                showload();
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'SQL ID');
                 data.addColumn('string', 'WAITS');
@@ -463,6 +514,7 @@
                 };
                 var sqlsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 sqlsTable.draw(data, options);
+                hideload();
                 function sqlidSelectHandler(e) {
                     if (sqlsTable.getSelection().length === 0) {
                         if (typeof sqlsTable !== 'undefined') {
@@ -499,7 +551,7 @@
 							") using statId,dbuniquename where (endvalue-beginvalue)<>0 ) "+
 							" any left join statnames_buffer using statId,dbuniquename " +
 							"order by vl desc";
-				//alert(statsQuery);
+				showload();
                 var data = new google.visualization.DataTable();
                 data.addColumn('string', 'Statistic for SID ' + inputsid);
                 data.addColumn('number', 'Value diff');
@@ -514,6 +566,7 @@
                 };
                 statsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 statsTable.draw(data, options);
+                hideload();
             }
             //--STATS
             //--SESSIONTIMELINE
@@ -525,7 +578,7 @@
                         "where dbuniquename='" + dbUniqueName + "' and snapTime>='" + timeSpan1 + "' and snapTime<='"+timeSpan2 +"' " +
                         "and sid="+inputsid+" and serial="+inputserial+" "+
                         "order by snapTime asc";	
-                //alert(SessionTimeLineQuery);
+                showload();
                 var data = google.visualization.arrayToDataTable(parseSessionTimeLineData(getData(SessionTimeLineQuery)));
                 var options = {
                     title: "Session "+inputsid+","+inputserial+" timeline",
@@ -538,6 +591,7 @@
                 };
                 var sessTimeLine = new google.visualization.Table(document.getElementById(drawRegion));
                 sessTimeLine.draw(data, options);
+                hideload();
                 function sqlidSelectHandler(e) {
                     if (sessTimeLine.getSelection().length === 0) {
                         if (typeof sessTimeLine !== 'undefined') {
@@ -568,7 +622,7 @@
 					" from sessions_buffer where snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "' and "+
 					" dbuniquename='" + dbUniqueName + "' and sid=" + inputsid + " and serial="+ inputserial + " and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0'"
 					" order by sql_exec_start asc";
-				//alert(SessionSQLsQuery);
+				showload();
                 var data = new google.visualization.DataTable();
                 data.addColumn({type: 'string', id: 'SQL'});
                 data.addColumn({type: 'date', id: 'FirstSnapTime'});
@@ -605,7 +659,7 @@
                 data.sort([{column: 2}]);
                 sessionSQLsChart = new google.visualization.Timeline(document.getElementById(drawRegion));
                 sessionSQLsChart.draw(data,options);
-                
+                hideload();
                 function sessSQLIdSelectHandler(e) {
                     if (sessionSQLsChart.getSelection().length !== 0) {
                         var sel = sessionSQLsChart.getSelection();
@@ -949,6 +1003,7 @@
   </head>
 
   <body onLoad=''>
+	<div id="modalrg"></div>  
     <div id="waitsregion"></div>
     <div id="eventsregion"></div>
     <div id="eventsessregion"></div>

@@ -1,7 +1,43 @@
 <html>
   <head>
 	<meta charset="utf-8">
-	<style></style>
+	<style>
+.sbl-circ {
+  height: 48px;
+  width: 48px;
+  color: #333333;
+  position: relative;
+  display: inline-block;
+  border: 5px solid;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: rotate 1s linear infinite; }
+@keyframes rotate {
+  0% {
+    transform: rotate(0); }
+  100% {
+    transform: rotate(360deg); } 
+}		
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0,0,0); 
+  background-color: rgba(160,160,160,0.4); 
+}
+.modal-content {
+  margin: auto;
+  padding: 20px;
+  border: 0px; 
+  width: 60px;
+}		
+	</style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
             google.charts.load('current', {'packages': ['corechart']});
@@ -16,6 +52,14 @@
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
             }
+			function showload(){
+				document.getElementById("modalrg").innerHTML='<div id="spinner" class="modal"><div class="modal-content" align="center"><span class="sbl-circ"></span></div></div>';
+				document.getElementById("spinner").style.display="block";
+			}
+			function hideload(){
+				document.getElementById("spinner").style.display="none";
+				document.getElementById("modalrg").innerHTML='';
+			}            
             //--            
             var ts;
             var te;
@@ -137,6 +181,7 @@
 				"group by st,hr "+
 			") using (st,hr) order by st,hr";
             //alert(dbSizeQuery);
+            showload();
             var data = new google.visualization.DataTable();
             //--add Columns
             data.addColumn('string', 'TimeStamp');
@@ -159,7 +204,8 @@
              };
              var dbSizeChart = new google.visualization.AreaChart(document.getElementById(drawRegion));
              dbSizeChart.draw(data, options);
-             drawSchemasSizeDiff();				
+             hideload();
+             drawSchemasSizeDiff();			
 		}
 		//------DBSIZE
 		//------SCHEMASDIFF
@@ -192,6 +238,7 @@
 			") using (owner) "+
 			"where diff<>0 "+
 			"order by diff desc,owner";
+			showload();
             var data = new google.visualization.DataTable();
             data.addColumn('string', 'Schema');
             data.addColumn('string', 'Size diff, Gb');
@@ -206,6 +253,7 @@
             };
             var schemasSizeDiffTable = new google.visualization.Table(document.getElementById(drawRegion));
             schemasSizeDiffTable.draw(data, options);            
+            hideload();
 
             function schemasSizeDiffTableHandler(e) {
                 if (schemasSizeDiffTable.getSelection().length !== 0) {
@@ -233,6 +281,7 @@
 						"group by toYYYYMMDD(snapTime), toHour(snapTime)    "+
 				") "+
 				"group by st,hr order by st,hr";
+			showload();
             var data = new google.visualization.DataTable();
             //--add Columns
             data.addColumn('string', 'TimeStamp');
@@ -253,6 +302,7 @@
              };
              var dbSchemaDetailsChart = new google.visualization.LineChart(document.getElementById(drawRegion));
              dbSchemaDetailsChart.draw(data, options);
+             hideload();
 		}		
 		//------SCHEMADETAILS
 		//------SEGMENTSDIFF
@@ -278,6 +328,7 @@
 				") using (sn,pn,st) "+
 				"where sz2<>sz1 "+
 				"order by abs(df) desc";
+			showload();
             var data = new google.visualization.DataTable();
             data.addColumn('string', 'Segment');
             data.addColumn('string', 'Type');
@@ -293,6 +344,7 @@
             };
             var segmentsSizeDiffTable = new google.visualization.Table(document.getElementById(drawRegion));
             segmentsSizeDiffTable.draw(data, options); 			
+            hideload();
             
             function segmentsSizeDiffTableHandler(e) {
                 if (segmentsSizeDiffTable.getSelection().length !== 0) {
@@ -321,6 +373,7 @@
 				") "+
 				"group by st,hr,segName order by st,hr";
 			//alert(dbSegmentDetailsQuery);
+			showload();
             var data = new google.visualization.DataTable();
             //--add Columns
             data.addColumn('string', 'TimeStamp');
@@ -341,12 +394,14 @@
              };
              var dbSegmentDetailsChart = new google.visualization.LineChart(document.getElementById(drawRegion));
              dbSegmentDetailsChart.draw(data, options);
+             hideload();
 		}
 		//------SEGMENTDETAILS
     </script>
   </head>
 
   <body onLoad=''>
+	<div id="modalrg"></div>
 	<div id="dbsizeregion"></div>
 	<div id="schemasregion"></div>
 	<div id="schemadetailsregion"></div>

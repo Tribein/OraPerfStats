@@ -1,7 +1,48 @@
 <html>
   <head>
 	<meta charset="utf-8">
-	<style></style>
+	<style>
+.sbl-circ {
+  height: 48px;
+  width: 48px;
+  color: #333333;
+  position: relative;
+  display: inline-block;
+  border: 5px solid;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: rotate 1s linear infinite; }
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0); }
+  100% {
+    transform: rotate(360deg); } 
+}		
+
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); 
+  background-color: rgba(160,160,160,0.4); 
+}
+
+/* Modal Content */
+.modal-content {
+  #background-color: #fefefe;
+  margin: auto;
+  padding: 20px;
+  border: 0px; 
+  width: 60px;
+}
+	</style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
             google.charts.load('current', {'packages': ['corechart']});
@@ -23,7 +64,15 @@
                 xmlHttp.open("POST", 'http://ogw.moscow.sportmaster.ru:18123/ckh', false);
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
-            }            
+            }     
+			function showload(){
+				document.getElementById("modalrg").innerHTML='<div id="spinner" class="modal"><div class="modal-content" align="center"><span class="sbl-circ"></span></div></div>';
+				document.getElementById("spinner").style.display="block";
+			}
+			function hideload(){
+				document.getElementById("spinner").style.display="none";
+				document.getElementById("modalrg").innerHTML='';
+			}                       
 			//--------------------------------------------------------------            
             function preDraw() {
                 te = new Date();
@@ -142,6 +191,7 @@
 							") limit "+sqllimit+" "+
 						") using sql_id order by snapTime,sql_id";
 				//alert(SQLStatsQuery);	
+				showload();
                 var data = new google.visualization.arrayToDataTable(parseSQLStatsData(getData(SQLStatsQuery)));
                 var options = {
                     title: 'SQL '+((sqlstat.localeCompare("E")===0)? 'Execution' : 'Time')+' Statistics',
@@ -159,6 +209,7 @@
                 };
                 var SQLStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 SQLStatsChart.draw(data, options);						
+                hideload();
                 function SQLStatsSelectHandler(e) {
 					var sel = SQLStatsChart.getSelection();
                     document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
@@ -194,7 +245,7 @@
 								") where vl>0 order by vl desc "+
 							") limit "+sqllimit+" "+
 						") using plan_hash_value order by snapTime,plan_hash_value";
-				//alert(SQLStatsQuery);	
+				showload();
                 var data = new google.visualization.arrayToDataTable(parseSQLStatsData(getData(SQLPlansQuery)));
                 var options = {
                     title: 'Plan  '+((sqlstat.localeCompare("E")===0)? 'Execution' : 'Time')+' Statistics for SQL ID: '+sqlid,
@@ -212,7 +263,7 @@
                 };
                 var SQLPlansChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 SQLPlansChart.draw(data, options);	
-
+                hideload();
                 function SQLPlansSelectHandler(e) {
 					var sel = SQLPlansChart.getSelection();
 					drawSQLDetails(sqlid,data.getColumnLabel(sel[0].column));
@@ -233,7 +284,7 @@
 				"from oradb.sqlstats_buffer "+
 				"where sql_id='"+sqlid+"' and plan_hash_value="+planhv+" and dbuniquename = '"+dbUniqueName+"' "+
 				"and snapTime =(select max(snapTime) from sqlstats_buffer where snapTime<= '"+timeSpan2+"' and dbuniquename = '"+dbUniqueName+"')";
-				//alert(SQLDetailsQuery);	
+				showload();
 				var data = new google.visualization.DataTable();
 				data.addColumn('string', 'Dummy');
 				data.addColumn('string', 'sharable_mem');
@@ -261,6 +312,7 @@
                 };
                 var SQLDetailsTable = new google.visualization.Table(document.getElementById(drawRegion));
                 SQLDetailsTable.draw(data, options);				
+                hideload();
 			}
 			//--SQLDETAILS
 			//--------------------------------------------------------------
@@ -268,6 +320,7 @@
   </head>
 
   <body onLoad=''>
+	<div id="modalrg"></div>	  
     <div id="sqlstatsregion"></div>
     <div id="sqltextregion"></div>
     <div id="sqlplansregion"></div>

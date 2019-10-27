@@ -1,7 +1,44 @@
 <html>
   <head>
 	<meta charset="utf-8">
-	<style></style>
+	<style>
+.sbl-circ {
+  height: 48px;
+  width: 48px;
+  color: #333333;
+  position: relative;
+  display: inline-block;
+  border: 5px solid;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: rotate 1s linear infinite; }
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0); }
+  100% {
+    transform: rotate(360deg); } 
+}		
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0,0,0); 
+  background-color: rgba(160,160,160,0.4); 
+}
+.modal-content {
+  margin: auto;
+  padding: 20px;
+  border: 0px; 
+  width: 60px;
+}			
+	</style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
             google.charts.load('current', {'packages': ['corechart']});
@@ -16,6 +53,14 @@
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
             }
+			function showload(){
+				document.getElementById("modalrg").innerHTML='<div id="spinner" class="modal"><div class="modal-content" align="center"><span class="sbl-circ"></span></div></div>';
+				document.getElementById("spinner").style.display="block";
+			}
+			function hideload(){
+				document.getElementById("spinner").style.display="none";
+				document.getElementById("modalrg").innerHTML='';
+			}                
             //--            
             var ts;
             var te;
@@ -177,6 +222,7 @@
 					((countBufferCache == 'Y')? "" : " and functionName<>'Buffer Cache Reads' ")+
 					") group by snapTime,functionName order by snapTime,functionName";
 				//alert(ioFunctionStatsQuery);
+				showload();
 				var allData = parseIOStatsData(getData(ioFunctionStatsQuery));
 				var tblHeader = allData[0];
 				var dataMb = allData[1];
@@ -227,6 +273,7 @@
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFunctionStatsRqChart.draw(dtRq, options);
+				hideload();
                 //--Register Events 
                 function IOFunctionStatsMbHandler(e) {
                     var sel = IOFunctionStatsMbChart.getSelection();
@@ -259,6 +306,7 @@
 						") "+
 					") order by snapTime";
 				//alert(ioFunctionStatsDetailsQuery);
+				showload();
 				var dataMb = new google.visualization.DataTable();
 				var dataRq = new google.visualization.DataTable();
                 dataMb.addColumn( 'string', 'Time' );
@@ -307,7 +355,8 @@
                     backgroundColor: {fill: 'transparent'}
                 };                
                 var IOFunctionStatsDetailRqChart = new google.visualization.ColumnChart(document.getElementById(drawRegionDetailsRq));
-                IOFunctionStatsDetailRqChart.draw(dataRq, options);	                
+                IOFunctionStatsDetailRqChart.draw(dataRq, options);	
+                hideload();                
 			}
 		//------io function stats details
 		//--------------------------------------------------------------
@@ -321,6 +370,7 @@
 					"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					") group by snapTime,fileType order by snapTime,fileType";
 				//alert(ioFileStatsQuery);
+				showload();
 				var allData = parseIOStatsData(getData(ioFileStatsQuery));
 				var tblHeader = allData[0];
 				var dataMb = allData[1];
@@ -371,8 +421,7 @@
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFileStatsRqChart.draw(dtRq, options);
-                //--Register Events 
-                
+				hideload();
                 function IOFileStatsMbHandler(e) {
                     var sel = IOFileStatsMbChart.getSelection();
                     drawIOFileStatsDetailsChart(tblHeader[sel[0].column]);
@@ -397,6 +446,7 @@
 					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					") group by snapTime,fileName order by snapTime,fileName";
 				//alert(ioFileStatsDetailsQuery);
+				showload();
 				var allData = parseIOStatsData(getData(ioFileStatsDetailsQuery));
 				var tblHeader = allData[0];
 				var dataMb = allData[1];
@@ -447,7 +497,7 @@
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFileStatsDetailsRqChart.draw(dtRq, options);
-                //--Register Events 
+				hideload();
                 /*
                 function IOFunctionStatsMbHandler(e) {
                     var sel = IOFunctionStatsMbChart.getSelection();
@@ -470,6 +520,7 @@
   </head>
 
   <body onLoad=''>
+	<div id="modalrg"></div>
 	<div id="iofunctionstatsmbregion"></div>
 	<div id="iofunctionstatsmbdetailsregion"></div>
 	<div id="iofunctionstatsrqregion"></div>
