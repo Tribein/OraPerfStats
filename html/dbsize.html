@@ -43,7 +43,7 @@
             google.charts.load('current', {'packages': ['corechart']});
             google.charts.load('current', {'packages': ['table']});
             //google.charts.load('current', {'packages':['bar']});
-            google.charts.setOnLoadCallback(drawDBSizeChart);
+            google.charts.setOnLoadCallback(drawSizeChart);
             //--
             function getData(query) {
                 var xmlHttp = new XMLHttpRequest();
@@ -52,6 +52,20 @@
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
             }
+            function a_getData(query,execfunc) {
+                var xmlHttp = new XMLHttpRequest();
+                var xmlHttpOutput;
+                xmlHttp.open("POST", 'http://ogw.moscow.sportmaster.ru:18123/ckh', true);
+                xmlHttp.send(query);
+				xmlHttp.onreadystatechange = function() { 
+					if (xmlHttp.readyState != 4) {return};
+					if (xmlHttp.status != 200) {
+						return;
+					} else {
+						execfunc(xmlHttp.responseText);
+					}
+				}                
+            }                
 			function showload(){
 				document.getElementById("modalrg").innerHTML='<div id="spinner" class="modal"><div class="modal-content" align="center"><span class="sbl-circ"></span></div></div>';
 				document.getElementById("spinner").style.display="block";
@@ -68,6 +82,9 @@
             //--changable
             var spanMinutes = 20*1440;
             var dbUniqueName = 'DWH_M';
+            var schema;
+            var owner;
+            var segment;
             //--------------------------------------------------------------
             function preDraw() {
                 te = new Date();
@@ -83,6 +100,11 @@
                         ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
                         ;
             }
+		//--------------------------------------------------------------
+		function drawSizeChart(){
+			preDraw();
+			drawDBSizeChart();
+		}
 		//--------------------------------------------------------------
 		function parseDBSizeData(inputData){
 			var dataLines = inputData.split(/[\n]+/);
@@ -150,9 +172,7 @@
 		}		
 		//--------------------------------------------------------------
         //------DBSIZE
-        function drawDBSizeChart() {
-			preDraw();				
-			var drawRegion = "dbsizeregion";	
+        function drawDBSizeChart() {	
             var dbSizeQuery = "select st,hr,round(filesMb/1024),round(segmentsMb/1024) from ( "+
 				"select toYYYYMMDD(snapTime) st,toHour(snapTime) hr, sum(sizeMb) as filesMb "+
 					"from dbfiles_buffer "+
@@ -180,7 +200,11 @@
 				") "+
 				"group by st,hr "+
 			") using (st,hr) order by st,hr";
-            //alert(dbSizeQuery);
+			showload();
+			a_getData(dbSizeQuery,drawDBSizeChart_);			
+		}
+        function drawDBSizeChart_(inputdata){	
+			var drawRegion = "dbsizeregion";	
             showload();
             var data = new google.visualization.DataTable();
             //--add Columns
@@ -188,7 +212,7 @@
             data.addColumn('number', 'FilesSize');
             data.addColumn('number', 'SegmentsSize');
             //-- add Data
-            data.addRows(parseDBSizeData(getData(dbSizeQuery)));
+            data.addRows(parseDBSizeData(inputdata));
              var options = {
                  title: 'DB Size',
                  width: 1800,
@@ -209,8 +233,7 @@
 		}
 		//------DBSIZE
 		//------SCHEMASDIFF
-		function drawSchemasSizeDiff() {
-			var drawRegion = "schemasregion";
+		function drawSchemasSizeDiff(){
 			var schemasSizeDiffQuery =  
 				"select owner,round((seg2-seg1)/1024,0) as diff "+
 				"from ( "+
@@ -239,10 +262,14 @@
 			"where diff<>0 "+
 			"order by diff desc,owner";
 			showload();
+			a_getData(schemasSizeDiffQuery,drawSchemasSizeDiff_);			
+		}
+		function drawSchemasSizeDiff_(inputdata){
+			var drawRegion = "schemasregion";
             var data = new google.visualization.DataTable();
             data.addColumn('string', 'Schema');
             data.addColumn('string', 'Size diff, Gb');
-            data.addRows(parseSchemasSizeDiffData(getData(schemasSizeDiffQuery)));
+            data.addRows(parseSchemasSizeDiffData(inputdata));
             var options = {
                 title: 'Schemas size difference for period',
                 width: '98%',
@@ -267,8 +294,8 @@
 		}
 		//------SCHEMASDIFF
 		//------SCHEMADETAILS
-        function drawSchemaDetailsChart( schema ) {
-			var drawRegion = "schemadetailsregion";	
+		function drawSchemaDetailsChart( impschema ) {
+			schema = inpschema;
             var dbSchemaDetailsQuery = "select toYYYYMMDD(snapTime) st,toHour(snapTime) hr, round(sum(sizeMb)/1024,3) "+
 					"from segments_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' and owner='"+schema+"' " +
@@ -281,13 +308,18 @@
 						"group by toYYYYMMDD(snapTime), toHour(snapTime)    "+
 				") "+
 				"group by st,hr order by st,hr";
-			showload();
+			showload();	
+			a_getData(dbSchemaDetailsQuery,drawSchemaDetailsChart_);	
+		}
+        function drawSchemaDetailsChart_( inputdata ) {
+			var drawRegion = "schemadetailsregion";	
+
             var data = new google.visualization.DataTable();
             //--add Columns
             data.addColumn('string', 'TimeStamp');
             data.addColumn('number', 'SizeGb');
             //-- add Data
-            data.addRows(parseSizeData(getData(dbSchemaDetailsQuery)));
+            data.addRows(parseSizeData(inputdata));
              var options = {
                  title: schema+" growth",
                  width: 1800,
@@ -306,8 +338,8 @@
 		}		
 		//------SCHEMADETAILS
 		//------SEGMENTSDIFF
-		function drawSegmentsSizeDiff( owner ){
-			var drawRegion = "segmentsregion";
+		function drawSegmentsSizeDiff( inpowner ){
+			owner = inpowner;
 			var segmentsSizeDiffQuery = "select sn,pn,st,(sz2-sz1) as df "+
 				"from ( "+
 					"select segName as sn,partName as pn,segType as st,sizeMb as sz1 "+
@@ -328,12 +360,17 @@
 				") using (sn,pn,st) "+
 				"where sz2<>sz1 "+
 				"order by abs(df) desc";
-			showload();
+			showload();	
+			a_getData(segmentsSizeDiffQuery,drawSegmentsSizeDiff_);		
+		}
+		function drawSegmentsSizeDiff_( inputdata ){
+			var drawRegion = "segmentsregion";
+
             var data = new google.visualization.DataTable();
             data.addColumn('string', 'Segment');
             data.addColumn('string', 'Type');
             data.addColumn('number', 'Size diff, Mb');
-            data.addRows(parseSegmentsSizeDiffData(getData(segmentsSizeDiffQuery)));
+            data.addRows(parseSegmentsSizeDiffData(inputdata));
             var options = {
                 title: 'Segments size difference for '+owner,
                 width: '100%',
@@ -357,9 +394,9 @@
 		}
 		//------SEGMENTSDIFF
 		//------SEGMENTDETAILS
-		function drawSegmentDetailsChart( owner, inpsegment){
-			var segment = (inpsegment.indexOf(".")<0)? inpsegment : inpsegment.substr(0,inpsegment.indexOf("."));
-			var drawRegion = "segmentdetailsregion";	
+		function drawSegmentDetailsChart( inpowner, inpsegment){
+			owner = inpowner;
+			segment = (inpsegment.indexOf(".")<0)? inpsegment : inpsegment.substr(0,inpsegment.indexOf("."));
             var dbSegmentDetailsQuery = "select toYYYYMMDD(snapTime) st,toHour(snapTime) hr, sum(sizeMb) "+
 					"from segments_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' and owner='"+owner+"' and segName='" +segment+ "' " +
@@ -372,14 +409,19 @@
 						"group by toYYYYMMDD(snapTime), toHour(snapTime)    "+
 				") "+
 				"group by st,hr,segName order by st,hr";
-			//alert(dbSegmentDetailsQuery);
-			showload();
+			showload();			
+			a_getData(dbSegmentDetailsQuery,drawSegmentDetailsChart_);
+		}
+		function drawSegmentDetailsChart_(inputdata){
+			
+			var drawRegion = "segmentdetailsregion";	
+
             var data = new google.visualization.DataTable();
             //--add Columns
             data.addColumn('string', 'TimeStamp');
             data.addColumn('number', 'SizeMb');
             //-- add Data
-            data.addRows(parseSizeData(getData(dbSegmentDetailsQuery)));
+            data.addRows(parseSizeData(inputdata));
              var options = {
                  title: owner+'.'+segment+ ' growth'  ,
                  width: 1800,

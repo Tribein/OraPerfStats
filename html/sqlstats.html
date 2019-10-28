@@ -57,6 +57,8 @@
             var dbUniqueName = 'sefarm_prd';
             var sqlstat = 'E';
             var sqllimit = 10;
+            var sqlid = "";
+            var planhv = "";
             //--------------------------------------------------------------
             function getData(query) {
                 var xmlHttp = new XMLHttpRequest();
@@ -64,6 +66,20 @@
                 xmlHttp.open("POST", 'http://ogw.moscow.sportmaster.ru:18123/ckh', false);
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
+            }            
+            function a_getData(query,execfunc) {
+                var xmlHttp = new XMLHttpRequest();
+                var xmlHttpOutput;
+                xmlHttp.open("POST", 'http://ogw.moscow.sportmaster.ru:18123/ckh', true);
+                xmlHttp.send(query);
+				xmlHttp.onreadystatechange = function() { 
+					if (xmlHttp.readyState != 4) {return};
+					if (xmlHttp.status != 200) {
+						return;
+					} else {
+						execfunc(xmlHttp.responseText);
+					}
+				}                
             }     
 			function showload(){
 				document.getElementById("modalrg").innerHTML='<div id="spinner" class="modal"><div class="modal-content" align="center"><span class="sbl-circ"></span></div></div>';
@@ -167,9 +183,8 @@
 				}
 			}
             //--SQLTEXT
-            //--SQLSTATS			
-			function drawSQLStatsChart(){
-				var drawRegion = "sqlstatsregion";
+            //--SQLSTATS	
+            function drawSQLStatsChart(){
 				var SQLStatsQuery = "select snapTime, sql_id,execs from ( "+
 						"select snapTime,sql_id,sum(executions) execs "+
 						"from sqlstats_buffer "+
@@ -190,9 +205,13 @@
 								") where vl>0 order by vl desc "+
 							") limit "+sqllimit+" "+
 						") using sql_id order by snapTime,sql_id";
-				//alert(SQLStatsQuery);	
 				showload();
-                var data = new google.visualization.arrayToDataTable(parseSQLStatsData(getData(SQLStatsQuery)));
+				a_getData(SQLStatsQuery,drawSQLStatsChart_)				
+			}		
+			function drawSQLStatsChart_(inputdata){
+				var drawRegion = "sqlstatsregion";
+
+                var data = new google.visualization.arrayToDataTable(parseSQLStatsData(inputdata));
                 var options = {
                     title: 'SQL '+((sqlstat.localeCompare("E")===0)? 'Execution' : 'Time')+' Statistics',
                     width: 1800,
@@ -224,8 +243,8 @@
 			}   
 			//--SQLSTATS
 			//--SQLPLANS
-			function drawSQLPlansChart(sqlid){
-				var drawRegion = "sqlplansregion";
+			function drawSQLPlansChart(inpsqlid){
+				sqlid = inpsqlid;
 				var SQLPlansQuery = "select snapTime, plan_hash_value,execs from ( "+
 						"select snapTime,plan_hash_value,executions execs "+
 						"from sqlstats_buffer "+
@@ -245,8 +264,12 @@
 								") where vl>0 order by vl desc "+
 							") limit "+sqllimit+" "+
 						") using plan_hash_value order by snapTime,plan_hash_value";
-				showload();
-                var data = new google.visualization.arrayToDataTable(parseSQLStatsData(getData(SQLPlansQuery)));
+				showload();				
+				a_getData(SQLPlansQuery,drawSQLPlansChart_);
+			}
+			function drawSQLPlansChart_(inputdata){
+				var drawRegion = "sqlplansregion";
+                var data = new google.visualization.arrayToDataTable(parseSQLStatsData(inputdata));
                 var options = {
                     title: 'Plan  '+((sqlstat.localeCompare("E")===0)? 'Execution' : 'Time')+' Statistics for SQL ID: '+sqlid,
                     width: 1800,
@@ -272,8 +295,9 @@
 			}   			
 			//--SQLPLANS
 			//--SQLDETAILS
-			function drawSQLDetails(sqlid,planhv){
-				var drawRegion = "sqldetailsregion";
+			function drawSQLDetails(inpsqlid,inpplanhv){
+				sqlid = inpsqlid;
+				planhv = inpplanhv;				
                 var SQLDetailsQuery = "select 0 as mk,sharable_mem,persistent_mem,runtime_mem,kept_versions,loaded_versions,open_versions,users_opening,users_executing,"+
                 "parsing_schema_name,optimizer_cost,object_status,sql_profile,program_id,program_line "+
 				"from oradb.sqlstats_buffer where sql_id='"+sqlid+"' and plan_hash_value="+planhv+" and dbuniquename = '"+dbUniqueName+"' "+
@@ -284,7 +308,11 @@
 				"from oradb.sqlstats_buffer "+
 				"where sql_id='"+sqlid+"' and plan_hash_value="+planhv+" and dbuniquename = '"+dbUniqueName+"' "+
 				"and snapTime =(select max(snapTime) from sqlstats_buffer where snapTime<= '"+timeSpan2+"' and dbuniquename = '"+dbUniqueName+"')";
-				showload();
+				showload();				
+				a_getData(SQLDetailsQuery,drawSQLDetails_);
+			}
+			function drawSQLDetails_(inputdata){
+				var drawRegion = "sqldetailsregion";
 				var data = new google.visualization.DataTable();
 				data.addColumn('string', 'Dummy');
 				data.addColumn('string', 'sharable_mem');
@@ -301,7 +329,7 @@
 				data.addColumn('string', 'sql_profile');
 				data.addColumn('string', 'program_id');
 				data.addColumn('string', 'program_line');
-                data.addRows(parseSQLDetailsData(getData(SQLDetailsQuery)));
+                data.addRows(parseSQLDetailsData(inputdata));
                 var options = {
                     title: 'Details for SQL ID: '+sqlid+', plan hash value: '+planhv,
                     width: '100%',

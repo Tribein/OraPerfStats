@@ -53,6 +53,20 @@
                 xmlHttp.send(query);
                 return xmlHttp.responseText;
             }
+            function a_getData(query,execfunc) {
+                var xmlHttp = new XMLHttpRequest();
+                var xmlHttpOutput;
+                xmlHttp.open("POST", 'http://ogw.moscow.sportmaster.ru:18123/ckh', true);
+                xmlHttp.send(query);
+				xmlHttp.onreadystatechange = function() { 
+					if (xmlHttp.readyState != 4) {return};
+					if (xmlHttp.status != 200) {
+						return;
+					} else {
+						execfunc(xmlHttp.responseText);
+					}
+				}                
+            }                
 			function showload(){
 				document.getElementById("modalrg").innerHTML='<div id="spinner" class="modal"><div class="modal-content" align="center"><span class="sbl-circ"></span></div></div>';
 				document.getElementById("spinner").style.display="block";
@@ -69,6 +83,8 @@
             //--changable
             var spanMinutes = 5;
             var dbUniqueName = 'sefarm_prd';
+            var fileType;
+            var functionName;
             //--------------------------------------------------------------
             function preDraw() {
                 te = new Date();
@@ -212,18 +228,19 @@
 
             //------io function stats
             function drawIOFunctionStatsChart() {
-                			
-				var drawRegionMb = "iofunctionstatsmbregion";
-				var drawRegionRq = "iofunctionstatsrqregion";
 				var ioFunctionStatsQuery = "select snapTime,functionName, sum(mb) as tmb, sum(rq) as trq from ( "+
 					"select snapTime, functionName,(srmb+swmb+lrmb+lwmb) mb,  (srrq+swrq+lrrq+lwrq) rq "+
 					"from iofunctionstats_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					((countBufferCache == 'Y')? "" : " and functionName<>'Buffer Cache Reads' ")+
 					") group by snapTime,functionName order by snapTime,functionName";
-				//alert(ioFunctionStatsQuery);
-				showload();
-				var allData = parseIOStatsData(getData(ioFunctionStatsQuery));
+				showload();				
+				a_getData(ioFunctionStatsQuery,drawIOFunctionStatsChart_);
+			}
+            function drawIOFunctionStatsChart_(inputdata) {
+				var drawRegionMb = "iofunctionstatsmbregion";
+				var drawRegionRq = "iofunctionstatsrqregion";
+				var allData = parseIOStatsData(inputdata);
 				var tblHeader = allData[0];
 				var dataMb = allData[1];
 				var dataRq = allData[2];
@@ -288,9 +305,8 @@
             }
 			//------io function stats
 			//------io function stats details
-			function drawIOFunctionStatsDetailsChart(functionName) {
-				var drawRegionDetailsMb = "iofunctionstatsmbdetailsregion";
-				var drawRegionDetailsRq = "iofunctionstatsrqdetailsregion";
+			function drawIOFunctionStatsDetailsChart(inpfunctionName) {
+				functionName = inpfunctionName;
 				var ioFunctionStatsDetailsQuery  = "select * from ( "+
 					"select snapTime, "+
 						"runningDifference(srmb), runningDifference(swmb), runningDifference(lrmb), runningDifference(lwmb),"+
@@ -305,8 +321,12 @@
 							"and snapTime<='"+timeSpan2+"' and functionName='"+functionName+"' group by snapTime order by snapTime"+
 						") "+
 					") order by snapTime";
-				//alert(ioFunctionStatsDetailsQuery);
-				showload();
+				showload();				
+				a_getData(ioFunctionStatsDetailsQuery,drawIOFunctionStatsDetailsChart_);				
+			}
+			function drawIOFunctionStatsDetailsChart_(inputdata) {
+				var drawRegionDetailsMb = "iofunctionstatsmbdetailsregion";
+				var drawRegionDetailsRq = "iofunctionstatsrqdetailsregion";
 				var dataMb = new google.visualization.DataTable();
 				var dataRq = new google.visualization.DataTable();
                 dataMb.addColumn( 'string', 'Time' );
@@ -319,7 +339,7 @@
                 dataRq.addColumn( 'number', 'Small Write' );
                 dataRq.addColumn( 'number', 'Large Read' );
                 dataRq.addColumn( 'number', 'Large Write' );
-                var allData = parseIOFunctionStatsDetails(getData(ioFunctionStatsDetailsQuery));
+                var allData = parseIOFunctionStatsDetails(inputdata);
                 dataMb.addRows(allData[0]); 
                 dataRq.addRows(allData[1]); 
                 var options = {
@@ -361,17 +381,20 @@
 		//------io function stats details
 		//--------------------------------------------------------------
 		//------io file stats 
-		function drawIOFileStatsChart(){	
-				var drawRegionMb = "iofilestatsmbregion";
-				var drawRegionRq = "iofilestatsrqregion";
+		function drawIOFileStatsChart(){
 				var ioFileStatsQuery = "select snapTime,fileType, sum(mb) as tmb, sum(rq) as trq from ( "+
 					"select snapTime, fileType,(srmb+swmb+lrmb+lwmb) mb,  (srrq+swrq+lrrq+lwrq) rq "+
 					"from iofilestats_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					") group by snapTime,fileType order by snapTime,fileType";
-				//alert(ioFileStatsQuery);
-				showload();
-				var allData = parseIOStatsData(getData(ioFileStatsQuery));
+				showload();			
+				a_getData(ioFileStatsQuery,drawIOFileStatsChart_);
+		}
+		function drawIOFileStatsChart_(inputdata){	
+				var drawRegionMb = "iofilestatsmbregion";
+				var drawRegionRq = "iofilestatsrqregion";
+
+				var allData = parseIOStatsData(inputdata);
 				var tblHeader = allData[0];
 				var dataMb = allData[1];
 				var dataRq = allData[2];
@@ -436,18 +459,22 @@
         //------io file stats 		
 		//--------------------------------------------------------------
 		//------io file stats details
-		function drawIOFileStatsDetailsChart(fileType) {
-				var drawRegionMb = "iofilestatsmbdetailsregion";
-				var drawRegionRq = "iofilestatsrqdetailsregion";
+		function drawIOFileStatsDetailsChart(inpfileType) {
+			fileType = inpfileType;
 				var ioFileStatsDetailsQuery = "select snapTime,fileName, sum(mb) as tmb, sum(rq) as trq from ( "+
 					"select snapTime, fileName,(srmb+swmb+lrmb+lwmb) mb,  (srrq+swrq+lrrq+lwrq) rq "+
 					"from iofilestats_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' and fileType='"+fileType+"' "+
 					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					") group by snapTime,fileName order by snapTime,fileName";
-				//alert(ioFileStatsDetailsQuery);
-				showload();
-				var allData = parseIOStatsData(getData(ioFileStatsDetailsQuery));
+				showload();			
+				a_getData(ioFileStatsDetailsQuery,drawIOFileStatsDetailsChart_);
+		}
+		function drawIOFileStatsDetailsChart_(inputdata) {
+				var drawRegionMb = "iofilestatsmbdetailsregion";
+				var drawRegionRq = "iofilestatsrqdetailsregion";
+
+				var allData = parseIOStatsData(inputdata);
 				var tblHeader = allData[0];
 				var dataMb = allData[1];
 				var dataRq = allData[2];
@@ -497,21 +524,7 @@
                     backgroundColor: {fill: 'transparent'}
                 };				
 				IOFileStatsDetailsRqChart.draw(dtRq, options);
-				hideload();
-                /*
-                function IOFunctionStatsMbHandler(e) {
-                    var sel = IOFunctionStatsMbChart.getSelection();
-                    drawIOFunctionStatsDetailsChart(tblHeader[sel[0].column]);
-                }                
-                google.visualization.events.addListener(IOFunctionStatsMbChart, 'select', IOFunctionStatsMbHandler);
-                function IOFunctionStatsRqHandler(e) {
-                    var sel = IOFunctionStatsRqChart.getSelection();
-                    drawIOFunctionStatsDetailsChart(tblHeader[sel[0].column]);
-                }                
-                google.visualization.events.addListener(IOFunctionStatsRqChart, 'select', IOFunctionStatsRqHandler);                
-                
-            }
-            */			
+				hideload();	
 		}
 		//------io file stats details
 		//--------------------------------------------------------------
