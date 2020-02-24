@@ -195,6 +195,18 @@
                 var sesStatsChart = new google.visualization.ColumnChart(document.getElementById(drawRegion));
                 sesStatsChart.draw(data, options);			
                 hideload();
+                function drawSesStatsChartHandler(e) {
+                    var sel = sesStatsChart.getSelection();
+                    sid = data.getColumnLabel(sel[0].column).split(',')[0];
+                    serial = data.getColumnLabel(sel[0].column).split(',')[1];
+                    document.getElementById("P2_SESSID").value=sid;
+					if (sid.length >0 && serial.length >0){
+						drawStatsTable(sid,serial);
+						drawSessionTimeLine(sid,serial);
+					}                    
+                    $(".apex-rds [ href='#waits' ]").trigger('click');
+                }                
+                google.visualization.events.addListener(sesStatsChart, 'select', drawSesStatsChartHandler);                
 			}
 			//------SESSTATS
 			function parseSysStatsData(inputData) {

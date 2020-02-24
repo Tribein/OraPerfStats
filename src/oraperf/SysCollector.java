@@ -107,7 +107,7 @@ public class SysCollector implements Configurable {
             rs.close();
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset"
+                    + "\t" + "error getting data from system stats resultset"
                     + "\t" + e.getMessage()
             );
         }
@@ -140,7 +140,7 @@ public class SysCollector implements Configurable {
             rs.close();
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset"
+                    + "\t" + "error getting data from io file stats resultset"
                     + "\t" + e.getMessage()
             );
         }
@@ -169,7 +169,7 @@ public class SysCollector implements Configurable {
             rs.close();
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset"
+                    + "\t" + "error getting data from io function stats resultset"
                     + "\t" + e.getMessage()
             );
         }
@@ -195,7 +195,7 @@ public class SysCollector implements Configurable {
             rs.close();
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset"
+                    + "\t" + "error getting data from files resultset"
                     + "\t" + e.getMessage()
             );
         }
@@ -218,7 +218,7 @@ public class SysCollector implements Configurable {
             rs.close();
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset"
+                    + "\t" + "error getting data from segments resultset"
                     + "\t" + e.getMessage()
             );
         }
@@ -237,7 +237,7 @@ public class SysCollector implements Configurable {
             rs.close();
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset"
+                    + "\t" + "error getting data from stat names resultset"
                     + "\t" + e.getMessage()
             );
         }

@@ -173,7 +173,7 @@ public class WaitsCollector implements Configurable {
             rs.close();
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
-                    + "\t" + "error getting data from resultset"
+                    + "\t" + "error getting data from waits resultset"
                     + "\t" + e.getMessage()
             );
         }

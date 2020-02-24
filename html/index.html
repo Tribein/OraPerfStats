@@ -382,9 +382,9 @@
                     } else {
                         var sel = locksTreeTable.getSelection();
                         document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
-							data.getValue(sel[0].row, 6)+
+							data.getValue(sel[0].row, 7)+
 							'</b>:<br />'+
-							getSQLText(data.getValue(sel[0].row, 6)).replace(/\\n/g,'<br />')+
+							getSQLText(data.getValue(sel[0].row, 7)).replace(/\\n/g,'<br />')+
 							'</span>';
                         drawStatsTable(data.getValue(sel[0].row, 0).match(/[0-9]+/)[0],data.getValue(sel[0].row, 1));
                         drawSessionTimeLine(data.getValue(sel[0].row, 0).match(/[0-9]+/)[0],data.getValue(sel[0].row, 1));
