@@ -187,7 +187,7 @@ public class SQLCollector implements Configurable {
                 rowList.add(rs.getLong(28));
                 rowList.add(rs.getLong(29));
                 rowList.add(rs.getLong(30));
-                rowList.add(rs.getLong(31));
+                rowList.add((BigDecimal) new BigDecimal(rs.getDouble(31)).setScale(0));
                 rowList.add(rs.getLong(32));
                 rowList.add((BigDecimal) new BigDecimal(rs.getDouble(33)).setScale(0)); //-- rows processed
                 rowList.add(rs.getInt(34));
@@ -196,7 +196,7 @@ public class SQLCollector implements Configurable {
                 rowList.add(rs.getInt(37));
                 rowList.add(rs.getString(38));
                 rowList.add(rs.getString(39));
-                rowList.add(rs.getInt(40));
+                rowList.add(rs.getLong(40));
                 rowList.add(rs.getInt(41)); //program line
                 rowList.add((BigDecimal) new BigDecimal(rs.getDouble(42)).setScale(0));
                 rowList.add((BigDecimal) new BigDecimal(rs.getDouble(43)).setScale(0));
@@ -215,7 +215,7 @@ public class SQLCollector implements Configurable {
                     + "\t" + "error getting data from sql stats resultset"
                     + "\t" + e.getMessage()
             );
-            //e.printStackTrace();
+            e.printStackTrace();
         }
         return outList;
     }    

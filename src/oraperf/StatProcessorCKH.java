@@ -320,7 +320,7 @@ public class StatProcessorCKH
         prep.setLong(31, (Long) row.get(27) );
         prep.setLong(32, (Long) row.get(28) );
         prep.setLong(33, (Long) row.get(29) );
-        prep.setLong(34, (Long) row.get(30) );
+        prep.setBigDecimal(34, (BigDecimal) row.get(30) );
         prep.setLong(35, (Long) row.get(31) );
         prep.setBigDecimal(36, (BigDecimal) row.get(32) ); 
         prep.setInt(37, (int) row.get(33) );
@@ -329,7 +329,7 @@ public class StatProcessorCKH
         prep.setInt(40, (int) row.get(36) );
         prep.setString(41, (String) row.get(37) );
         prep.setString(42, (String) row.get(38) );
-        prep.setInt(43, (int) row.get(39) );
+        prep.setLong(43, (Long) row.get(39) );
         prep.setInt(44, (int) row.get(40) );
         prep.setBigDecimal(45, (BigDecimal) row.get(41) );
         prep.setBigDecimal(46, (BigDecimal) row.get(42) );
