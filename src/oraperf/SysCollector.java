@@ -215,7 +215,9 @@ public class SysCollector implements Configurable {
                 rowList.add(rs.getString(4));
                 rowList.add(rs.getString(5));
                 rowList.add(rs.getLong(6));
-                outList.add(rowList);
+                if (rs.getLong(6) > 0){
+                    outList.add(rowList);    
+                }
             }
             rs.close();
         } catch (SQLException e) {

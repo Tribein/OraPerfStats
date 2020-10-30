@@ -186,7 +186,7 @@ public class OraPerf implements Configurable {
             cpds.setMaxIdleTime(120);
             cpds.setNumHelperThreads(8);
             cpds.setForceSynchronousCheckins(true);
-            cpds.setTestConnectionOnCheckout(true);
+            //cpds.setTestConnectionOnCheckout(true);
             //cpds.setTestConnectionOnCheckin(true);
             //cpds.setIdleConnectionTestPeriod(30);
             //cpds.setPreferredTestQuery("select 1 from dual");
