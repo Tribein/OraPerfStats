@@ -33,9 +33,10 @@ public class SysCollector implements Configurable {
     private static final String ORASYSSTATSQUERY = "select statistic#,value from v$sysstat where value<>0";
     private static final String ORASTATNAMESQUERY = "select statistic#,name from v$statname";
     private static final String ORAFILESSIZEQUERY
-            = "select 0 file_type,file_id,file_name,round(bytes/1024/1024) sizemb,substr(autoextensible,1,1),round(maxbytes/1024/1024) maxmb,tablespace_name from dba_data_files "
+            = "select 0 file_type,file_id,file_name,round(bytes/1024/1024) sizemb,substr(autoextensible,1,1),round(maxbytes/1024/1024) maxmb,tablespace_name,upper(substr(contents,1,1)) "
+            + "from dba_data_files join dba_tablespaces using(tablespace_name) "
             + "union all "
-            + "select 1 file_type,file_id,file_name,round(bytes/1024/1024) sizemb,substr(autoextensible,1,1),round(maxbytes/1024/1024) maxmb,tablespace_name from dba_temp_files";
+            + "select 1 file_type,file_id,file_name,round(bytes/1024/1024) sizemb,substr(autoextensible,1,1),round(maxbytes/1024/1024) maxmb,tablespace_name,'T' from dba_temp_files";
     private static final String ORASEGMENTSSIZEQUERY
             = "select owner,segment_name,nvl(partition_name,'-'),segment_type,tablespace_name,round(bytes/1024/1024) sizemb "
             + "from dba_segments "
@@ -190,6 +191,7 @@ public class SysCollector implements Configurable {
                 rowList.add(rs.getString(5));
                 rowList.add(rs.getLong(6));
                 rowList.add(rs.getString(7));
+                rowList.add(rs.getString(8));
                 outList.add(rowList);
             }
             rs.close();

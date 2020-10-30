@@ -81,7 +81,7 @@
             var timeSpan2;
             //--changable
             var spanMinutes = 20*1440;
-            var dbUniqueName = 'DWH_M';
+            var dbUniqueName = 'oskspl_prd';
             var schema;
             var owner;
             var segment;
@@ -171,6 +171,19 @@
 			return outData;			
 		}		
 		//--------------------------------------------------------------
+		function parseTSChartData(inputData){
+			var dataLines = inputData.split(/[\n]+/);
+			var outData = [];
+			var rowData = [];
+			for (var i = 0; i < dataLines.length; i++) {
+				if (dataLines[i].length > 0) {
+					rowData = dataLines[i].split(/[\t]+/);
+					outData.push([((rowData[1].localeCompare("-")===0) ? rowData[0] : rowData[0] +"."+rowData[1]),rowData[2], Number(rowData[3])]);
+				}
+			}
+			return outData;			
+		}		
+		//--------------------------------------------------------------		
         //------DBSIZE
         function drawDBSizeChart() {	
             var dbSizeQuery = "select st,hr,round(filesMb/1024),round(segmentsMb/1024) from ( "+
@@ -229,6 +242,7 @@
              var dbSizeChart = new google.visualization.AreaChart(document.getElementById(drawRegion));
              dbSizeChart.draw(data, options);
              hideload();
+             drawTSSizeDiff();
              drawSchemasSizeDiff();			
 		}
 		//------DBSIZE
@@ -261,7 +275,7 @@
 			") using (owner) "+
 			"where diff<>0 "+
 			"order by diff desc,owner";
-			showload();
+			//showload();
 			a_getData(schemasSizeDiffQuery,drawSchemasSizeDiff_);			
 		}
 		function drawSchemasSizeDiff_(inputdata){
@@ -439,12 +453,98 @@
              hideload();
 		}
 		//------SEGMENTDETAILS
+		//------TABLESPACEDETAILS
+        function drawTSSizeDiff() {	
+            var tsSizeQuery = "select tsName,round((endTSMb-begTSMb)/1024) growthgb from ( "+
+				"select tsName, sum(sizeMb) as endTSMb " +
+					"from dbfiles_buffer " +
+					"where dbuniquename='"+dbUniqueName+"' " +
+					"and snapTime = ( " +
+						"select max(snapTime) " +
+						"from oradb.dbfiles_buffer "+
+						"where dbuniquename='"+dbUniqueName+"' " +
+						"and snapTime<='"+timeSpan2+"' " +
+					") "+
+					"group by tsName "+
+				") all left join ( "+
+				"select tsName, sum(sizeMb) as begTSMb "+
+					"from dbfiles_buffer " +
+					"where dbuniquename='"+dbUniqueName+"' " +
+					"and snapTime = ( " +
+						"select min(snapTime) " +
+						"from oradb.dbfiles_buffer " +
+						"where dbuniquename='"+dbUniqueName+"' " +
+						"and snapTime>='"+timeSpan1+"' "+
+					") "+
+					"group by tsName "+
+			") using (tsName) "+
+			"where endTSMb<>begTSMb and growthgb<>0 " +
+			"order by growthgb desc";
+			//alert(tsSizeQuery);
+			showload();
+			a_getData(tsSizeQuery,drawTSSizeDiff_);			
+		}
+        function drawTSSizeDiff_(inputdata){	
+			var drawRegion = "tssizeregion";	
+            var data = new google.visualization.DataTable();
+            //--add Columns
+            data.addColumn('string', 'Tablespace');
+            data.addColumn('string', 'Size growth, Gb');
+            //-- add Data
+            data.addRows(parseSchemasSizeDiffData(inputdata));
+            var options = {
+                title: 'Tablespace size change',
+                width: '98%',
+                //height: '100%',
+                allowHtml: true,
+                showRowNumber: false,
+                backgroundColor: {fill: 'transparent'}
+            };
+             var tsSizeChart = new google.visualization.Table(document.getElementById(drawRegion));
+             tsSizeChart.draw(data, options);
+             //hideload();
+		}		
+		//------TABLESPACEDETAILS
+		//------TABLESPACECHART
+		function drawTSSizeChart(){
+            var tsChartQuery = "select snapTime,tsName, round(sum(sizeMb)/1024,3) sizegb "+
+				"from dbfiles_buffer where dbuniquename='"+dbUniqueName+"' "+
+				"and snapTime <= (select max(snapTime) from dbfiles_buffer where dbuniquename='"+dbUniqueName+"' and snapTime<='"+timeSpan2+"') "+
+				"and snapTime >= (select min(snapTime) from dbfiles_buffer where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' ) "+
+				"group by tsName,snapTime order by snapTime";
+			//alert(tsChartQuery);
+			showload();
+			a_getData(tsChartQuery,drawTSSizeChart_);				
+		}
+		function drawTSSizeChart_(inputdata){
+			var drawRegion = "tschartregion";	
+            var data = new google.visualization.arrayToDataTable(parseTSChartData(inputdata));
+             var options = {
+                 title: 'Tablespace Size',
+                 width: 1800,
+                 height: 500,
+                 hAxis: {textPosition: 'none'},
+                 vAxis: {minValue: 0, format: '####'},
+                 animation: {startup: 'false', duration: 10000},
+                 //orientation : 'vertical',
+                 legend: {position: 'bottom', maxLines: 1},
+                 isStacked: false,
+                 backgroundColor: {fill: 'transparent'},
+                 pointSize: 1
+             };
+             var tsChart = new google.visualization.AreaChart(document.getElementById(drawRegion));
+             tsChart.draw(data, options);
+             hideload();			
+		}
+		//------TABLESPACECHART
     </script>
   </head>
 
   <body onLoad=''>
 	<div id="modalrg"></div>
 	<div id="dbsizeregion"></div>
+	<div id="tschartregion"></div>
+	<div id="tssizeregion"></div>
 	<div id="schemasregion"></div>
 	<div id="schemadetailsregion"></div>
 	<div id="segmentsregion"></div>

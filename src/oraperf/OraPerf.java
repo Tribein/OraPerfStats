@@ -186,6 +186,10 @@ public class OraPerf implements Configurable {
             cpds.setMaxIdleTime(120);
             cpds.setNumHelperThreads(8);
             cpds.setForceSynchronousCheckins(true);
+            cpds.setTestConnectionOnCheckout(true);
+            //cpds.setTestConnectionOnCheckin(true);
+            //cpds.setIdleConnectionTestPeriod(30);
+            //cpds.setPreferredTestQuery("select 1 from dual");
             return cpds;
         } catch (Exception e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
@@ -347,9 +351,17 @@ public class OraPerf implements Configurable {
         }
         
         while (true) {
+            
             processCKHQueueConsumers();
 
             oraDBList = getOraDBList();
+            
+            if (oraDBList.size() == 0 ){
+                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"
+                        + "Empty database list got from source!"
+                );                
+            }
+            
             for (int i = 0; i < oraDBList.size(); i++) {
                 String dbLine = oraDBList.get(i);
                 if (GATHERSESSIONS) {
@@ -365,6 +377,7 @@ public class OraPerf implements Configurable {
                     processSQLRoutines(dbLine);
                 }
             }
+            
             TimeUnit.SECONDS.sleep(SECONDSTOSLEEP);
         }
     }

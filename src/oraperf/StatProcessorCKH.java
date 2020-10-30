@@ -28,7 +28,7 @@ public class StatProcessorCKH
   private final String CKHINSERTSTATNAMESQUERY = "insert into statnames_buffer values (?,?,?)";
   private final String CKHINSERTIOFILESTATSQUERY = "insert into iofilestats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
   private final String CKHINSERTIOFUNCTIONSTATSQUERY = "insert into iofunctionstats_buffer values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-  private final String CKHINSERTFILESSIZEQUERY = "insert into dbfiles_buffer values(?,?,?,?,?,?,?,?,?,?)";
+  private final String CKHINSERTFILESSIZEQUERY = "insert into dbfiles_buffer values(?,?,?,?,?,?,?,?,?,?,?)";
   private final String CKHINSERTSEGMENTSSIZEQUERY = "insert into segments_buffer values(?,?,?,?,?,?,?,?,?)";
   
   public StatProcessorCKH(int inpType, long inpTS, String inpDBName, String inpDBHost, ComboPooledDataSource ckhDS, List inpList)
@@ -396,6 +396,7 @@ public class StatProcessorCKH
         prep.setString(8,   ((String)row.get(4)));
         prep.setLong(9,     ((long)row.get(5)));        
         prep.setString(10,  ((String)row.get(6)));
+        prep.setString(11,  ((String)row.get(7)));
         prep.addBatch();
       }
       prep.executeBatch();

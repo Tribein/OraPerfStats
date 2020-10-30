@@ -106,7 +106,7 @@
             var eventSessionsTable;
             //--changable
             var spanMinutes = 10;
-            var dbUniqueName = 'DWH_M';
+            var dbUniqueName = 'SHOP7771';
             var sessionsBlocked = 0;
             var classNum;
             var sid;
@@ -121,11 +121,8 @@
                 return -1;
             }
             //--------------------------------------------------------------
-            function unflatten(arr) {
-                var tree = [],
-                        mappedArr = {},
-                        arrElem,
-                        mappedElem;
+			function unflatten(arr) {
+                var tree = [], mappedArr = {}, arrElem, mappedElem;
 
                 // First map the nodes of the array to an object -> create a hash table.
                 for (var i = 0, len = arr.length; i < len; i++) {
@@ -134,17 +131,15 @@
                     mappedArr[arrElem.id]['children'] = [];
                 }
 
-
                 for (var id in mappedArr) {
                     if (mappedArr.hasOwnProperty(id)) {
                         mappedElem = mappedArr[id];
                         // If the element is not at the root level, add it to its parent array of children.
                         if (mappedElem.parentid) {
-                            try {
-                                mappedArr[mappedElem.parentid]['children'].push(mappedElem);
-                            } catch (e) {
-
-                            }
+                                mappedArr[mappedElem.parentid]['children'].push(
+                                    { "id": mappedElem.id, "parentid": mappedElem.parentid, "children": mappedElem.children }
+                                );
+                        tree.push(mappedElem);
                         }
                         // If the element is at the root level, add it to first level elements array.
                         else {
@@ -154,6 +149,7 @@
                 }
                 return tree;
             }
+            //--------------------------------------------------------------
 			function showload(){
 				document.getElementById("modalrg").innerHTML='<div id="spinner" class="modal"><div class="modal-content" align="center"><span class="sbl-circ"></span></div></div>';
 				document.getElementById("spinner").style.display="block";
@@ -166,6 +162,7 @@
 			}                
             //--------------------------------------------------------------
             function preDraw() {
+			/*
                 te = new Date();
                 ts = new Date(te.getTime() - 1000 * 60 * spanMinutes);
                 timeSpan1 = ts.getFullYear() + '-' +
@@ -178,6 +175,9 @@
                         + ' ' +
                         ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
                         ;
+            */
+				timeSpan1 = '2020-08-21 09:10:00';
+				timeSpan2 = '2020-08-21 09:20:00';
             }
             function drawChart(){
 				preDraw();
@@ -951,15 +951,24 @@
                 return outData;
             }
             //--
-            function parseLocksTreeData(inputData) {
+			function parseLocksTreeData(inputData) 
+            {
                 var dataLines = inputData.split(/[\n]+/);
                 var outData = [];
                 var tmpData = [];
+                var tmpData2 = [];
                 var rowData = [];
-                var idx;
+                var idx = 0;
+                var r = 0;
+				var sidx = 0;
+				var flag;
                 var arrTree = [];
+				var arr_test = [];
+				var arr_permitted_branches = [];
                 var arrSIDSorted = [];
                 var arrSIDLevel = [];
+				var arrBranchID = [];
+				var data;
                 for (var i = 0; i < dataLines.length; i++) {
                     if (dataLines[i].length > 0) {
                         rowData = dataLines[i].split(/[\t]+/);
@@ -974,14 +983,37 @@
                 //--
                 arrTree = unflatten(arrTree);
                 function recGetSID(input, level) {
-                    arrSIDSorted.push(Number(input.id));
-                    arrSIDLevel.push(level);
-                    if (input.children.length > 0) {
-                        level++;
-                        for (var s in input.children) {
-                            recGetSID(input.children[s], level);
-                        }
+					if (level == 0) {
+						sidx++;
+						arr_test = [];
+						flag = 0;
+					}else {
+						null;
+					}
+                    if (input.parentid == 0){
+                        arr_permitted_branches.push(sidx);
                     }
+					arrSIDSorted.push(Number(input.id));
+					arrSIDLevel.push(level);
+					arrBranchID.push(sidx);
+					arr_test.push(Number(input.id));
+					if (input.children.length > 0) {
+						level++;
+						for (var s in input.children) {
+							if (arr_test.includes(input.children[s].id)){
+								if (flag == 0){
+									flag = 1;
+									//console.log(input.children[s]);
+									recGetSID(input.children[s], level);
+								}else {
+									arr_permitted_branches.push(sidx);
+									return;
+								}
+							} else {
+								recGetSID(input.children[s], level);
+							} 
+						}
+					}
                 }
                 //--
                 for (var i in arrTree) {
@@ -990,18 +1022,25 @@
                 //--
                 outData.push(arrLocksTreeColumns);
                 for (var i = 0; i < arrSIDSorted.length; i++) {
-                    if (arrSIDLevel[i] === 0) {
-                        tmpData[arrSIDSorted[i]][0] = '<strong>' + tmpData[arrSIDSorted[i]][0] + '</strong>';
-                        ;
+                    if (arr_permitted_branches.includes(arrBranchID[i]) ) {
+                        r++;
+                        tmpData2[r] = [];
+                        for (var j = 0; j < arrLocksTreeColumns.length; j++) {
+                            tmpData2[r][j] = tmpData[arrSIDSorted[i]][j];
+                        }
+                        if (arrSIDLevel[i] == 0) {
+                            tmpData2[r][0] = '<strong>' + tmpData2[r][0] + '</strong>';
+                            
+                        }else{
+                            for (var j = 0; j < arrSIDLevel[i]; j++) {
+                                tmpData2[r][0] = '&nbsp;&nbsp;&nbsp;&nbsp;' + tmpData2[r][0];
+                            }
+                        }
+                        outData.push(tmpData2[r]);
                     }
-                    for (var j = 0; j < arrSIDLevel[i]; j++) {
-                        tmpData[arrSIDSorted[i]][0] = '&nbsp;&nbsp;&nbsp;&nbsp;' + tmpData[arrSIDSorted[i]][0];
-                    }
-                    outData.push(tmpData[arrSIDSorted[i]]);
-                }
+                }   
                 return outData;
             }
-            //--
             //--
             function parseSessionTimeLineData(inputData) {
                 var dataLines = inputData.split(/[\n]+/);
