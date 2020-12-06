@@ -14,16 +14,14 @@ import oracle.jdbc.OracleConnection;
 public class StatCollector
         extends Thread implements Configurable {
 
-    SL4JLogger lg;
+    private final SL4JLogger lg;
     private final int threadType;
     private final String dbUserName;
     private final String dbPassword;
     private final String dbConnectionString;
     private final String dbUniqueName;
     private final String dbHostName;
-    private Connection con;
     private final BlockingQueue<OraCkhMsg> ckhQueue;
-    private boolean shutdown = false;
 
     public StatCollector(String inputString, String dbUSN, String dbPWD, ComboPooledDataSource ckhDS, int runTType, BlockingQueue<OraCkhMsg> queue) {
         dbConnectionString      = inputString;
@@ -33,10 +31,10 @@ public class StatCollector
         dbPassword              = dbPWD;
         threadType              = runTType;
         ckhQueue                = queue;
+        lg                      = new SL4JLogger();
     }
 
-    private void cleanup() {
-        shutdown = true;
+    private void cleanup(Connection con) {
         try {
             if ((con != null) && (!con.isClosed())) {
                 con.close();
@@ -51,7 +49,8 @@ public class StatCollector
         }
     }
 
-    private void openConnection() {
+    private Connection openConnection() {
+        Connection con=null;
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
             Properties props = new Properties();
@@ -68,7 +67,7 @@ public class StatCollector
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
                     + "cannot load Oracle driver!"
             );
-            shutdown = true;
+            //shutdown = true;
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
                     + "\t" + "cannot initiate connection to target Oracle database"
@@ -76,11 +75,14 @@ public class StatCollector
             );
             //e.printStackTrace();
 
-            shutdown = true;
+            //shutdown = true;
+        }finally{
+            return con;
         }
+        
     }
     
-    private int getVersion () {
+    private int getVersion (Connection con) {
             int version = 0;
             ResultSet rs = null;
             Statement stmt = null;
@@ -113,16 +115,16 @@ public class StatCollector
     
     @Override
     public void run() {
+        Connection con=null;
+        boolean shutdown = false;
         int dbVersion = 0;
         
         Thread.currentThread().setName(dbHostName+"@"+dbUniqueName+"@"+String.valueOf(threadType));
-        
-        lg = new SL4JLogger();
 
-        openConnection();
+        con = openConnection();
         
-        if(! shutdown){
-            dbVersion = getVersion();
+        if(!(con==null)){
+            dbVersion = getVersion(con);
         }
         if (!shutdown && dbVersion>0) {
             try {
@@ -151,7 +153,7 @@ public class StatCollector
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            cleanup();
+            cleanup(con);
         }
     }
 }

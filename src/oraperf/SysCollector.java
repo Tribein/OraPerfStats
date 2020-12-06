@@ -15,20 +15,12 @@ import java.util.concurrent.TimeUnit;
 
 public class SysCollector implements Configurable {
 
-    SL4JLogger lg;
+    private final SL4JLogger lg;
     private final int dbVersion;
     private final String dbConnectionString;
     private final String dbUniqueName;
     private final String dbHostName;
     private final Connection con;
-    private PreparedStatement oraSysStatsPreparedStatement;
-    private PreparedStatement oraStatNamesPreparedStatement;
-    private PreparedStatement oraSegmentsSizePreparedStatement;
-    private PreparedStatement oraFilesSizePreparedStatement;
-    private PreparedStatement oraIOFileStatsPreparedStatement;
-    private PreparedStatement oraIOFunctionStatsPreparedStatement;
-    private long currentDateTime;
-    private boolean shutdown = false;
     private final BlockingQueue<OraCkhMsg> ckhQueue;
     private static final String ORASYSSTATSQUERY = "select statistic#,value from v$sysstat where value<>0";
     private static final String ORASTATNAMESQUERY = "select statistic#,name from v$statname";
@@ -66,9 +58,16 @@ public class SysCollector implements Configurable {
         dbUniqueName        = dbname;
         dbHostName          = dbhost;
         dbVersion           = version;
+        lg                  = new SL4JLogger();
     }
 
-    private void cleanup() {
+    private void cleanup(
+        PreparedStatement oraSegmentsSizePreparedStatement,
+        PreparedStatement oraFilesSizePreparedStatement,
+        PreparedStatement oraSysStatsPreparedStatement,
+        PreparedStatement oraIOFunctionStatsPreparedStatement,
+        PreparedStatement oraIOFileStatsPreparedStatement
+    ) {
         try {
             if ((oraSegmentsSizePreparedStatement != null) && (!oraSegmentsSizePreparedStatement.isClosed())) {
                 oraSegmentsSizePreparedStatement.close();
@@ -248,7 +247,7 @@ public class SysCollector implements Configurable {
         return outList;
     }
 
-    private void collectIOFileStats() throws InterruptedException {
+    private boolean collectIOFileStats(boolean shutdown,long currentDateTime,PreparedStatement oraIOFileStatsPreparedStatement) throws InterruptedException {
         if (!shutdown) {
             try {
                 oraIOFileStatsPreparedStatement.execute();
@@ -266,9 +265,10 @@ public class SysCollector implements Configurable {
                 //e.printStackTrace();
             }
         }
+        return shutdown;
     }
 
-    private void collectIOFunctionStats() throws InterruptedException {
+    private boolean collectIOFunctionStats(boolean shutdown,long currentDateTime, PreparedStatement oraIOFunctionStatsPreparedStatement) throws InterruptedException {
         if (!shutdown) {
             try {
                 oraIOFunctionStatsPreparedStatement.execute();
@@ -286,9 +286,10 @@ public class SysCollector implements Configurable {
                 //e.printStackTrace();
             }
         }
+        return shutdown;
     }
 
-    private void collectSystemStats() throws InterruptedException {
+    private boolean collectSystemStats(boolean shutdown,long currentDateTime, PreparedStatement oraSysStatsPreparedStatement) throws InterruptedException {
         if (!shutdown) {
             try {
                 oraSysStatsPreparedStatement.execute();
@@ -306,9 +307,10 @@ public class SysCollector implements Configurable {
                 //e.printStackTrace();
             }
         }
+        return shutdown;
     }
 
-    private void collectFilesSize() throws InterruptedException {
+    private boolean collectFilesSize(boolean shutdown,long currentDateTime, PreparedStatement oraFilesSizePreparedStatement) throws InterruptedException {
         if (!shutdown) {
             try {
                 oraFilesSizePreparedStatement.execute();
@@ -325,9 +327,10 @@ public class SysCollector implements Configurable {
                 //e.printStackTrace();
             }
         }
+        return shutdown;
     }
 
-    private void collectSegmentsSize() throws InterruptedException {
+    private boolean collectSegmentsSize(boolean shutdown,long currentDateTime,PreparedStatement oraSegmentsSizePreparedStatement) throws InterruptedException {
         if (!shutdown) {
             try {
                 oraSegmentsSizePreparedStatement.execute();
@@ -344,9 +347,10 @@ public class SysCollector implements Configurable {
                 //e.printStackTrace();
             }
         }
+        return shutdown;
     }
 
-    private void collectStatNames() {
+    private boolean collectStatNames(boolean shutdown,PreparedStatement oraStatNamesPreparedStatement) {
         try {
             oraStatNamesPreparedStatement.execute();
             ckhQueue.put(new OraCkhMsg(RSSTATNAME, 0, dbUniqueName, null,
@@ -361,11 +365,19 @@ public class SysCollector implements Configurable {
 
             shutdown = true;
         }
+        return shutdown;
     }
 
     public void RunCollection() throws InterruptedException {
-        lg = new SL4JLogger();
+        long currentDateTime;
+        boolean shutdown = false;        
         long begints, endts;
+        PreparedStatement oraSysStatsPreparedStatement=null;
+        PreparedStatement oraStatNamesPreparedStatement=null;
+        PreparedStatement oraSegmentsSizePreparedStatement=null;
+        PreparedStatement oraFilesSizePreparedStatement=null;
+        PreparedStatement oraIOFileStatsPreparedStatement=null;
+        PreparedStatement oraIOFunctionStatsPreparedStatement=null;        
         try {
             oraSysStatsPreparedStatement = con.prepareStatement(ORASYSSTATSQUERY);
             oraSysStatsPreparedStatement.setFetchSize(500);
@@ -388,23 +400,23 @@ public class SysCollector implements Configurable {
             shutdown = true;
         }
         int snapcounter = 0;
-        collectStatNames();
+        shutdown = collectStatNames(shutdown,oraStatNamesPreparedStatement);
         while (!shutdown) {
             currentDateTime = Instant.now().getEpochSecond();
             
             begints = System.currentTimeMillis();
             
-            collectIOFileStats();
+            shutdown = collectIOFileStats(shutdown,currentDateTime,oraIOFileStatsPreparedStatement);
             
-            collectIOFunctionStats();
+            shutdown = collectIOFunctionStats(shutdown,currentDateTime,oraIOFunctionStatsPreparedStatement);
             
             if(snapcounter ==0 || (snapcounter>=12 && snapcounter % 12 == 0) ){
-                collectSystemStats();
+                shutdown = collectSystemStats(shutdown,currentDateTime,oraSysStatsPreparedStatement);
             }
             
             if ( snapcounter==0 || snapcounter == 60 ) {
-                collectFilesSize();
-                collectSegmentsSize();
+                shutdown = collectFilesSize(shutdown,currentDateTime,oraFilesSizePreparedStatement);
+                shutdown = collectSegmentsSize(shutdown,currentDateTime,oraSegmentsSizePreparedStatement);
                 if(snapcounter>0){
                     snapcounter = 0;
                 }
@@ -418,6 +430,12 @@ public class SysCollector implements Configurable {
             
             snapcounter++;
         }
-        cleanup();
+        cleanup(
+                oraSegmentsSizePreparedStatement,
+                oraFilesSizePreparedStatement,
+                oraSysStatsPreparedStatement,
+                oraIOFunctionStatsPreparedStatement,
+                oraIOFileStatsPreparedStatement
+        );
     }
 }

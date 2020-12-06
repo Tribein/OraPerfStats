@@ -14,15 +14,12 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class SesCollector implements Configurable {
-    SL4JLogger lg;
+    private final SL4JLogger lg;
     private final int dbVersion;
     private final String dbConnectionString;
     private final String dbUniqueName;
     private final String dbHostName;
-    private Connection con;
-    private PreparedStatement oraSesStatsPreparedStatement;
-    private long currentDateTime;
-    private boolean shutdown = false;
+    private final Connection con;
     private static final String ORASESSTATSQUERY = 
             "SELECT " +
             "    sid, " +
@@ -158,6 +155,7 @@ public class SesCollector implements Configurable {
         dbUniqueName            = dbname;
         dbHostName              = dbhost;
         dbVersion               = version;
+        lg                      = new SL4JLogger();
     }
     
     private List getSesStatsListFromRS(ResultSet rs) {
@@ -181,7 +179,7 @@ public class SesCollector implements Configurable {
         return outList;
     }    
     
-    private void cleanup() {
+    private void cleanup(PreparedStatement oraSesStatsPreparedStatement) {
         try {
             if ((oraSesStatsPreparedStatement != null) && (!oraSesStatsPreparedStatement.isClosed())) {
                 oraSesStatsPreparedStatement.close();
@@ -197,7 +195,8 @@ public class SesCollector implements Configurable {
     }
     
     public void RunCollection() throws InterruptedException{
-        lg = new SL4JLogger();
+        PreparedStatement oraSesStatsPreparedStatement=null;
+        boolean shutdown = false;
         try{
             //oraSesStatsPreparedStatement = con.prepareStatement((dbVersion>=12)? ORASESSTATSQUERYCDB : ORASESSTATSQUERY);
             oraSesStatsPreparedStatement = con.prepareStatement(ORASESSTATSQUERY);
@@ -211,9 +210,8 @@ public class SesCollector implements Configurable {
         }  
         while (!shutdown) {
             try {
-                currentDateTime = Instant.now().getEpochSecond();
                 oraSesStatsPreparedStatement.execute();
-                ckhQueue.put(new OraCkhMsg(RSSESSIONSTAT, currentDateTime, dbUniqueName, dbHostName,
+                ckhQueue.put(new OraCkhMsg(RSSESSIONSTAT, Instant.now().getEpochSecond(), dbUniqueName, dbHostName,
                         getSesStatsListFromRS(oraSesStatsPreparedStatement.getResultSet())));
 
                 oraSesStatsPreparedStatement.clearWarnings();
@@ -227,8 +225,8 @@ public class SesCollector implements Configurable {
                 //e.printStackTrace();
             }
             TimeUnit.SECONDS.sleep(SECONDSBETWEENSESSSTATSSNAPS);
-        }        
-        cleanup();
+        }  
+        cleanup(oraSesStatsPreparedStatement);
     }
     
 }

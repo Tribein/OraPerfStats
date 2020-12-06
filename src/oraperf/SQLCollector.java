@@ -14,18 +14,12 @@ import java.util.concurrent.TimeUnit;
 
 public class SQLCollector implements Configurable {
 
-    SL4JLogger lg;
+    private final SL4JLogger lg;
     private final int dbVersion;
     private final String dbConnectionString;
     private final String dbUniqueName;
     private final String dbHostName;
     private final Connection con;
-    private PreparedStatement oraSQLPlansPreparedStatement;
-    private PreparedStatement oraSQLStatsPreparedStatement;
-    private PreparedStatement oraSQLTextsPreparedStatement;
-
-    private long currentDateTime;
-    private boolean shutdown = false;
     private final BlockingQueue<OraCkhMsg> ckhQueue;
     private static final String ORASQLTEXTSQUERY = "select sql_id,sql_text from v$sqlarea";
     private static final String ORASQLTEXTSQUERYCDB = "select sql_id,sql_text from v$sqlarea where con_id=sys_context('USERENV','CON_ID')";
@@ -92,9 +86,14 @@ public class SQLCollector implements Configurable {
         dbUniqueName            = dbname;
         dbHostName              = dbhost;
         dbVersion               = version;
+        lg                      = new SL4JLogger();
     }
 
-    private void cleanup() {
+    private void cleanup(
+            PreparedStatement oraSQLPlansPreparedStatement,
+            PreparedStatement oraSQLStatsPreparedStatement,
+            PreparedStatement oraSQLTextsPreparedStatement
+    ) {
         try {
             if ((oraSQLPlansPreparedStatement != null) && (!oraSQLPlansPreparedStatement.isClosed())) {
                 oraSQLPlansPreparedStatement.close();
@@ -220,12 +219,12 @@ public class SQLCollector implements Configurable {
         return outList;
     }    
     
-    private void collectSQLStats() throws InterruptedException {
+    private boolean collectSQLStats(boolean shutdown,PreparedStatement oraSQLStatsPreparedStatement) throws InterruptedException {
         if (!shutdown) {
-            currentDateTime = Instant.now().getEpochSecond();
+            
             try {
                 oraSQLStatsPreparedStatement.execute();
-                ckhQueue.put(new OraCkhMsg(RSSQLSTAT, currentDateTime, dbUniqueName, dbHostName,
+                ckhQueue.put(new OraCkhMsg(RSSQLSTAT, Instant.now().getEpochSecond(), dbUniqueName, dbHostName,
                         getSQlStatsListFromRS(oraSQLStatsPreparedStatement.getResultSet())));
 
                 oraSQLStatsPreparedStatement.clearWarnings();
@@ -239,9 +238,10 @@ public class SQLCollector implements Configurable {
                 //e.printStackTrace();
             }        
         }
+        return shutdown;
     }
         
-    private void collectSQLTexts() throws InterruptedException {
+    private boolean collectSQLTexts(boolean shutdown,PreparedStatement oraSQLTextsPreparedStatement) throws InterruptedException {
         if (!shutdown) {
             try {
                 oraSQLTextsPreparedStatement.execute();
@@ -259,9 +259,10 @@ public class SQLCollector implements Configurable {
                 //e.printStackTrace();
             }
         }
+        return shutdown;
     }
 
-    private void collectSQLPlans() throws InterruptedException {
+    private boolean collectSQLPlans(boolean shutdown,PreparedStatement oraSQLPlansPreparedStatement) throws InterruptedException {
         if (!shutdown) {
             try {
                 oraSQLPlansPreparedStatement.execute();
@@ -279,11 +280,14 @@ public class SQLCollector implements Configurable {
                 //e.printStackTrace();
             }
         }
+        return shutdown;
     }
 
     public void RunCollection() throws InterruptedException {
-        lg = new SL4JLogger();
-
+        PreparedStatement oraSQLPlansPreparedStatement=null;
+        PreparedStatement oraSQLStatsPreparedStatement=null;
+        PreparedStatement oraSQLTextsPreparedStatement=null;
+        boolean shutdown = false;
         try {
             oraSQLStatsPreparedStatement = con.prepareStatement(ORASQLSTATSQUERY);
             oraSQLStatsPreparedStatement.setFetchSize(10000);
@@ -300,12 +304,11 @@ public class SQLCollector implements Configurable {
         int counter = 0;
         long begints,endts;
         while (!shutdown) {
-            currentDateTime = Instant.now().getEpochSecond();
-            collectSQLStats();
+            shutdown = collectSQLStats(shutdown,oraSQLStatsPreparedStatement);
             if(counter==6){
                 begints = System.currentTimeMillis();
-                collectSQLTexts();
-                collectSQLPlans();
+                shutdown = collectSQLTexts(shutdown,oraSQLTextsPreparedStatement);
+                shutdown = collectSQLPlans(shutdown,oraSQLPlansPreparedStatement);
                 endts = System.currentTimeMillis();
                 counter = 0;
                 if (endts - begints < SECONDSBETWEENSQLSNAPS * 1000L) {
@@ -316,6 +319,7 @@ public class SQLCollector implements Configurable {
             }
             counter++;
         }
-        cleanup();
+        shutdown = true;
+        cleanup(oraSQLPlansPreparedStatement,oraSQLStatsPreparedStatement,oraSQLTextsPreparedStatement);
     }
 }

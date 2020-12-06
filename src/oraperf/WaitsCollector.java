@@ -15,12 +15,9 @@ import java.util.concurrent.TimeUnit;
 
 public class WaitsCollector implements Configurable {
 
-    SL4JLogger lg;
+    private final SL4JLogger lg;
     private final int dbVersion;
     private final Connection con;
-    private PreparedStatement oraWaitsPreparedStatement;
-    private long currentDateTime;
-    private boolean shutdown = false;
     private final BlockingQueue<OraCkhMsg> ckhQueue;
     private final String dbConnectionString;
     private final String dbUniqueName;
@@ -129,6 +126,7 @@ public class WaitsCollector implements Configurable {
         dbUniqueName            = dbname;
         dbHostName              = dbhost;
         dbVersion               = version;
+        lg                      = new SL4JLogger();
     }
 
     private List getSessionWaitsListFromRS(ResultSet rs) {
@@ -180,7 +178,7 @@ public class WaitsCollector implements Configurable {
         return outList;
     }
 
-    private void cleanup() {
+    private void cleanup(PreparedStatement oraWaitsPreparedStatement) {
         try {
             if ((oraWaitsPreparedStatement != null) && (!oraWaitsPreparedStatement.isClosed())) {
                 oraWaitsPreparedStatement.close();
@@ -195,7 +193,8 @@ public class WaitsCollector implements Configurable {
     }
 
     public void RunCollection() throws InterruptedException {
-        lg = new SL4JLogger();
+        PreparedStatement oraWaitsPreparedStatement=null;
+        boolean shutdown = false;        
         try {
             //oraWaitsPreparedStatement = con.prepareStatement((dbVersion>=12)? ORASESSWAITSQUERYCDB : ORASESSWAITSQUERY);
             oraWaitsPreparedStatement = con.prepareStatement(ORASESSWAITSQUERY);
@@ -207,10 +206,9 @@ public class WaitsCollector implements Configurable {
             shutdown = true;
         }
         while (!shutdown) {
-            currentDateTime = Instant.now().getEpochSecond();
             try {
                 oraWaitsPreparedStatement.execute();
-                ckhQueue.put(new OraCkhMsg(RSSESSIONWAIT, currentDateTime, dbUniqueName, dbHostName,
+                ckhQueue.put(new OraCkhMsg(RSSESSIONWAIT, Instant.now().getEpochSecond(), dbUniqueName, dbHostName,
                         getSessionWaitsListFromRS(oraWaitsPreparedStatement.getResultSet())));
 
                 oraWaitsPreparedStatement.clearWarnings();
@@ -225,6 +223,6 @@ public class WaitsCollector implements Configurable {
             }
             TimeUnit.SECONDS.sleep(SECONDSBETWEENSESSWAITSSNAPS);
         }
-        cleanup();
+        cleanup(oraWaitsPreparedStatement);
     }
 }
