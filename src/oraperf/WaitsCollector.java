@@ -149,7 +149,7 @@ public class WaitsCollector implements Configurable {
                 rowList.add(rs.getLong(13));
                 rowList.add(rs.getFloat(14));
                 rowList.add(rs.getString(15));
-                rowList.add(rs.getTimestamp(16).getTime() / 1000L);
+                rowList.add(Math.max( rs.getTimestamp(16).getTime() / 1000L,0) );
                 rowList.add(rs.getInt(17));
                 rowList.add(rs.getTimestamp(18).getTime() / 1000L);
                 rowList.add(rs.getInt(19));
