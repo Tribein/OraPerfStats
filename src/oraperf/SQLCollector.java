@@ -147,6 +147,7 @@ public class SQLCollector implements Configurable {
                     + "\t" + "error getting data from  sql texts resultset"
                     + "\t" + e.getMessage()
             );
+            outList.clear();
         }
         return outList;
     }
@@ -214,6 +215,7 @@ public class SQLCollector implements Configurable {
                     + "\t" + "error getting data from sql stats resultset"
                     + "\t" + e.getMessage()
             );
+            //outList.clear();
             e.printStackTrace();
         }
         return outList;

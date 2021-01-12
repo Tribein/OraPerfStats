@@ -110,6 +110,7 @@ public class SysCollector implements Configurable {
                     + "\t" + "error getting data from system stats resultset"
                     + "\t" + e.getMessage()
             );
+            outList.clear();
         }
         return outList;
     }
@@ -143,6 +144,7 @@ public class SysCollector implements Configurable {
                     + "\t" + "error getting data from io file stats resultset"
                     + "\t" + e.getMessage()
             );
+            outList.clear();
         }
         return outList;
     }
@@ -172,6 +174,7 @@ public class SysCollector implements Configurable {
                     + "\t" + "error getting data from io function stats resultset"
                     + "\t" + e.getMessage()
             );
+            outList.clear();
         }
         return outList;
     }
@@ -199,6 +202,7 @@ public class SysCollector implements Configurable {
                     + "\t" + "error getting data from files resultset"
                     + "\t" + e.getMessage()
             );
+            outList.clear();
         }
         return outList;
     }
@@ -224,6 +228,7 @@ public class SysCollector implements Configurable {
                     + "\t" + "error getting data from segments resultset"
                     + "\t" + e.getMessage()
             );
+            outList.clear();
         }
         return outList;
     }
@@ -243,6 +248,7 @@ public class SysCollector implements Configurable {
                     + "\t" + "error getting data from stat names resultset"
                     + "\t" + e.getMessage()
             );
+            outList.clear();
         }
         return outList;
     }
