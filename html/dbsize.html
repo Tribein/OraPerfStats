@@ -80,9 +80,9 @@
             var timeSpan1;
             var timeSpan2;
             //--changable
-            var spanMinutes = 20*1440;
-            var dbUniqueName = 'oskspl_prd';
-            var schema;
+            var spanMinutes = 180/**1440*/;
+            var dbUniqueName = 'dwh_m';
+            var schema = 'SHOPS_MOD';
             var owner;
             var segment;
             //--------------------------------------------------------------
@@ -103,7 +103,8 @@
 		//--------------------------------------------------------------
 		function drawSizeChart(){
 			preDraw();
-			drawDBSizeChart();
+			//drawDBSizeChart();
+			drawSchemaDetailsChart(schema);
 		}
 		//--------------------------------------------------------------
 		function parseDBSizeData(inputData){
@@ -119,6 +120,19 @@
 			return outData;
 		}
 		//--------------------------------------------------------------
+		function parseContentSizeData(inputData){
+			var dataLines = inputData.split(/[\n]+/);
+			var outData = [];
+			var rowData = [];
+			for (var i = 0; i < dataLines.length; i++) {
+				if (dataLines[i].length > 0) {
+					rowData = dataLines[i].split(/[\t]+/);
+					outData.push([rowData[0]+" "+rowData[1]+":00:00", Number(rowData[2]), Number(rowData[3]),Number(rowData[4])]);
+				}
+			}
+			return outData;
+		}
+		//--------------------------------------------------------------		
 		function parseSizeData(inputData){
 			var dataLines = inputData.split(/[\n]+/);
 			var outData = [];
@@ -132,6 +146,61 @@
 			return outData;
 		}		
 		//--------------------------------------------------------------
+		function parseSchemaSizeData(inputData){
+			var dataLines = inputData.split(/[\n]+/);
+			var outData = [];
+			var rowData = [];
+			var header = [{ label: "Timestamp", type: "string" }];
+			var idx = 0;
+			var tmp = dataLines[idx].split(/[\t]+/)[0]+" "+dataLines[idx].split(/[\t]+/)[1]+":00:00";
+			var cur = tmp;
+			var hdrIdx = [];
+			var t;
+			rowData = dataLines[idx].split(/[\t]+/);
+			while(tmp.localeCompare(cur)==0){				
+				t = rowData[2];
+				hdrIdx[t] = idx+1;
+				header.push({ label: t, type: "number" });
+				idx++;
+				rowData = dataLines[idx].split(/[\t]+/);
+				cur = rowData[0]+" "+rowData[1]+":00:00";
+				
+			}
+			header.push({ label: "overall", type: "string", role: "tooltip", p: {'html': false}})
+			idx = 0;
+			tmp = 'N/A';
+			outData[idx] = header;
+			t=0;
+			var tooltip = '';
+			for (var i = 0; i < dataLines.length; i++) {	
+				if (dataLines[i].length > 0) {		
+					rowData = dataLines[i].split(/[\t]+/);
+					cur = rowData[0]+" "+rowData[1]+":00:00";
+					if(tmp.localeCompare(cur)==0){
+							outData[idx][hdrIdx[rowData[2]]] = Number(rowData[3]);
+					}else{
+						if(idx>0){
+							tooltip = tooltip + "--\nOVERALL: " +String(t.toFixed(3));
+							outData[idx][outData[idx].length] = tooltip;
+							t = 0;
+							tooltip = '';
+						}
+						idx++;
+						tmp = cur;
+						outData[idx] = [];			
+						outData[idx][0] = rowData[0]+" "+rowData[1]+":00:00" ;
+						tooltip = rowData[0]+" "+rowData[1]+":00:00\n" ;
+					}
+					outData[idx][hdrIdx[rowData[2]]] = Number(rowData[3]);
+					t +=  Number(rowData[3]);
+					tooltip  = tooltip + rowData[2] +": "+rowData[3]+"\n";
+				}
+			}
+			tooltip = tooltip + "--\nOVERALL: " +String(t.toFixed(3));
+			outData[idx][outData[idx].length] = tooltip;
+			return outData;
+		}		
+		//--------------------------------------------------------------		
 		function parseSchemasSizeDiffData(inputData){
 			var dataLines = inputData.split(/[\n]+/);
 			var outData = [];
@@ -187,7 +256,7 @@
         //------DBSIZE
         function drawDBSizeChart() {	
             var dbSizeQuery = "select st,hr,round(filesMb/1024),round(segmentsMb/1024) from ( "+
-				"select toYYYYMMDD(snapTime) st,toHour(snapTime) hr, sum(sizeMb) as filesMb "+
+				"select /*toYYYYMMDD(snapTime)*/formatDateTime(snapTime,'%Y-%m-%d') st,toHour(snapTime) hr, sum(sizeMb) as filesMb "+
 					"from dbfiles_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' "+
 					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
@@ -196,11 +265,11 @@
 						"from oradb.dbfiles_buffer "+
 						"where dbuniquename='"+dbUniqueName+"' "+
 						"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
-						"group by toYYYYMMDD(snapTime), toHour(snapTime)    "+
+						"group by formatDateTime(snapTime,'%Y-%m-%d'), toHour(snapTime)    "+
 					") "+
 					"group by st,hr "+
 				") any join ( "+
-					"select toYYYYMMDD(snapTime) st,toHour(snapTime) hr, sum(sizeMb) as segmentsMb "+
+					"select formatDateTime(snapTime,'%Y-%m-%d') st,toHour(snapTime) hr, sum(sizeMb) as segmentsMb "+
 					"from segments_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' "+
 					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
@@ -209,7 +278,7 @@
 						"from oradb.segments_buffer  "+
 						"where dbuniquename='"+dbUniqueName+"' "+
 						"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
-						"group by toYYYYMMDD(snapTime), toHour(snapTime)    "+
+						"group by formatDateTime(snapTime,'%Y-%m-%d'), toHour(snapTime)    "+
 				") "+
 				"group by st,hr "+
 			") using (st,hr) order by st,hr";
@@ -227,7 +296,7 @@
             //-- add Data
             data.addRows(parseDBSizeData(inputdata));
              var options = {
-                 title: 'DB Size',
+                 title: 'DB Size, Gb',
                  width: 1800,
                  height: 500,
                  hAxis: {textPosition: 'none'},
@@ -242,8 +311,19 @@
              var dbSizeChart = new google.visualization.AreaChart(document.getElementById(drawRegion));
              dbSizeChart.draw(data, options);
              hideload();
+             drawContentSizeChart();
              drawTSSizeDiff();
-             drawSchemasSizeDiff();			
+             drawSchemasSizeDiff();	
+             /*
+             drawContentSize();	
+			 function dbSizeChartHandler(e) {
+					if (dbSizeChart.getSelection().length !== 0) {
+						var sel = dbSizeChart.getSelection();
+						drawContentSize(data.getValue(sel[0].row, 0));
+					}
+			}
+            google.visualization.events.addListener(dbSizeChart, 'select', dbSizeChartHandler);              	
+            */
 		}
 		//------DBSIZE
 		//------SCHEMASDIFF
@@ -308,45 +388,44 @@
 		}
 		//------SCHEMASDIFF
 		//------SCHEMADETAILS
-		function drawSchemaDetailsChart( impschema ) {
+		function drawSchemaDetailsChart( inpschema ) {
 			schema = inpschema;
-            var dbSchemaDetailsQuery = "select toYYYYMMDD(snapTime) st,toHour(snapTime) hr, round(sum(sizeMb)/1024,3) "+
+			var dbSchemaDetailsQuery = "select st,hr,tsName,szgb FROM ( "+
+					"select distinct tsName from segments_buffer "+
+					"where dbuniquename='"+dbUniqueName+"' and owner='"+schema+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+				") all left join ( "+
+					"select toYYYYMMDD(snapTime) st,toHour(snapTime) hr, tsName,round(sum(sizeMb)/1024,3) szgb "+
 					"from segments_buffer "+
-					"where dbuniquename='"+dbUniqueName+"' and owner='"+schema+"' " +
-					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+					"where dbuniquename='"+dbUniqueName+"' "+
+					"and owner='"+schema+"' "+
+					"and snapTime>='"+timeSpan1+"' "+
+					"and snapTime<='"+timeSpan2+"' "+
 					"and snapTime in ( "+
-						"select max(snapTime) as st "+
-						"from oradb.segments_buffer  "+
-						"where dbuniquename='"+dbUniqueName+"' "+
-						"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
-						"group by toYYYYMMDD(snapTime), toHour(snapTime)    "+
-				") "+
-				"group by st,hr order by st,hr";
+					   "select max(snapTime) as st from oradb.segments_buffer  "+
+					   "where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+					   "group by toYYYYMMDD(snapTime), toHour(snapTime) "+
+					") group by st,hr,tsName "+
+				") using tsName "+
+				"order by st,hr,tsName";
 			showload();	
 			a_getData(dbSchemaDetailsQuery,drawSchemaDetailsChart_);	
 		}
         function drawSchemaDetailsChart_( inputdata ) {
 			var drawRegion = "schemadetailsregion";	
-
-            var data = new google.visualization.DataTable();
-            //--add Columns
-            data.addColumn('string', 'TimeStamp');
-            data.addColumn('number', 'SizeGb');
-            //-- add Data
-            data.addRows(parseSizeData(inputdata));
-             var options = {
-                 title: schema+" growth",
+            var data = google.visualization.arrayToDataTable(parseSchemaSizeData(inputdata));
+            var options = {
+                 title: schema+" growth, Gb",
                  width: 1800,
                  height: 500,
                  hAxis: {textPosition: 'none'},
                  vAxis: {minValue: 0, format: '####'},
                  //orientation : 'vertical',
-                 legend: {position: 'bottom', maxLines: 1},
-                 isStacked: false,
+                 legend: {position: 'bottom', maxLines: 2},
+                 isStacked: true,
                  backgroundColor: {fill: 'transparent'},
                  pointSize: 1
              };
-             var dbSchemaDetailsChart = new google.visualization.LineChart(document.getElementById(drawRegion));
+             var dbSchemaDetailsChart = new google.visualization.AreaChart(document.getElementById(drawRegion));
              dbSchemaDetailsChart.draw(data, options);
              hideload();
 		}		
@@ -537,12 +616,96 @@
              hideload();			
 		}
 		//------TABLESPACECHART
+		//------CONTENTSIZETABLE
+        function drawContentSize(ts) {	
+			if ( typeof ts === 'undefined'){
+				ts = timeSpan2
+			}
+            var ctSizeQuery = "select multiIf(content='P','DATA',content='T','TEMPORARY',content='U','UNDO','N/A') content, round(sum(sizeMb)/1024) sizeGb "+
+					"from oradb.dbfiles_buffer "+
+					"where snapTime = (select max(snapTime) from dbfiles where dbuniquename='"+dbUniqueName+"' and snapTime<='"+ts+"') "+
+					"and dbuniquename='"+dbUniqueName+"' group by content order by content";
+			//alert(tsSizeQuery);
+			//showload();
+			a_getData(ctSizeQuery,drawContentSize_);			
+		}
+        function drawContentSize_(inputdata){	
+			var drawRegion = "contentsizeregion";
+			document.getElementById(drawRegion).innerHTML='';
+            var data = new google.visualization.DataTable();
+            //--add Columns
+            data.addColumn('string', 'Content');
+            data.addColumn('string', 'Summary, Gb');
+            //-- add Data
+            data.addRows(parseSchemasSizeDiffData(inputdata));
+            var options = {
+                title: 'Content size',
+                width: '98%',
+                //height: '100%',
+                allowHtml: true,
+                showRowNumber: false,
+                backgroundColor: {fill: 'transparent'}
+            };
+            var tsSizeChart = new google.visualization.Table(document.getElementById(drawRegion));
+            tsSizeChart.draw(data, options);
+            //hideload();
+		}			
+		//------CONTENTSIZETABLE
+		//------CONTENTSIZECHART
+        function drawContentSizeChart() {	
+            var contentSizeQuery = "select st,hr,round(sum(dataMb)/1024) dataGb,round(sum(undoMb)/1024) undoGb, round(sum(tempMb)/1024) tempGb "+
+				"from ( "+
+				"select formatDateTime(snapTime,'%Y-%m-%d') st,toHour(snapTime) hr, "+
+				"if(content='P',sizeMb,0) dataMb, if(content='U',sizeMb,0) undoMb,if(content='T',sizeMb,0) tempMb "+
+				"from dbfiles_buffer "+
+				"where dbuniquename='"+dbUniqueName+"' "+
+				"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+				"and snapTime in ( "+
+						"select min(snapTime) as st "+
+						"from oradb.dbfiles_buffer "+
+						"where dbuniquename='"+dbUniqueName+"' "+
+						"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+						"group by formatDateTime(snapTime,'%Y-%m-%d'), toHour(snapTime)    "+
+					") "+
+				") group by st,hr order by st,hr";
+				//alert(contentSizeQuery);
+			a_getData(contentSizeQuery,drawContentSizeChart_);			
+		}
+        function drawContentSizeChart_(inputdata){	
+			var drawRegion = "contentchartregion";	
+            var data = new google.visualization.DataTable();
+            //--add Columns
+            data.addColumn('string', 'TimeStamp');
+            data.addColumn('number', 'Data');
+            data.addColumn('number', 'Undo');
+            data.addColumn('number', 'Temporary');
+            //-- add Data
+            data.addRows(parseContentSizeData(inputdata));
+             var options = {
+                 title: 'Content Size, Gb',
+                 width: 1800,
+                 height: 500,
+                 hAxis: {textPosition: 'none'},
+                 vAxis: {minValue: 0, format: '####'},
+                 animation: {startup: 'false', duration: 10000},
+                 //orientation : 'vertical',
+                 legend: {position: 'bottom', maxLines: 1},
+                 isStacked: true,
+                 backgroundColor: {fill: 'transparent'},
+                 pointSize: 1
+             };
+             var contentSizeChart = new google.visualization.AreaChart(document.getElementById(drawRegion));
+             contentSizeChart.draw(data, options);            	
+		}		
+		//------CONTENTSIZECHART
     </script>
   </head>
 
   <body onLoad=''>
 	<div id="modalrg"></div>
 	<div id="dbsizeregion"></div>
+	<div id="contentchartregion"></div>
+	<div id="contentsizeregion"></div>
 	<div id="tschartregion"></div>
 	<div id="tssizeregion"></div>
 	<div id="schemasregion"></div>

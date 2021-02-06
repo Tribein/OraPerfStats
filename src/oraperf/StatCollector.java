@@ -16,6 +16,7 @@ public class StatCollector
 
     private final SL4JLogger lg;
     private final int threadType;
+    private final long sleepTime = 86400000;
     private final String dbUserName;
     private final String dbPassword;
     private final String dbConnectionString;
@@ -112,12 +113,43 @@ public class StatCollector
                 return version;
             }
     }
+    private int getRole (Connection con) {
+            int role = 0;
+            ResultSet rs = null;
+            Statement stmt = null;
+            try{
+                stmt = con.createStatement();
+                rs = stmt.executeQuery("select count(1) from v$database where upper(database_role) like '%STANDBY'");
+                if(rs.next()){
+                    role = rs.getInt(1);
+                }
+                rs.close();
+                stmt.close();
+                return role;
+            }catch(Exception e){
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "cannot get version from database" 
+                    + "\t" + e.getMessage()
+            );                
+                //e.printStackTrace();
+                if( rs != null || !rs.isClosed()){
+                    rs.close();
+                }
+                if ( stmt != null || ! stmt.isClosed()){
+                    stmt.close();
+                }
+                role = -1;
+            }finally{
+                return role;
+            }
+    }    
     
     @Override
     public void run() {
         Connection con=null;
         boolean shutdown = false;
         int dbVersion = 0;
+        int dbRole = 0;
         
         Thread.currentThread().setName(dbHostName+"@"+dbUniqueName+"@"+String.valueOf(threadType));
 
@@ -125,8 +157,9 @@ public class StatCollector
         
         if(!(con==null)){
             dbVersion = getVersion(con);
+            dbRole = getRole(con);
         }
-        if (!shutdown && dbVersion>0) {
+        if (!shutdown && dbVersion>0 && dbRole>=0) {
             try {
                 switch (threadType) {
                     case THREADWAITS:
@@ -134,16 +167,26 @@ public class StatCollector
                         waits.RunCollection();
                         break;
                     case THREADSESSION:
-                        SesCollector ses = new SesCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
-                        ses.RunCollection();
+                        if(dbRole==0){
+                            SesCollector ses = new SesCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
+                            ses.RunCollection();
+                        }else{
+                            cleanup(con);
+                            Thread.sleep(sleepTime);
+                        }
                         break;
                     case THREADSYSTEM:
-                        SysCollector sys = new SysCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
-                        sys.RunCollection();
+                            SysCollector sys = new SysCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion, dbRole);
+                            sys.RunCollection();
                         break;
                     case THREADSQL:
-                        SQLCollector sql = new SQLCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
-                        sql.RunCollection();
+                        if(dbRole==0){
+                            SQLCollector sql = new SQLCollector(con, ckhQueue, dbUniqueName, dbHostName, dbConnectionString, dbVersion);
+                            sql.RunCollection();
+                        }else{
+                            cleanup(con);
+                            Thread.sleep(sleepTime);
+                        }
                         break;
                     default:
                         lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString 
