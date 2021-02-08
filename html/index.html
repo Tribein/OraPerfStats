@@ -111,6 +111,7 @@
             var classNum;
             var sid;
             var serial;
+            var hostName = 'kis7771.moscow.sportmaster.ru';
             //--------------------------------------------------------------
             function checkClassNum(inp) {
                 for (var i in arrClassNum) {
@@ -200,9 +201,8 @@
             //--------------------------------------------------------------            
             //------WAITS
             function drawWaitsChart(){
-				var waitsQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" +
-					dbUniqueName +
-                    "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,classnum order by snapTime asc";
+				var waitsQuery = "select snapTime,classnum, count(1) val from sessions_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' " +
+                    "and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,classnum order by snapTime asc";
                 showload();
                 a_getData(waitsQuery,drawWaitsChart_);
                 drawLocksChart();
@@ -269,9 +269,8 @@
                 if (classNum < 0) {
                     return null;
                 }				
-                var eventsQuery = "select snapTime,event, count(1) val,classnum from sessions_buffer where dbuniquename='" +
-                        dbUniqueName +
-                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,event,classnum order by snapTime asc, val asc";
+                var eventsQuery = "select snapTime,event, count(1) val,classnum from sessions_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' " +
+                        "and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime,event,classnum order by snapTime asc, val asc";
                 showload();	
                 a_getData(eventsQuery,drawEventsChart_);			
 			}
@@ -317,7 +316,7 @@
 				var drawRegion = "eventsessregion";
 				eventSessionsQuery = "select sid,serial,schemaname,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,seq,p1,p2,blocking_session,callEt,waitobj,ecid "+
 						"from sessions_buffer " +
-                        "where dbuniquename='" + dbUniqueName + "' and snapTime='" + ts + "' and event='"+event+"' order by sid";
+                        "where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime='" + ts + "' and event='"+event+"' order by sid";
                 showload();
                 var data = google.visualization.arrayToDataTable(parseEventSessionsData(getData(eventSessionsQuery)));
                 var options = {
@@ -354,7 +353,7 @@
             //------LOCKSTREE
             function drawLocksTreeTable(input) {
                 locksTreeQuery = "select sid,serial,schemaname,machine,module,program,logon_time,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session,callEt,waitobj from sessions_buffer " +
-                        "where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "' and (" +
+                        "where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime='" + input + "' and (" +
                         "blocking_session<>0 or sid in (select blocking_session from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime='" + input + "') )";
                 showload();
                 a_getData(locksTreeQuery,drawLocksTreeTable_);				
@@ -395,9 +394,8 @@
             //------LOCKSTREE            
             //------BLOCKINGS
             function drawLocksChart() {
-                var locksQuery = "select snapTime, sum(if(blocking_session=0,0,1)) as val from sessions_buffer where dbuniquename='" +
-                        dbUniqueName +
-                        "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime order by snapTime asc";
+                var locksQuery = "select snapTime, sum(if(blocking_session=0,0,1)) as val from sessions_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' " +
+                        "and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' group by snapTime order by snapTime asc";
                 showload();	
                 a_getData(locksQuery,drawLocksChart_);
 			}
@@ -447,16 +445,16 @@
                         "sid,classnum,cnt,tot,ni,module,machine,schemaname,serial,sipHash64(concat(module,machine,schemaname,toString(serial),toString(sid))) as sessid" +
                         " from (select sid,serial,classnum,cnt,tot,machine,module,schemaname from (" +
                         "select sid,serial,module,machine,schemaname,classnum,count(1) as cnt,1 as dummy " +
-                        "from sessions_buffer where classnum<>6 and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
+                        "from sessions_buffer where classnum<>6 and dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
                         "group by sid,serial,module,machine,schemaname,classnum" +
                         ") all left join (" +
                         "select 1 as dummy,count(st) as tot from (select snapTime as st " +
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
                         "group by st)" +
                         ") using dummy) all inner join (" +
                         "select sid,serial,module,machine,schemaname,ni from (" +
                         "select sid,serial,module,machine,schemaname,count(1) as ni " +
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' and classnum<>6 " +
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' and classnum<>6 " +
                         "group by sid,serial,module,machine,schemaname having count(1)>0 order by ni desc" +
                         ") limit 20" +
                         ") using sid,serial,module,machine,schemaname " +
@@ -504,17 +502,17 @@
             function drawSQLsTable() {
                 var sqlsQuery = "select sqlid,sql_id,classnum,cnt,tot,ni from (select sqlid,sql_id,classnum,cnt,tot from (" +
                         "select sipHash64(toStringCutToZero(sql_id)) as sqlid, sql_id,classnum,count(1) as cnt, 1 as dummy " +
-                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' and toStringCutToZero(sql_id)<>'-' and classnum<>6 " +
+                        "from sessions_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' and toStringCutToZero(sql_id)<>'-' and classnum<>6 " +
                         "group by sqlid,sql_id,classnum" +
                         ") all left join (" +
                         "select 1 as dummy,count(st) as tot from (" +
 						"select snapTime as st from sessions_buffer " +
-                        "where toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
+                        "where toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
                         "group by snapTime)" +
                         ") using dummy) all inner join (" +
                         "select sql_id,ni from (" +
                         "select sql_id,count(1) as ni from sessions_buffer " +
-                        "where classnum<>6 and toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
+                        "where classnum<>6 and toStringCutToZero(sql_id)<>'-' and dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime >= '" + timeSpan1 + "' and snapTime <= '" + timeSpan2 + "' " +
                         "group by sql_id having count(1)>0 order by ni desc" +
                         ") limit 20" +
                         ") using sql_id order by ni desc,sql_id,cnt asc";
@@ -567,12 +565,12 @@
 				serial = inpserial;
                 var statsQuery = "select statName,vl from ("+
 							"select dbuniquename,statId,endvalue-beginvalue as vl from (" +
-							"select dbuniquename,statId,value as beginvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
-							"select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + sid + " and serial="+serial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+							"select dbuniquename,statId,value as beginvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime = (" +
+							"select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and sid=" + sid + " and serial="+serial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
 							") and sid=" + sid + " and serial="+serial+
 							") any inner join (" +
-							"select dbuniquename,statId,value as endvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and snapTime = (" +
-							"select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + sid + " and serial="+serial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+							"select dbuniquename,statId,value as endvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime = (" +
+							"select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and sid=" + sid + " and serial="+serial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
 							") and sid=" + sid + " and serial="+serial+
 							") using statId,dbuniquename where (endvalue-beginvalue)<>0 ) "+
 							" any left join statnames_buffer using statId,dbuniquename " +
@@ -607,7 +605,7 @@
 				var SessionTimeLineQuery = "select snapTime,toStringCutToZero(sql_id),sql_exec_start,event,seq,p1,p2,blocking_session,callEt,waitobj,"+
 						"plsqlEnObj,plsqlEtnSubP,plsqlObj,plsqlSubP,pq,pdml,pddl "+
 						"from sessions_buffer " +
-                        "where dbuniquename='" + dbUniqueName + "' and snapTime>='" + timeSpan1 + "' and snapTime<='"+timeSpan2 +"' " +
+                        "where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime>='" + timeSpan1 + "' and snapTime<='"+timeSpan2 +"' " +
                         "and sid="+sid+" and serial="+serial+" "+
                         "order by snapTime asc";	
                 showload();			
@@ -657,7 +655,7 @@
 					"sipHash64(concat(toString(sql_id),toString(sql_exec_start))) as numid, "+
 					"concat(toString(sql_id),concat(' (',concat(toString(sql_exec_start),')'))) as sql "+
 					" from sessions_buffer where snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "' and "+
-					" dbuniquename='" + dbUniqueName + "' and sid=" + sid + " and serial="+ serial + " and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0'"
+					" dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and sid=" + sid + " and serial="+ serial + " and sql_id<>'-\0\0\0\0\0\0\0\0\0\0\0\0'"
 					" order by sql_exec_start asc";
 				showload();          
 				a_getData(SessionSQLsQuery,drawSessionSQLs_);      

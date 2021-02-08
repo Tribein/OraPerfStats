@@ -408,7 +408,11 @@ public class SysCollector implements Configurable {
             shutdown = true;
         }
         int snapcounter = 0;
-        shutdown = collectStatNames(shutdown,oraStatNamesPreparedStatement);
+        
+        if (dbRole==0){
+            shutdown = collectStatNames(shutdown,oraStatNamesPreparedStatement);
+        }
+        
         while (!shutdown) {
             currentDateTime = Instant.now().getEpochSecond();
             
@@ -418,11 +422,11 @@ public class SysCollector implements Configurable {
             
             shutdown = collectIOFunctionStats(shutdown,currentDateTime,oraIOFunctionStatsPreparedStatement);
             
-            if(snapcounter ==0 || (snapcounter>=12 && snapcounter % 12 == 0) ){
+            if(dbRole==0 && (snapcounter ==0 || (snapcounter>=12 && snapcounter % 12 == 0)) ){
                 shutdown = collectSystemStats(shutdown,currentDateTime,oraSysStatsPreparedStatement);
             }
             
-            if ( (snapcounter==0 || snapcounter == 60) && dbRole==0 ) {
+            if ( dbRole==0 && (snapcounter==0 || snapcounter == 60) ) {
                 shutdown = collectFilesSize(shutdown,currentDateTime,oraFilesSizePreparedStatement);
                 shutdown = collectSegmentsSize(shutdown,currentDateTime,oraSegmentsSizePreparedStatement);
                 if(snapcounter>0){

@@ -85,6 +85,7 @@
             var dbUniqueName = 'sefarm_prd';
             var fileType;
             var functionName;
+            var hostName = 'sefarmmaster.gksm.local';
             //--------------------------------------------------------------
             function preDraw() {
                 te = new Date();
@@ -231,7 +232,7 @@
 				var ioFunctionStatsQuery = "select snapTime,functionName, sum(mb) as tmb, sum(rq) as trq from ( "+
 					"select snapTime, functionName,(srmb+swmb+lrmb+lwmb) mb,  (srrq+swrq+lrrq+lwrq) rq "+
 					"from iofunctionstats_buffer "+
-					"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+					"where dbuniquename='"+dbUniqueName+"' and hostname='"+hostName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					((countBufferCache == 'Y')? "" : " and functionName<>'Buffer Cache Reads' ")+
 					") group by snapTime,functionName order by snapTime,functionName";
 				showload();				
@@ -316,8 +317,8 @@
 							"sum(srmb) as srmb,sum(swmb) as swmb,sum(lrmb) as lrmb,sum(lwmb) as lwmb,"+
 							"sum(srrq) as srrq,sum(swrq) as swrq,sum(lrrq) as lrrq,sum(lwrq) as lwrq "+
 							"from iofunctionstats_buffer "+
-							"where dbuniquename='"+dbUniqueName+"' and snapTime>=(select max(snapTime) from iofunctionstats_buffer where "+
-							"dbuniquename='"+dbUniqueName+"' and snapTime < '"+timeSpan1+"') "+
+							"where dbuniquename='"+dbUniqueName+"' and hostname='"+hostName+"' and snapTime>=(select max(snapTime) from iofunctionstats_buffer where "+
+							"dbuniquename='"+dbUniqueName+"' and hostname='"+hostName+"' and snapTime < '"+timeSpan1+"') "+
 							"and snapTime<='"+timeSpan2+"' and functionName='"+functionName+"' group by snapTime order by snapTime"+
 						") "+
 					") order by snapTime";
@@ -385,7 +386,7 @@
 				var ioFileStatsQuery = "select snapTime,fileType, sum(mb) as tmb, sum(rq) as trq from ( "+
 					"select snapTime, fileType,(srmb+swmb+lrmb+lwmb) mb,  (srrq+swrq+lrrq+lwrq) rq "+
 					"from iofilestats_buffer "+
-					"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
+					"where dbuniquename='"+dbUniqueName+"' and hostname='"+hostName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					") group by snapTime,fileType order by snapTime,fileType";
 				showload();			
 				a_getData(ioFileStatsQuery,drawIOFileStatsChart_);
@@ -464,7 +465,7 @@
 				var ioFileStatsDetailsQuery = "select snapTime,fileName, sum(mb) as tmb, sum(rq) as trq from ( "+
 					"select snapTime, fileName,(srmb+swmb+lrmb+lwmb) mb,  (srrq+swrq+lrrq+lwrq) rq "+
 					"from iofilestats_buffer "+
-					"where dbuniquename='"+dbUniqueName+"' and fileType='"+fileType+"' "+
+					"where dbuniquename='"+dbUniqueName+"' and hostname='"+hostName+"' and fileType='"+fileType+"' "+
 					"and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"'"+
 					") group by snapTime,fileName order by snapTime,fileName";
 				showload();			
