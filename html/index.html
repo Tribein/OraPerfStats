@@ -137,9 +137,11 @@
                         mappedElem = mappedArr[id];
                         // If the element is not at the root level, add it to its parent array of children.
                         if (mappedElem.parentid) {
-                                mappedArr[mappedElem.parentid]['children'].push(
-                                    { "id": mappedElem.id, "parentid": mappedElem.parentid, "children": mappedElem.children }
-                                );
+								try{
+									mappedArr[mappedElem.parentid]['children'].push(
+										{ "id": mappedElem.id, "parentid": mappedElem.parentid, "children": mappedElem.children }
+									);
+                                }catch{}
                         tree.push(mappedElem);
                         }
                         // If the element is at the root level, add it to first level elements array.

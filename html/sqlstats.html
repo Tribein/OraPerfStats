@@ -42,6 +42,10 @@
   border: 0px; 
   width: 60px;
 }
+
+.noHeader {
+  display: none;
+}
 	</style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
@@ -53,8 +57,9 @@
             var timeSpan1;
             var timeSpan2;
             //--changable
-            var spanMinutes = 60;
-            var dbUniqueName = 'sefarm_prd';
+            var spanMinutes = 120;
+            var dbUniqueName = 'lsm';
+            var hostName = 'sefarmmaster.gksm.local';
             var sqlstat = 'E';
             var sqllimit = 10;
             var sqlid = "";
@@ -104,6 +109,17 @@
                         ("0" + te.getHours()).slice(-2) + ':' + ("0" + te.getMinutes()).slice(-2) + ':' + ("0" + te.getSeconds()).slice(-2)
                         ;
             }
+            //--SQLTEXT
+            function getSQLText(sqlid){
+				if(sqlid.length == 13){
+					var sqlTextQuery = "select distinct sqltext from sqltexts_buffer where sqlid='"+sqlid+"'";
+					var	sqltext = getData(sqlTextQuery);
+					return sqltext;
+				}else{
+					return "Wrong SQLID"
+				}
+			}
+            //--SQLTEXT                        
 			//--------------------------------------------------------------
 			function drawSQLStats(){
 				preDraw();
@@ -172,34 +188,24 @@
 				return outData;				
 			}
 			//--------------------------------------------------------------
-            //--SQLTEXT
-            function getSQLText(sqlid){
-				if(sqlid.length == 13){
-					var sqlTextQuery = "select distinct sqltext from sqltexts_buffer where sqlid='"+sqlid+"'";
-					var	sqltext = getData(sqlTextQuery);
-					return sqltext;
-				}else{
-					return "Wrong SQLID"
-				}
-			}
-            //--SQLTEXT
             //--SQLSTATS	
             function drawSQLStatsChart(){
 				var SQLStatsQuery = "select snapTime, sql_id,execs from ( "+
 						"select snapTime,sql_id,sum(executions) execs "+
 						"from sqlstats_buffer "+
-						"where dbuniquename='sefarm_prd' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+						"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' "+
+						"and toYYYYMMDD(snapTime) between toYYYYMMDD(toDateTime('"+timeSpan1+"')) and toYYYYMMDD(toDateTime('"+timeSpan1+"')) " +
 						"group by snapTime,sql_id "+
 						") any right join ( "+
 							"select sql_id from ( "+
 								"select sql_id,exec2-exec1 vl from ( "+
 									"select sql_id,exec1,exec2 from ( "+
 										"select sql_id,sum(executions) exec1 from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime=( "+
-											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime<='"+timeSpan1+"' "+
+											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and toYYYYMMDD(snapTime) = toYYYYMMDD(toDateTime('"+timeSpan1+"')) and snapTime<='"+timeSpan1+"' "+
 										") group by sql_id "+
 									") any left join ( "+
 										"select sql_id,sum(executions) exec2 from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime=( "+
-											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime<='"+timeSpan2+"' "+
+											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and toYYYYMMDD(snapTime) = toYYYYMMDD(toDateTime('"+timeSpan2+"')) and snapTime<='"+timeSpan2+"' "+
 										") group by sql_id "+
 									") using sql_id "+
 								") where vl>0 order by vl desc "+
@@ -231,17 +237,91 @@
                 hideload();
                 function SQLStatsSelectHandler(e) {
 					var sel = SQLStatsChart.getSelection();
-                    document.getElementById('sqltextregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
+                    document.getElementById('sqltxtregion').innerHTML = '<span style="font-family: monospace; font-size: large;"><b>'+
 							data.getColumnLabel(sel[0].column) +
 							'</b>:<br />'+
 							getSQLText(data.getColumnLabel(sel[0].column)).replace(/\\n/g,'<br />')+
 							'</span>';					
-					document.getElementById('sqltextregion').scrollIntoView({block: "center", behavior: "smooth"});
+					document.getElementById('sqltxtregion').scrollIntoView({block: "center", behavior: "smooth"});
 					drawSQLPlansChart(data.getColumnLabel(sel[0].column));
                 }
                 google.visualization.events.addListener(SQLStatsChart, 'select', SQLStatsSelectHandler);                
 			}   
 			//--SQLSTATS
+			//--SQLMETA
+			function drawSQLMetaInfo(inputdata){
+				var drawRegion = "sqlmetaregion";
+				var data = new google.visualization.DataTable();
+				data.addColumn('string', 'Name');
+				data.addColumn('string', 'Value');
+				data.addRows([
+					['Executions ( serial / parallel )', String(Number(inputdata[1][17])-Number(inputdata[0][17])) + "&nbsp;/&nbsp;" + String(Number(inputdata[1][18]-Number(inputdata[0][18])))],
+					['Memory, Kb',String(Math.round((Number(inputdata[1][1])+Number(inputdata[1][2])+Number(inputdata[1][3]))/1024))],
+					['Versions(kept / loaded / open)',(inputdata[1][4]+"&nbsp;/&nbsp;"+inputdata[1][5]+"&nbsp;/&nbsp;"+inputdata[1][6])],
+					['Optimizer cost',inputdata[1][10]],
+					['Schema',inputdata[1][9]],
+					['Profile',inputdata[1][12]],
+					['Program(id / line)',inputdata[1][13]+"&nbsp;/&nbsp;"+inputdata[1][14]],
+					['Status',inputdata[1][11]]
+				]);
+                var options = {
+                    title: 'Metadata for SQL ID: '+sqlid+', plan hash value: '+planhv,
+                    width: '100%',
+                    //height: '100%',
+                    allowHtml: true,
+                    showRowNumber: false,
+                    backgroundColor: {fill: 'transparent'},
+                    cssClassNames: { headerCell: 'noHeader' }
+                };
+                var SQLMetaDataTable = new google.visualization.Table(document.getElementById(drawRegion));
+                SQLMetaDataTable.draw(data, options);					
+				document.getElementById(drawRegion).scrollIntoView({block: "center", behavior: "smooth"});
+			}
+			//--SQLMETA
+			//--SQLWAITS
+			function drawSQLWaitsInfo(inputdata){
+				var drawRegion = "sqlwaitsregion";
+				var data = google.visualization.arrayToDataTable([
+					[{id: 'waitname', label: 'Name', type: 'string'},{id: 'waitvalue', label: 'Value', type: 'number'}],
+					['CPU',Number(((Number(inputdata[1][26])-Number(inputdata[0][26]))/1000000).toFixed(3))],
+					['Application',Number(((Number(inputdata[1][28])-Number(inputdata[0][28]))/1000000).toFixed(3))],
+					['Concurrency',Number(((Number(inputdata[1][29])-Number(inputdata[0][29]))/1000000).toFixed(3))],
+					['Cluster',Number(((Number(inputdata[1][30])-Number(inputdata[0][30]))/1000000).toFixed(3))],
+					['User I/O',Number(((Number(inputdata[1][31])-Number(inputdata[0][31]))/1000000).toFixed(3))],
+					['PL/SQL',Number(((Number(inputdata[1][32])-Number(inputdata[0][32]))/1000000).toFixed(3))],
+					['Java',Number(((Number(inputdata[1][33])-Number(inputdata[0][33]))/1000000).toFixed(3))],
+					[
+						'Other Waits',
+						Number((
+						Math.abs(
+						(Number(inputdata[1][27]) - Number(inputdata[0][27])) 
+						-
+						(Number(inputdata[1][26]) - Number(inputdata[0][26])) 
+						-
+						(Number(inputdata[1][28]) - Number(inputdata[0][28]))
+						-
+						(Number(inputdata[1][29]) - Number(inputdata[0][29]))
+						-
+						(Number(inputdata[1][30]) - Number(inputdata[0][30]))
+						-
+						(Number(inputdata[1][31]) - Number(inputdata[0][31]))
+						-
+						(Number(inputdata[1][32]) - Number(inputdata[0][32]))
+						-
+						(Number(inputdata[1][33]) - Number(inputdata[0][33]))
+						)/1000000).toFixed(3))
+					]	
+				]);
+                var options = {
+                    //title: 'Waits for SQL ID: '+sqlid+', plan hash value: '+planhv+', s',
+                    backgroundColor: {fill: 'transparent'},
+                    colors : ['LimeGreen','Red','DarkRed','Sienna','Blue','AliceBlue','Gold','Grey'],
+                    sliceVisibilityThreshold: 0.001
+                };
+                var SQLWaitsChart = new google.visualization.PieChart(document.getElementById(drawRegion));
+                SQLWaitsChart.draw(data, options);		
+			}
+			//--SQLWAITS			
 			//--SQLPLANS
 			function drawSQLPlansChart(inpsqlid){
 				sqlid = inpsqlid;
@@ -249,16 +329,17 @@
 						"select snapTime,plan_hash_value,executions execs "+
 						"from sqlstats_buffer "+
 						"where dbuniquename='"+dbUniqueName+"' and snapTime>='"+timeSpan1+"' and snapTime<='"+timeSpan2+"' and sql_id='"+sqlid+"'"+
+						"and toYYYYMMDD(snapTime) between toYYYYMMDD(toDateTime('"+timeSpan1+"')) and toYYYYMMDD(toDateTime('"+timeSpan1+"')) " +
 						") any right join ( "+
 							"select plan_hash_value from ( "+
 								"select plan_hash_value,exec2-exec1 vl from ( "+
 									"select plan_hash_value,exec1,exec2 from ( "+
 										"select plan_hash_value,executions exec1 from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and sql_id='"+sqlid+"' and snapTime=( "+
-											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime<='"+timeSpan1+"' "+
+											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and toYYYYMMDD(snapTime) = toYYYYMMDD(toDateTime('"+timeSpan1+"')) and snapTime<='"+timeSpan1+"' "+
 										") "+
 									") any left join ( "+
 										"select plan_hash_value,executions exec2 from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and sql_id='"+sqlid+"' and snapTime=( "+
-											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and snapTime<='"+timeSpan2+"' "+
+											"select max(snapTime) from sqlstats_buffer where dbuniquename='"+dbUniqueName+"' and toYYYYMMDD(snapTime) = toYYYYMMDD(toDateTime('"+timeSpan2+"')) and snapTime<='"+timeSpan2+"' "+
 										") "+
 									") using plan_hash_value "+
 								") where vl>0 order by vl desc "+
@@ -291,45 +372,119 @@
 					var sel = SQLPlansChart.getSelection();
 					drawSQLDetails(sqlid,data.getColumnLabel(sel[0].column));
                 }
-                google.visualization.events.addListener(SQLPlansChart, 'select', SQLPlansSelectHandler);                    					               
+                google.visualization.events.addListener(SQLPlansChart, 'select', SQLPlansSelectHandler);  
+                try{
+					document.getElementById("").innerHTML="sqldetailsregion";
+				}catch{}
+				try{
+					document.getElementById("").innerHTML="sqlwaitsregion";
+				}catch{}
+				try{
+					document.getElementById("").innerHTML="sqlmetaregion";
+				}catch{}
+				try{
+					document.getElementById("").innerHTML="sqltxtregion";
+				}catch{}				
 			}   			
 			//--SQLPLANS
 			//--SQLDETAILS
 			function drawSQLDetails(inpsqlid,inpplanhv){
 				sqlid = inpsqlid;
 				planhv = inpplanhv;				
-                var SQLDetailsQuery = "select 0 as mk,sharable_mem,persistent_mem,runtime_mem,kept_versions,loaded_versions,open_versions,users_opening,users_executing,"+
-                "parsing_schema_name,optimizer_cost,object_status,sql_profile,program_id,program_line "+
+                var SQLDetailsQuery = "select * from ( "+
+                "select 0 as mk,sharable_mem,persistent_mem,runtime_mem,kept_versions,loaded_versions,open_versions,users_opening,users_executing,"+
+                "parsing_schema_name,optimizer_cost,object_status,sql_profile,program_id,program_line,"+
+                "sorts,fetches,executions,px_servers_executions,end_of_fetch_count,loads,invalidations,parse_calls,disk_reads,direct_writes,buffer_gets,"+
+                "cpu_time,elapsed_time,application_wait_time,concurrency_wait_time,cluster_wait_time,user_io_wait_time,plsql_exec_time,java_exec_time,"+
+                "rows_processed,physical_read_requests,optimized_phy_read_requests,physical_read_bytes,physical_write_requests,physical_write_mb "+                
 				"from oradb.sqlstats_buffer where sql_id='"+sqlid+"' and plan_hash_value="+planhv+" and dbuniquename = '"+dbUniqueName+"' "+
-				"and snapTime =(select max(snapTime) from sqlstats_buffer where snapTime<= '"+timeSpan1+"' and dbuniquename = '"+dbUniqueName+"') "+
+				"and snapTime =(select max(snapTime) from sqlstats_buffer where snapTime<= '"+timeSpan1+"' and toYYYYMMDD(snapTime) = toYYYYMMDD(toDateTime('"+timeSpan1+"')) and dbuniquename = '"+dbUniqueName+"') "+
 				"union all "+
 				"select 1 as mk,sharable_mem,persistent_mem,runtime_mem,kept_versions,loaded_versions,open_versions,users_opening,users_executing,"+
-                "parsing_schema_name,optimizer_cost,object_status,sql_profile,program_id,program_line "+
+                "parsing_schema_name,optimizer_cost,object_status,sql_profile,program_id,program_line,"+
+                "sorts,fetches,executions,px_servers_executions,end_of_fetch_count,loads,invalidations,parse_calls,disk_reads,direct_writes,buffer_gets,"+
+                "cpu_time,elapsed_time,application_wait_time,concurrency_wait_time,cluster_wait_time,user_io_wait_time,plsql_exec_time,java_exec_time,"+
+                "rows_processed,physical_read_requests,optimized_phy_read_requests,physical_read_bytes,physical_write_requests,physical_write_mb "+
 				"from oradb.sqlstats_buffer "+
 				"where sql_id='"+sqlid+"' and plan_hash_value="+planhv+" and dbuniquename = '"+dbUniqueName+"' "+
-				"and snapTime =(select max(snapTime) from sqlstats_buffer where snapTime<= '"+timeSpan2+"' and dbuniquename = '"+dbUniqueName+"')";
+				"and snapTime =(select max(snapTime) from sqlstats_buffer where snapTime<= '"+timeSpan2+"' and toYYYYMMDD(snapTime) = toYYYYMMDD(toDateTime('"+timeSpan2+"')) and dbuniquename = '"+dbUniqueName+"') "+
+				") order by mk";
 				showload();				
 				a_getData(SQLDetailsQuery,drawSQLDetails_);
 			}
 			function drawSQLDetails_(inputdata){
 				var drawRegion = "sqldetailsregion";
 				var data = new google.visualization.DataTable();
-				data.addColumn('string', 'Dummy');
-				data.addColumn('string', 'sharable_mem');
-				data.addColumn('string', 'persistent_mem');
-				data.addColumn('string', 'runtime_mem');
-				data.addColumn('string', 'kept_versions');
-				data.addColumn('string', 'loaded_versions');
-				data.addColumn('string', 'open_versions');
-				data.addColumn('string', 'users_opening');
-				data.addColumn('string', 'users_executing');
-				data.addColumn('string', 'parsing_schema_name');
-				data.addColumn('string', 'optimizer_cost');
-				data.addColumn('string', 'object_status');
-				data.addColumn('string', 'sql_profile');
-				data.addColumn('string', 'program_id');
-				data.addColumn('string', 'program_line');
-                data.addRows(parseSQLDetailsData(inputdata));
+				data.addColumn('string', 'Name');
+				data.addColumn('string', 'Value');
+				data.addColumn('string', 'Per execution');
+				sqlData = parseSQLDetailsData(inputdata);
+				var sqlExecutions = Number(sqlData[1][17])-Number(sqlData[0][17]) + Number(sqlData[1][18]) - Number(sqlData[0][18]);
+				drawSQLMetaInfo(sqlData);
+				drawSQLWaitsInfo(sqlData);
+                data.addRows([
+					[
+						"Fetches ( total / completed )", 
+						String(Number(sqlData[1][16])-Number(sqlData[0][16])) + "&nbsp;/&nbsp;"+  String(Number(sqlData[1][19])-Number(sqlData[0][19])),
+						String( Math.round((Number(sqlData[1][16])-Number(sqlData[0][16]))/sqlExecutions) ) 
+						+ "&nbsp;/&nbsp;"+  
+						String( Math.round((Number(sqlData[1][19])-Number(sqlData[0][19]))/sqlExecutions) ) 
+					],
+					[
+						"Elapsed time, seconds", 
+						((Number(sqlData[1][27])  - Number(sqlData[0][27]))/1000000).toFixed(3),
+						Math.round((Number(sqlData[1][27])  - Number(sqlData[0][27]))/sqlExecutions/1000000).toFixed(6)
+					],
+					[
+						"Parse calls", 
+						String(Number(sqlData[1][22])-Number(sqlData[0][22])),
+						String(Math.round((Number(sqlData[1][22])-Number(sqlData[0][22]))/sqlExecutions)),
+					],
+					[
+						"Buffer gets", 
+						String(Number(sqlData[1][25])-Number(sqlData[0][25])),
+						String(Math.round((Number(sqlData[1][25])-Number(sqlData[0][25]))/sqlExecutions))
+					],
+					[
+						"Rows", 
+						String(Number(sqlData[1][34])  - Number(sqlData[0][34])),
+						String(Math.round((Number(sqlData[1][34])  - Number(sqlData[0][34]))/sqlExecutions))
+					],
+					[
+						"Disk reads / writes ", 
+						String(Number(sqlData[1][23])-Number(sqlData[0][23])),
+						String(Math.round((Number(sqlData[1][23])-Number(sqlData[0][23]))/sqlExecutions))
+					],
+					[
+						"Disk writes ", 
+						String(Number(sqlData[1][24])-Number(sqlData[0][24])),
+						String(Math.round((Number(sqlData[1][24])-Number(sqlData[0][24]))/sqlExecutions))
+					],
+					[
+						"Physical reads count / flash cache", 
+						String(Number(sqlData[1][35])  - Number(sqlData[0][35])) +"&nbsp;/&nbsp;"+ String(Number(sqlData[1][36])  - Number(sqlData[0][36])),
+						String(
+							Math.round((Number(sqlData[1][35])  - Number(sqlData[0][35]))/sqlExecutions)
+						) +"&nbsp;/&nbsp;"+ String(
+							Math.round((Number(sqlData[1][36])  - Number(sqlData[0][36]))/sqlExecutions)
+						) 
+					],
+					[
+						"Physical reads, Mb", 
+						String(Number(sqlData[1][37])  - Number(sqlData[0][37])),
+						String(Math.round((Number(sqlData[1][37])  - Number(sqlData[0][37]))/sqlExecutions))
+					],
+					[
+						"Physical writes count", 
+						String(Number(sqlData[1][38])  - Number(sqlData[0][38])),
+						String(Math.round((Number(sqlData[1][38])  - Number(sqlData[0][38]))/sqlExecutions)),
+					],
+					[
+						"Physical writes, Mb", 
+						String(Number(sqlData[1][39])  - Number(sqlData[0][39])),
+						String(Math.round((Number(sqlData[1][39])  - Number(sqlData[0][39]))/sqlExecutions)),
+					]
+                ]);
                 var options = {
                     title: 'Details for SQL ID: '+sqlid+', plan hash value: '+planhv,
                     width: '100%',
@@ -350,8 +505,10 @@
   <body onLoad=''>
 	<div id="modalrg"></div>	  
     <div id="sqlstatsregion"></div>
-    <div id="sqltextregion"></div>
+    <div id="sqltxtregion"></div>
     <div id="sqlplansregion"></div>
+	<div id="sqlmetaregion"></div>
+	<div id="sqlwaitsregion" style="width: 400px; height: 400px;"></div>
     <div id="sqldetailsregion"></div>
   </body>
 </html>			            
