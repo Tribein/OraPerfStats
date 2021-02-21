@@ -34,8 +34,8 @@ public class SesCollector implements Configurable {
             "        FROM " +
             "            v$session " +
             "        WHERE " +
-            "            type = 'USER' " +
-            "            AND sid <> sys_context('USERENV','SID') " +
+            "            /*type = 'USER' AND*/ " +
+            "            sid <> sys_context('USERENV','SID') " +
             "            AND ( " +
             "                wait_class# <> 6 " +
             "                OR ( " +
@@ -97,8 +97,8 @@ public class SesCollector implements Configurable {
             "        FROM " +
             "            v$session " +
             "        WHERE " +
-            "            type = 'USER' " +
-            "            AND sid <> sys_context('USERENV','SID') " +
+            "            /*type = 'USER' AND*/ " +
+            "            sid <> sys_context('USERENV','SID') " +
             "            AND ( " +
             "                wait_class# <> 6 " +
             "                OR ( " +
