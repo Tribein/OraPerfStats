@@ -21,7 +21,7 @@ public interface Configurable {
   public static final int THREADSYSTEM        = 2;
   public static final int THREADSQL           = 3;
   
-  public static final int SECONDSBETWEENSQLSNAPS            = 600;
+  public static final int SECONDSBETWEENSQLSNAPS            = 1800;
   public static final int SECONDSBETWEENSESSSTATSSNAPS      = 30;
   public static final int SECONDSBETWEENSESSWAITSSNAPS      = 10;
   public static final int SECONDSBETWEENSYSSTATSSNAPS       = 10;

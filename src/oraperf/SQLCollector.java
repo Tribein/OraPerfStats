@@ -307,7 +307,7 @@ public class SQLCollector implements Configurable {
         long begints,endts;
         while (!shutdown) {
             shutdown = collectSQLStats(shutdown,oraSQLStatsPreparedStatement);
-            if(counter==6){
+            if(counter==2){
                 begints = System.currentTimeMillis();
                 shutdown = collectSQLTexts(shutdown,oraSQLTextsPreparedStatement);
                 shutdown = collectSQLPlans(shutdown,oraSQLPlansPreparedStatement);
