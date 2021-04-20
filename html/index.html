@@ -575,7 +575,7 @@
 							"select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + sid + " and serial="+serial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
 							") and sid=" + sid + " and serial="+serial+
 							") using statId,dbuniquename where (endvalue-beginvalue)<>0 ) "+
-							" any left join statnames_buffer using statId,dbuniquename " +
+							" any left join (select statId,statName from statnames_buffer where dbuniquename='" + dbUniqueName + "') using statId " +
 							"order by vl desc";
 				showload();
 				a_getData(statsQuery,drawStatsTable_);				
