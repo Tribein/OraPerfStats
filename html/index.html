@@ -567,12 +567,12 @@
 				serial = inpserial;
                 var statsQuery = "select statName,vl from ("+
 							"select dbuniquename,statId,endvalue-beginvalue as vl from (" +
-							"select dbuniquename,statId,value as beginvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime = (" +
-							"select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and sid=" + sid + " and serial="+serial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+							"select dbuniquename,statId,value as beginvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "'  and snapTime = (" +
+							"select min(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + sid + " and serial="+serial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
 							") and sid=" + sid + " and serial="+serial+
 							") any inner join (" +
-							"select dbuniquename,statId,value as endvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and snapTime = (" +
-							"select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and hostname='"+hostName+"' and sid=" + sid + " and serial="+serial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
+							"select dbuniquename,statId,value as endvalue from sesstats_buffer where dbuniquename='" + dbUniqueName + "'  and snapTime = (" +
+							"select max(snapTime) from sesstats_buffer where dbuniquename='" + dbUniqueName + "' and sid=" + sid + " and serial="+serial+" and snapTime>='" + timeSpan1 + "' and snapTime<='" + timeSpan2 + "'" +
 							") and sid=" + sid + " and serial="+serial+
 							") using statId,dbuniquename where (endvalue-beginvalue)<>0 ) "+
 							" any left join statnames_buffer using statId,dbuniquename " +
