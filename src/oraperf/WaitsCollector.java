@@ -45,7 +45,7 @@ public class WaitsCollector implements Configurable {
             + "        DECODE(a.state,'WAITED KNOWN TIME',127,'WAITED SHORT TIME',127,a.wait_class#) waitclass, "
             + "        round(a.wait_time_micro / 1000000,3) wittime,   "
             + "        nvl(a.sql_id,'-') sqlid,   "
-            + "        nvl(a.sql_exec_start,TO_DATE('19700101','YYYYMMDD')) sqlexecstart,   "
+            + "        nvl(a.sql_exec_start,TO_DATE('20000101','YYYYMMDD')) sqlexecstart,   "
             + "        a.sql_exec_id,   "
             + "        a.logon_time,   "
             + "        a.seq#,   "
