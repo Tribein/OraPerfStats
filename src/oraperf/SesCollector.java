@@ -21,7 +21,7 @@ public class SesCollector implements Configurable {
     private final String dbHostName;
     private final Connection con;
     private static final String ORASESSTATSQUERY = 
-            "SELECT " +
+            "SELECT /*+ use_nl(a b) use_nl(b c) */" +
             "    sid, " +
             "    sserial, " +
             "    statistic#, " +

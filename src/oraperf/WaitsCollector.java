@@ -29,7 +29,7 @@ public class WaitsCollector implements Configurable {
             + "        FROM   "
             + "        v$session  "
             + ") "
-            + "select  "
+            + "select /*+ use_concat */"
             + "        a.sid,   "
             + "        a.serial#,   "
             + "        DECODE(a.taddr,NULL,'N','Y') trn,   "

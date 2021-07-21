@@ -80,7 +80,7 @@
             var timeSpan1;
             var timeSpan2;
             //--changable
-            var spanMinutes = 180/**1440*/;
+            var spanMinutes = 1440/**1440*/;
             var dbUniqueName = 'dwh_m';
             var schema = 'SHOPS_MOD';
             var owner;
@@ -103,7 +103,7 @@
 		//--------------------------------------------------------------
 		function drawSizeChart(){
 			preDraw();
-			//drawDBSizeChart();
+			drawDBSizeChart();
 			drawSchemaDetailsChart(schema);
 		}
 		//--------------------------------------------------------------
@@ -221,7 +221,7 @@
 			for (var i = 0; i < dataLines.length; i++) {
 				if (dataLines[i].length > 0) {
 					rowData = dataLines[i].split(/[\t]+/);
-					outData.push([((rowData[1].localeCompare("-")===0) ? rowData[0] : rowData[0] +"."+rowData[1]),rowData[2], Number(rowData[3])]);
+					outData.push([rowData[0] ,rowData[1], Number(rowData[2])]);
 				}
 			}
 			return outData;			
@@ -314,7 +314,7 @@
              drawContentSizeChart();
              drawTSSizeDiff();
              drawSchemasSizeDiff();	
-             /*
+             
              drawContentSize();	
 			 function dbSizeChartHandler(e) {
 					if (dbSizeChart.getSelection().length !== 0) {
@@ -323,7 +323,7 @@
 					}
 			}
             google.visualization.events.addListener(dbSizeChart, 'select', dbSizeChartHandler);              	
-            */
+            
 		}
 		//------DBSIZE
 		//------SCHEMASDIFF
@@ -433,9 +433,9 @@
 		//------SEGMENTSDIFF
 		function drawSegmentsSizeDiff( inpowner ){
 			owner = inpowner;
-			var segmentsSizeDiffQuery = "select sn,pn,st,(sz2-sz1) as df "+
+			var segmentsSizeDiffQuery = "select sn,st,sum(sz2-sz1) as df "+
 				"from ( "+
-					"select segName as sn,partName as pn,segType as st,sizeMb as sz1 "+
+					"select segName as sn,segType as st,sizeMb as sz1 "+
 					"from segments_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' and owner='"+owner+"' "+
 					"and snapTime=( "+
@@ -443,15 +443,16 @@
 						"where dbuniquename='"+dbUniqueName+"'  and snapTime>='"+timeSpan1+"' "+
 					") " +
 				") any full join ( "+
-					"select segName as sn,partName as pn,segType as st,sizeMb as sz2 "+
+					"select segName as sn,segType as st,sizeMb as sz2 "+
 					"from segments_buffer "+
 					"where dbuniquename='"+dbUniqueName+"' and owner='"+owner+"' "+
 					"and snapTime=( "+
 						"select max(snapTime) from segments_buffer "+
 						"where dbuniquename='"+dbUniqueName+"'  and snapTime<='"+timeSpan2+"' "+
 					") "+
-				") using (sn,pn,st) "+
+				") using (sn,st) "+
 				"where sz2<>sz1 "+
+				"group by sn,st " +
 				"order by abs(df) desc";
 			showload();	
 			a_getData(segmentsSizeDiffQuery,drawSegmentsSizeDiff_);		
