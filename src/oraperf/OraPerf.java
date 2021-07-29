@@ -25,6 +25,7 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import oracle.jdbc.OracleConnection;
 
 public class OraPerf implements Configurable {
 
@@ -76,8 +77,14 @@ public class OraPerf implements Configurable {
     private static ArrayList<String> getListFromOraDB(String cstr, String usn, String pwd, String query)
             throws ClassNotFoundException, SQLException {
         ArrayList<String> retList = new ArrayList();
-
-        Connection dbListcon = DriverManager.getConnection(cstr, usn, pwd);
+        Properties props = new Properties();
+        props.setProperty(OracleConnection.CONNECTION_PROPERTY_USER_NAME, usn);
+        props.setProperty(OracleConnection.CONNECTION_PROPERTY_PASSWORD, pwd);
+        props.setProperty(OracleConnection.CONNECTION_PROPERTY_NET_KEEPALIVE, "true");
+        props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "10000");
+        props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_READ_TIMEOUT, "180000");
+        props.setProperty(OracleConnection.CONNECTION_PROPERTY_AUTOCOMMIT, "false");
+        Connection dbListcon = DriverManager.getConnection(cstr, props);
         dbListcon.setAutoCommit(false);
         Statement dbListstmt = dbListcon.createStatement(/*1005, 1007*/);
         ResultSet dbListrs = dbListstmt.executeQuery(query);
@@ -355,6 +362,13 @@ public class OraPerf implements Configurable {
             processCKHQueueConsumers();
 
             oraDBList = getOraDBList();
+
+            if(oraDBList==null){
+                lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"
+                        + "NULL database list got from source!"
+                );  
+                System.exit(4);
+            }
             
             if (oraDBList.size() == 0 ){
                 lg.LogWarn(DATEFORMAT.format(LocalDateTime.now()) + "\t"

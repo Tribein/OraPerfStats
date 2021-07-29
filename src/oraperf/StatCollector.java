@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
 import oracle.jdbc.OracleConnection;
 
 public class StatCollector
@@ -58,11 +59,13 @@ public class StatCollector
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_USER_NAME, dbUserName);
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_PASSWORD, dbPassword);
             //props.setProperty(OracleConnection.CONNECTION_PROPERTY_DEFAULT_USE_NIO, "true");
-            //props.setProperty(OracleConnection.CONNECTION_PROPERTY_NET_KEEPALIVE, "true");
-            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "60000");
+            //props.setProperty(OracleConnection.CONNECTION_PROPERTY_LOGIN_TIMEOUT, "8");
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_NET_KEEPALIVE, "true");
+            props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_NET_CONNECT_TIMEOUT, "10000");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_THIN_READ_TIMEOUT, "180000");
             props.setProperty(OracleConnection.CONNECTION_PROPERTY_AUTOCOMMIT, "false");
             con = DriverManager.getConnection("jdbc:oracle:thin:@" + dbConnectionString, props);
+            con.setNetworkTimeout(Executors.newSingleThreadExecutor(), 10000);
             //con.setAutoCommit(false);
         } catch (ClassNotFoundException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
@@ -97,10 +100,10 @@ public class StatCollector
                 stmt.close();
                 return version;
             }catch(Exception e){
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
                     + "\t" + "cannot get version from database" 
                     + "\t" + e.getMessage()
-            );                
+                );                
                 //e.printStackTrace();
                 if( rs != null || !rs.isClosed()){
                     rs.close();
@@ -127,10 +130,10 @@ public class StatCollector
                 stmt.close();
                 return role;
             }catch(Exception e){
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
                     + "\t" + "cannot get version from database" 
                     + "\t" + e.getMessage()
-            );                
+                );                
                 //e.printStackTrace();
                 if( rs != null || !rs.isClosed()){
                     rs.close();
@@ -158,6 +161,11 @@ public class StatCollector
         if(!(con==null)){
             dbVersion = getVersion(con);
             dbRole = getRole(con);
+        }else{
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString
+                    + "\t" + "could not acquire proper database connection!" 
+            ); 
+            return;
         }
         if (!shutdown && dbVersion>0 && dbRole>=0) {
             try {
