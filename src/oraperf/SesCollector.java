@@ -181,6 +181,10 @@ public class SesCollector implements Configurable {
     
     private void cleanup(PreparedStatement oraSesStatsPreparedStatement) {
         try {
+            if(this.con.isClosed()){
+                oraSesStatsPreparedStatement=null;
+                return;
+            }
             if ((oraSesStatsPreparedStatement != null) && (!oraSesStatsPreparedStatement.isClosed())) {
                 oraSesStatsPreparedStatement.close();
             }

@@ -43,7 +43,7 @@ public class StatCollector
             }
         } catch (SQLException e) {
             lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString 
-                    + "\t" + "error during ORADB resource cleanups"
+                    + "\t" + "error during ORADB connection cleanup"
                     + "\t" + e.getMessage()
             );
 

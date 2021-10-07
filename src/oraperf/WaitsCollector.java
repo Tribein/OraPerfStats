@@ -180,6 +180,10 @@ public class WaitsCollector implements Configurable {
 
     private void cleanup(PreparedStatement oraWaitsPreparedStatement) {
         try {
+            if(this.con.isClosed()){
+                oraWaitsPreparedStatement=null;
+                return;
+            }
             if ((oraWaitsPreparedStatement != null) && (!oraWaitsPreparedStatement.isClosed())) {
                 oraWaitsPreparedStatement.close();
             }

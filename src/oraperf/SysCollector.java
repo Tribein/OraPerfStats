@@ -71,6 +71,14 @@ public class SysCollector implements Configurable {
         PreparedStatement oraIOFileStatsPreparedStatement
     ) {
         try {
+            if (this.con.isClosed()){
+                oraSegmentsSizePreparedStatement=null;
+                oraFilesSizePreparedStatement=null;
+                oraSysStatsPreparedStatement=null;
+                oraIOFileStatsPreparedStatement=null;
+                oraIOFunctionStatsPreparedStatement=null;
+                return;
+            }
             if ((oraSegmentsSizePreparedStatement != null) && (!oraSegmentsSizePreparedStatement.isClosed())) {
                 oraSegmentsSizePreparedStatement.close();
             }

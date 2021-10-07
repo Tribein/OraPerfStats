@@ -95,6 +95,12 @@ public class SQLCollector implements Configurable {
             PreparedStatement oraSQLTextsPreparedStatement
     ) {
         try {
+            if(this.con.isClosed()){
+                oraSQLPlansPreparedStatement=null;
+                oraSQLStatsPreparedStatement=null;
+                oraSQLTextsPreparedStatement=null;
+                return;
+            }
             if ((oraSQLPlansPreparedStatement != null) && (!oraSQLPlansPreparedStatement.isClosed())) {
                 oraSQLPlansPreparedStatement.close();
             }
@@ -105,8 +111,9 @@ public class SQLCollector implements Configurable {
                 oraSQLTextsPreparedStatement.close();
             }
         } catch (SQLException e) {
-            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t"
-                    + dbConnectionString + "\t" + "Error durring ORADB resource cleanups!" + "\t" + e.getMessage()
+            lg.LogError(DATEFORMAT.format(LocalDateTime.now()) + "\t" + dbConnectionString + 
+                    "\t" + "error durring ORADB resource cleanups" + 
+                    "\t" + e.getMessage()
             );
 
             //e.printStackTrace();
